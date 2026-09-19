@@ -1,0 +1,11 @@
+# 构建产物（部署包，不入库 —— 随时可由 build_site.py 重新生成）
+site/
+site_trash/
+
+# Python
+__pycache__/
+*.pyc
+
+# 系统垃圾文件
+.DS_Store
+Thumbs.db

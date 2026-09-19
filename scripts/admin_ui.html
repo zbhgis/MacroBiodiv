@@ -1,0 +1,865 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MacroBiodiv · 本地管理</title>
+<style>
+:root{--bg:#0d1117;--text:#e6edf3;--dim:#8b949e;--faint:#6e7681;--line:#1c2129;--line2:#30363d;--accent:#58a6ff;--card:#161b22;--ok:#3fb950;--bad:#f85149;color-scheme:dark}
+@media (prefers-color-scheme:light){:root{--bg:#fff;--text:#1f2328;--dim:#59636e;--faint:#818b98;--line:#e8ebef;--line2:#d0d7de;--accent:#0969da;--card:#f6f8fa;--ok:#1a7f37;--bad:#cf222e;color-scheme:light}}
+*{box-sizing:border-box}
+@keyframes blink{50%{opacity:.3}}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.6 ui-sans-serif,system-ui,"PingFang SC","Microsoft YaHei",sans-serif}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.wrap{max-width:980px;margin:0 auto;padding:32px 20px 80px}
+h1{font-size:22px;margin:0;font-weight:600}
+h2{font-size:13px;margin:34px 0 10px;padding-bottom:7px;border-bottom:1px solid var(--line);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-weight:500;color:var(--dim);letter-spacing:.06em}
+.sub{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;color:var(--faint);margin:8px 0 0}
+.tabs{display:flex;gap:8px;margin:26px 0 0}
+.tab{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;padding:9px 16px;border:1px solid var(--line2);border-radius:6px 6px 0 0;background:transparent;color:var(--dim);cursor:pointer;border-bottom:none}
+.tab.active{color:var(--accent);border-color:var(--accent);background:var(--card)}
+.tabpage{border:1px solid var(--line);border-radius:0 8px 8px 8px;padding:20px;min-height:200px}
+.status{margin-top:14px;padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:var(--card);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;color:var(--dim);display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.status b{font-weight:500;color:var(--text)}
+.badge{padding:1px 7px;border:1px solid var(--line2);border-radius:3px}
+.badge.ok{color:var(--ok);border-color:var(--ok)}
+.badge.warn{color:var(--bad);border-color:var(--bad)}
+#doiBox{border:1px dashed var(--line2);border-radius:8px;padding:14px;transition:border-color .16s,background-color .16s}
+#doiBox.on{border-color:var(--accent);background:var(--card)}
+#doiIn{width:100%;min-height:110px;resize:vertical;padding:9px 11px;border:1px solid var(--line2);border-radius:5px;background:transparent;color:var(--text);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.7}
+#doiIn:focus{outline:none;border-color:var(--accent)}
+#doiFile{display:none}
+.item{border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:14px;background:var(--card);display:grid;grid-template-columns:300px 1fr;gap:16px}
+@media (max-width:760px){.item{grid-template-columns:1fr}}
+.rec{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;color:var(--faint);line-height:1.8;word-break:break-all;min-width:0}
+.rec .t{color:var(--text);font-size:12.5px;line-height:1.6}
+.rec .j{display:inline-block;margin:4px 0 0;padding:1px 8px;border:1px solid var(--accent);border-radius:3px;color:var(--accent);font-size:10.5px}
+.rec .err{color:var(--bad)}
+.rec .abs{margin-top:6px;color:var(--dim);display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:9px 12px;min-width:0}
+@media (max-width:760px){.fields{grid-template-columns:1fr}}
+label{display:block;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:10.5px;color:var(--faint);margin-bottom:4px;letter-spacing:.05em}
+input,textarea,select{width:100%;padding:7px 9px;border:1px solid var(--line2);border-radius:4px;background:transparent;color:var(--text);font-family:inherit;font-size:13px}
+input:focus,textarea:focus{outline:none;border-color:var(--accent)}
+textarea{resize:vertical;min-height:52px}
+.full{grid-column:1/-1}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
+button{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;padding:8px 14px;border:1px solid var(--line2);border-radius:4px;background:transparent;color:var(--dim);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+button.primary{color:var(--ok);border-color:var(--ok)}
+button.primary:hover{background:var(--card)}
+button.danger{color:var(--bad);border-color:var(--bad)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.tiny{padding:4px 9px;font-size:11px}
+.log{margin-top:12px}
+.step{display:flex;gap:10px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--line);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px}
+.step .mark{width:14px;flex:none}
+.step .nm{color:var(--text)}
+.step .out{color:var(--faint);font-size:11px;white-space:pre-wrap;flex:1;min-width:0}
+details{margin-left:24px}
+details summary{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;color:var(--faint);cursor:pointer}
+details pre{margin:8px 0 0;padding:10px;border:1px solid var(--line);border-radius:5px;background:var(--card);font-size:11px;line-height:1.55;max-height:280px;overflow:auto;white-space:pre-wrap}
+.note{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;color:var(--faint);line-height:1.8}
+#fetchNote{white-space:pre-line}
+.hint{padding:9px 12px;border:1px solid var(--line);border-left:2px solid var(--accent);border-radius:4px;background:var(--card);font-size:12px;color:var(--dim);margin-top:10px}
+/* 文献管理列表 */
+.mrow{display:grid;grid-template-columns:1fr auto;gap:14px;border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:12px;background:var(--card);align-items:start}
+@media (max-width:700px){.mrow{grid-template-columns:1fr}}
+.minfo{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;color:var(--faint);line-height:1.8;word-break:break-all;min-width:0}
+.minfo .t{color:var(--text);font-size:12.5px;line-height:1.6;font-family:ui-sans-serif,system-ui,"PingFang SC","Microsoft YaHei",sans-serif;font-weight:600}
+.mact{display:flex;flex-direction:column;gap:8px}
+.editform{grid-column:1/-1;border-top:1px dashed var(--line2);padding-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:9px 12px}
+@media (max-width:700px){.editform{grid-template-columns:1fr}}
+.editform .full{grid-column:1/-1}
+/* 页内确认框（替代原生 confirm——原生弹窗被浏览器拦截后会静默取消，导致按钮"没反应"） */
+.modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:99}
+.modal{background:var(--card);border:1px solid var(--line2);border-radius:10px;padding:18px 20px;max-width:440px;box-shadow:0 12px 40px rgba(0,0,0,.35)}
+.modal .mmsg{font-size:13px;line-height:1.9;white-space:pre-wrap}
+.modal .mrow{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
+.toast{position:fixed;top:18px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--line2);border-left:3px solid var(--accent);border-radius:6px;padding:10px 16px;font-size:12.5px;color:var(--text);z-index:100;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.mgroup{display:flex;align-items:center;gap:10px;margin:0 0 12px;flex-wrap:wrap}
+.mlabel{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;color:var(--faint);min-width:36px;letter-spacing:.05em}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chips button{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;padding:4px 11px;border:1px solid var(--line2);border-radius:999px;background:transparent;color:var(--dim);cursor:pointer;transition:color .15s,border-color .15s}
+.chips button:hover{color:var(--text)}
+.chips button[aria-pressed=true]{color:var(--accent);border-color:var(--accent)}
+.chips button .n{opacity:.55}
+/* 标签选择器 */
+.tagpick{display:flex;flex-wrap:wrap;gap:6px}
+.tagpick button{padding:3px 10px;font-size:11px}
+.tagpick button[aria-pressed=true]{color:var(--accent);border-color:var(--accent)}
+.tagnew{display:flex;gap:6px;margin-top:7px}
+.tagnew input{max-width:260px}
+</style>
+</head>
+<body>
+<datalist id="typeList">
+  <option value="Article"><option value="Research Article"><option value="Review">
+  <option value="Letter"><option value="Perspective"><option value="Comment">
+  <option value="Commentary"><option value="News &amp; Views"><option value="Analysis">
+  <option value="Brief Communication"><option value="Report"><option value="Resource">
+  <option value="Spotlight"><option value="Preview"><option value="Policy Forum">
+  <option value="Editorial"><option value="Erratum"><option value="Preprint">
+</datalist>
+<div class="wrap">
+  <h1>MacroBiodiv · 本地管理</h1>
+  <p class="sub">只监听 127.0.0.1，仅本机可访问 · 推送使用你本机已配置的 git 凭据</p>
+
+  <div class="status" id="status"><span>读取仓库状态…</span></div>
+
+  <div id="initBox" style="display:none">
+    <h2>初始化仓库</h2>
+    <div class="hint">当前目录还不是 git 仓库。填好远端地址后点初始化：会执行 git init、首次提交并推送。</div>
+    <div class="row">
+      <input id="remote" style="max-width:460px" placeholder="https://github.com/zbhgis/MacroBiodiv.git">
+      <button class="primary" id="btnInit">初始化并推送</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="add">添加文献</button>
+    <button class="tab" data-tab="manage">文献管理</button>
+  </div>
+
+  <div class="tabpage" id="tab-add">
+    <h2 style="margin-top:0">输入 DOI</h2>
+    <div id="doiBox">
+      <textarea id="doiIn" placeholder="每行一个 DOI；也支持直接粘贴引用串 / doi.org 链接，会自动提取，例如：&#10;10.1038/s41467-021-24264-9&#10;https://doi.org/10.1126/science.ado5008&#10;Wu S, et al. Nat Commun (2021). https://doi.org/10.1038/..."></textarea>
+      <div class="row" style="margin-top:10px">
+        <button class="primary" id="btnFetch">抓取并解析</button>
+        <button id="btnTxt">从 .txt 导入</button>
+        <input id="doiFile" type="file" accept=".txt,.csv,.ris,.bib,text/plain">
+        <span class="note" style="flex:1">抓取来自 Crossref + OpenAlex（标题 / 作者 / 期刊 / 卷期页 / 摘要 / 关键词 / 被引 / OA），不需要等待太久</span>
+      </div>
+    </div>
+    <p class="note" id="fetchNote" style="margin-top:8px"></p>
+
+    <h2>核对信息（可修改手动字段）</h2>
+    <div id="list"></div>
+    <p class="note" id="emptyNote">还没有待发布的文献。粘贴 DOI 后点「抓取并解析」，每篇会出现在这里。</p>
+
+    <h2>发布</h2>
+    <div class="row">
+      <input id="msg" style="flex:1 1 320px;max-width:460px" placeholder="提交信息（留空自动生成）">
+      <label class="mono" style="display:flex;align-items:center;gap:6px;margin:0;font-size:11px"><input type="checkbox" id="doPush" checked style="width:auto"> 同时推送到 GitHub</label>
+      <label class="mono" style="display:flex;align-items:center;gap:6px;margin:0;font-size:11px"><input type="checkbox" id="doSync" checked style="width:auto"> 同步到服务器</label>
+    </div>
+    <div class="row">
+      <button class="primary" id="btnPublish">发布（写入索引 + 生成站点）</button>
+      <button id="btnPush">仅执行 git push</button>
+    </div>
+    <div class="log" id="log"></div>
+  </div>
+
+  <div class="tabpage" id="tab-manage" style="display:none">
+    <h2 style="margin-top:0">文献管理</h2>
+    <div class="row" style="margin:0 0 12px">
+      <input id="mSearch" placeholder="搜索 标题 / 作者 / DOI / 关键词…" style="flex:1 1 220px;max-width:320px" autocomplete="off">
+      <select id="mJournal" aria-label="按期刊筛选" style="width:auto"><option value="*">期刊 全部</option></select>
+      <input type="date" id="mFrom" style="width:auto" aria-label="时间起始日期（online）" title="按在线发表（online）日期筛选">
+      <span class="note">至</span>
+      <input type="date" id="mTo" style="width:auto" aria-label="时间截止日期（online）" title="按在线发表（online）日期筛选">
+      <button id="mReset">重置筛选</button>
+      <span class="note" id="mCount"></span>
+    </div>
+    <div class="mgroup" style="margin:0 0 14px"><span class="mlabel">标签</span><div class="chips" id="mTagChips"></div></div>
+    <div class="row" style="margin:0 0 16px">
+      <button id="btnSync">同步站点到服务器</button>
+      <button id="btnCited">刷新全部被引数</button>
+      <button id="btnTrMiss">翻译缺中文的</button>
+      <span class="note">被引走 OpenAlex · 翻译调本地大模型（只补空缺不覆盖，429/故障自动退避，可反复点直到补齐）</span>
+    </div>
+    <div id="manageList"><p class="note">读取中…</p></div>
+  </div>
+
+  <h2>说明</h2>
+  <p class="note">
+    · 粘贴的 DOI 会立即抓取元数据，并调用本地大模型做<b>中文翻译（初译 + 审校，两重处理）</b>；只有点「发布」后才写入 <b>meta/papers.json</b>、生成站点并提交。<br>
+    · 大模型配置走环境变量 LLM_API_KEY / LLM_BASE_URL / LLM_MODEL_NAME（OpenAI 兼容接口）。
+      限流预案：429 指数退避并遵守 Retry-After → 重试耗尽进入 60s 断路冷却（期间直接跳过不撞 API）→
+      审校失败或超预算自动降级为「仅初译」→ 初译失败则中文留空。任何失败都不阻断抓取与发布，
+      事后用文献管理的「翻译缺中文的」批量回补（只补空缺、可反复执行）。<br>
+    · 译文（中文标题 / 中文摘要）在表单里可直接修改，修改稿视为定稿 —— 重新抓取 / 刷新被引不会覆盖，只有「重新翻译」会重写。<br>
+    · 文献 id 由 DOI（小写）sha1 前 10 位算出 —— 重复 DOI 发布时会被自动跳过。<br>
+    · 「重新抓取」更新标题 / 作者 / 期刊 / 摘要等自动字段；「刷新被引」只批量更新 cited_by。<br>
+    · 发布 = 写 meta/papers.json → build_site.py → git add/commit/push →（可选）同步服务器。
+  </p>
+</div>
+
+<script>
+var pending = [];
+var status = {};
+var editOpen = null;
+var allTags = [];          // 文献库里已有的全部标签（供点选）
+
+/* 标签选择器：点选已有标签 + 输入新标签回车添加。返回 {node, get()} */
+function tagPicker(current, onChange) {
+  var sel = (current || []).slice();
+  var known = [];
+  (allTags || []).concat(sel).forEach(function (t) {
+    if (t && known.indexOf(t) === -1) known.push(t);
+  });
+  var chipsBox = el("div", "tagpick");
+  var inp = el("input");
+  inp.placeholder = "没有想要的？输入新标签后回车";
+  inp.addEventListener("keydown", function (e) {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    var v = inp.value.trim();
+    if (!v) return;
+    if (known.indexOf(v) === -1) known.push(v);
+    if (sel.indexOf(v) === -1) sel.push(v);
+    inp.value = "";
+    render();
+    if (onChange) onChange(sel);
+  });
+  function render() {
+    chipsBox.innerHTML = "";
+    known.forEach(function (t) {
+      var on = sel.indexOf(t) > -1;
+      var b = el("button", "tiny", on ? "✓ " + t : t);
+      b.type = "button";
+      b.setAttribute("aria-pressed", String(on));
+      b.addEventListener("click", function () {
+        var i = sel.indexOf(t);
+        if (i > -1) sel.splice(i, 1); else sel.push(t);
+        render();
+        if (onChange) onChange(sel);
+      });
+      chipsBox.appendChild(b);
+    });
+  }
+  render();
+  var wrap = el("div", "");
+  wrap.appendChild(chipsBox);
+  wrap.appendChild(el("div", "tagnew", "")).appendChild(inp);
+  return { node: wrap, get: function () { return sel.slice(); } };
+}
+
+/* 关键词文本 → 数组（支持 逗号/顿号/分号 分隔） */
+function parseKw(s) {
+  return String(s || "").split(/[,，;；、]+/).map(function (t) { return t.trim(); }).filter(Boolean);
+}
+
+function el(tag, cls, txt) {
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (txt !== undefined) e.textContent = txt;
+  return e;
+}
+/* 页内确认框：永不被浏览器拦截。ok 回调在用户点「确认」后执行 */
+function toast(msg) {
+  var t = el("div", "toast", msg);
+  document.body.appendChild(t);
+  setTimeout(function () { t.remove(); }, 3500);
+}
+function askConfirm(msg, onOk) {
+  var mask = el("div", "modal-mask");
+  var box = el("div", "modal");
+  box.appendChild(el("div", "mmsg", msg));
+  var row = el("div", "mrow");
+  var no = el("button", "", "取消");
+  var yes = el("button", "primary", "确认");
+  no.addEventListener("click", function () { mask.remove(); });
+  yes.addEventListener("click", function () { mask.remove(); onOk(); });
+  row.appendChild(no); row.appendChild(yes);
+  box.appendChild(row); mask.appendChild(box);
+  document.body.appendChild(mask);
+}
+function api(path, body) {
+  return fetch(path, body ? {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body)
+  } : undefined).then(function (r) { return r.json(); });
+}
+
+/* ── 标签页 ── */
+function showTab(name) {
+  document.querySelectorAll(".tab").forEach(function (t) {
+    t.classList.toggle("active", t.getAttribute("data-tab") === name);
+  });
+  document.getElementById("tab-add").style.display = name === "add" ? "" : "none";
+  document.getElementById("tab-manage").style.display = name === "manage" ? "" : "none";
+  if (name === "manage") loadItems();
+}
+document.querySelectorAll(".tab").forEach(function (t) {
+  t.addEventListener("click", function () { showTab(t.getAttribute("data-tab")); });
+});
+
+/* ── 仓库状态 ── */
+function loadStatus() {
+  return api("/api/status").then(function (s) {
+    status = s;
+    var box = document.getElementById("status");
+    box.innerHTML = "";
+    box.appendChild(el("span", "", "仓库：" + (s.isRepo ? "已初始化" : "未初始化")));
+    var b = el("span", "badge " + (s.remote ? "ok" : "warn"), s.remote || "无 origin");
+    box.appendChild(b);
+    box.appendChild(el("span", "", "分支 " + s.branch));
+    box.appendChild(el("span", "", "文献 " + s.count + " 篇"));
+    box.appendChild(el("span", "", "未提交 " + s.dirty + " 项"));
+    document.getElementById("initBox").style.display = s.isRepo ? "none" : "block";
+    document.getElementById("remote").value = s.defaultRemote || "";
+    allTags = s.tags || [];
+    return s;
+  });
+}
+
+/* ── 抓取 DOI（添加文献页）── */
+function extractDois(text) {
+  // 交给服务端 normalize_doi 提取；这里只按行拆分，避免整段一坨发过去
+  return String(text || "").split(/[\n\r;]+/).map(function (s) { return s.trim(); }).filter(Boolean);
+}
+function fetchDois() {
+  var raw = document.getElementById("doiIn").value;
+  var dois = extractDois(raw);
+  if (!dois.length) { toast("先粘贴一些 DOI"); return; }
+  var note = document.getElementById("fetchNote");
+  var btn = document.getElementById("btnFetch");
+  btn.disabled = true;
+  var added = 0, dup = 0, fail = 0, i = 0;
+  (function next() {
+    if (i >= dois.length) {
+      var lines = ["抓取完成：新增 " + added + " 篇"];
+      if (dup) lines.push("· 重复跳过 " + dup + " 条（DOI 已在文献库中）");
+      if (fail) lines.push("· 失败 " + fail + " 条（详见下方错误信息）");
+      note.textContent = lines.join("\n");
+      btn.disabled = false;
+      document.getElementById("doiIn").value = "";
+      return;
+    }
+    note.textContent = "抓取中… " + (i + 1) + "/" + dois.length;
+    api("/api/fetch", { dois: [dois[i++]] }).then(function (res) {
+      var rec = (res.items || [])[0];
+      if (!rec) { fail++; }
+      else if (rec.duplicate) { dup++; appendFailCard(rec); }
+      else if (rec.ok) { added++; addItem(rec); }
+      else { fail++; appendFailCard(rec); }
+      note.textContent = "抓取中… " + i + "/" + dois.length;
+      next();
+    }).catch(function () { fail++; next(); });
+  })();
+}
+/* 失败 / 重复也给出可见的卡片，方便知道哪条没进来 */
+function appendFailCard(rec) {
+  var node = el("div", "item");
+  var left = el("div", "rec");
+  left.appendChild(el("div", "err", (rec.duplicate ? "⚠ 重复：" : "✗ 失败：") + (rec.error || "未知错误")));
+  left.appendChild(el("div", "", "输入：" + rec.input));
+  node.appendChild(left);
+  var right = el("div", "fields");
+  var rm = el("button", "tiny", "知道了，移除");
+  rm.addEventListener("click", function () { node.remove(); });
+  right.appendChild(rm);
+  node.appendChild(right);
+  document.getElementById("list").appendChild(node);
+  document.getElementById("emptyNote").style.display = "none";
+}
+document.getElementById("btnFetch").addEventListener("click", fetchDois);
+document.getElementById("doiIn").addEventListener("keydown", function (e) {
+  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); fetchDois(); }
+});
+/* 从 .txt / .ris / .bib 里导入 DOI 列表（纯前端读文件填进文本框） */
+document.getElementById("btnTxt").addEventListener("click", function () {
+  document.getElementById("doiFile").click();
+});
+document.getElementById("doiFile").addEventListener("change", function (e) {
+  var f = e.target.files && e.target.files[0];
+  e.target.value = "";
+  if (!f) return;
+  var r = new FileReader();
+  r.onload = function () {
+    var box = document.getElementById("doiIn");
+    box.value = (box.value ? box.value.replace(/\s+$/, "") + "\n" : "") + String(r.result);
+    toast("已导入 " + f.name + "，点「抓取并解析」开始");
+  };
+  r.readAsText(f);
+});
+
+function addItem(rec) {
+  pending.push(rec);
+  var node = buildItemNode(rec);
+  document.getElementById("list").appendChild(node);
+  document.getElementById("emptyNote").style.display = "none";
+}
+function buildItemNode(rec) {
+  var p = rec.record || {};
+  rec.title = p.title || "";
+  rec.title_zh = p.title_zh || "";
+  rec.abstract_zh = p.abstract_zh || "";
+  rec.article_type = p.article_type || "";
+  rec.keywordsText = (p.keywords || []).join("、");
+  rec.note = "";
+  rec.tags = [];
+  var node = el("div", "item");
+  rec.node = node;
+
+  var left = el("div", "rec");
+  left.appendChild(el("div", "t", p.title || "—"));
+  if (rec.title_zh) left.appendChild(el("div", "", "中文名：" + rec.title_zh));
+  var jrow = el("div");
+  jrow.appendChild(el("span", "j", p.journal || "—"));
+  left.appendChild(jrow);
+  left.appendChild(el("div", "", (p.published || p.year || "?") + " · " + (p.volume ? "Vol " + p.volume + (p.issue ? " Iss " + p.issue : "") : "") + (p.pages ? " · " + p.pages : "")));
+  left.appendChild(el("div", "", "作者 " + (p.authors || []).length + " 人：" + (p.authors || []).slice(0, 3).join(", ") + ((p.authors || []).length > 3 ? " et al." : "")));
+  var stat = el("div", "", "被引 " + (p.cited_by || 0) + (p.oa ? " · OA" : "") + " · id " + (p.id || "?") + " · 来源 " + (p.source || "?"));
+  if (!p.title) { stat.className = "err"; stat.textContent = "✗ 抓取结果不完整（无标题）"; }
+  left.appendChild(stat);
+  // 翻译状态（两重：初译 + 审校；含限流/降级说明）
+  var transText = rec.translated
+    ? "中文化 ✓ " + ((rec.passes || 2) >= 2 ? "初译+审校" : "仅初译" + (rec.tnote ? "（" + rec.tnote + "）" : "")) + "（下方可修改）"
+    : (rec.translate_error ? "⚠ 中文化失败：" + rec.translate_error + "（可先发布英文版，之后在文献管理「翻译缺中文的」补译）" : "");
+  var trans = el("div", "", transText);
+  if (rec.translate_error) trans.style.color = "var(--bad)";
+  else if (rec.translated && (rec.passes || 2) < 2) trans.style.color = "var(--accent)";
+  else if (rec.translated) trans.style.color = "var(--ok)";
+  left.appendChild(trans);
+  if (p.abstract) left.appendChild(el("div", "abs", p.abstract));
+
+  var right = el("div", "fields");
+  function field(labelText, key, opts) {
+    opts = opts || {};
+    var box = el("div", opts.full ? "full" : "");
+    box.appendChild(el("label", "", labelText));
+    var input;
+    if (opts.type === "textarea") input = document.createElement("textarea");
+    else {
+      input = document.createElement("input");
+      input.type = opts.type || "text";
+      if (opts.list) input.setAttribute("list", opts.list);
+      if (opts.placeholder) input.placeholder = opts.placeholder;
+    }
+    input.value = rec[key] || "";
+    input.addEventListener("input", function () { rec[key] = input.value; });
+    box.appendChild(input);
+    right.appendChild(box);
+    return input;
+  }
+  field("中文标题 title_zh（大模型初译，可修改）", "title_zh", { full: true, placeholder: "抓取时自动初译+审校，留空则详情页只显示英文标题" });
+  field("文章类型 article_type（大模型按出版社惯例判定，可修改）", "article_type",
+        { full: true, list: "typeList", placeholder: "如 Article / Research Article / Perspective / Comment / News & Views / Review" });
+  field("关键词 keywords（按文章原文填写，逗号/顿号分隔；API 拿不到作者关键词，不会自动提取）", "keywordsText",
+        { full: true, placeholder: "如：sea ice, Arctic, regime shift" });
+
+  var tagBox = el("div", "full");
+  tagBox.appendChild(el("label", "", "标签 tags（点选已有，或输入新标签后回车）"));
+  var tp = tagPicker([], function (sel) { rec.tags = sel; });
+  tagBox.appendChild(tp.node);
+  right.appendChild(tagBox);
+
+  field("中文摘要 abstract_zh（大模型初译，可修改）", "abstract_zh", { type: "textarea", full: true });
+
+  field("备注 note（可选）", "note", { type: "textarea", full: true, placeholder: "仅展示在详情页，适合写一句话推荐语" });
+
+  var rm = el("button", "tiny danger", "移除（不入库）");
+  rm.addEventListener("click", function () {
+    pending = pending.filter(function (x) { return x !== rec; });
+    node.remove();
+    if (!pending.length) document.getElementById("emptyNote").style.display = "block";
+  });
+  right.appendChild(rm);
+
+  node.appendChild(left);
+  node.appendChild(right);
+  return node;
+}
+
+/* ── 发布 ── */
+function renderLog(log) {
+  var box = document.getElementById("log");
+  box.innerHTML = "";
+  (log || []).forEach(function (s) {
+    var row = el("div", "step");
+    var running = (s.ok === null || s.ok === undefined);
+    var mark = el("span", "mark", running ? "…" : (s.ok ? "✓" : "✗"));
+    mark.style.color = running ? "var(--accent)" : (s.ok ? "var(--ok)" : "var(--bad)");
+    if (running) mark.style.animation = "blink 1s infinite";
+    row.appendChild(mark);
+    row.appendChild(el("span", "nm", s.step));
+    var first = String(s.out || "").split("\n").filter(function (l) { return l.trim(); }).slice(-1)[0] || "";
+    row.appendChild(el("span", "out", running ? "运行中…" : first));
+    box.appendChild(row);
+    if (s.out && String(s.out).split("\n").length > 1) {
+      var d = document.createElement("details");
+      var sm = document.createElement("summary");
+      sm.textContent = "查看完整输出";
+      d.appendChild(sm);
+      var pre = document.createElement("pre");
+      pre.textContent = s.out;
+      d.appendChild(pre);
+      box.appendChild(d);
+    }
+  });
+}
+/* 长操作统一走后台任务：POST 拿任务号 → 每 0.8s 轮询进度 → 实时滚动日志 → 结束回调 */
+function runJob(path, body, done) {
+  api(path, body).then(function (res) {
+    var jid = res && res.job;
+    if (!jid) {                                  // 兼容同步返回的结果
+      if (res && res.log) renderLog(res.log);
+      if (done) done(res || { ok: false });
+      return;
+    }
+    var timer = setInterval(function () {
+      api("/api/job/" + jid).then(function (s) {
+        renderLog(s.log);
+        if (!s.done) return;
+        clearInterval(timer);
+        if (s.hint) document.getElementById("log").appendChild(el("div", "hint", s.hint));
+        if (done) done({ ok: s.ok, log: s.log, hint: s.hint });
+      }).catch(function () { /* 网络抖动，下轮再取 */ });
+    }, 800);
+  }).catch(function (e) {
+    renderLog([{ step: "请求失败", ok: false, out: String(e) }]);
+    if (done) done({ ok: false });
+  });
+}
+function pushSyncFlags() {
+  return {
+    push: document.getElementById("doPush").checked,
+    sync: document.getElementById("doSync").checked
+  };
+}
+function publish() {
+  if (!pending.length) { toast("还没有待发布的文献——先粘贴 DOI 抓取"); return; }
+  var bad = pending.filter(function (p) { return !(p.record && p.record.title); });
+  if (bad.length) { toast("有 " + bad.length + " 条抓取不完整（无标题），请先移除"); return; }
+  var items = pending.map(function (p) {
+    return {
+      doi: p.record.doi,
+      record: p.record,
+      title_zh: p.title_zh || "",
+      abstract_zh: p.abstract_zh || "",
+      article_type: p.article_type || "",
+      keywords: parseKw(p.keywordsText),
+      note: p.note || "",
+      tags: p.tags || []
+    };
+  });
+  var flags = pushSyncFlags();
+  var summary = "即将发布 " + items.length + " 篇文献：\n"
+    + "· 写入 meta/papers.json、构建站点\n"
+    + (flags.push ? "· 推送到 GitHub\n" : "· 不推送 GitHub\n")
+    + (flags.sync ? "· 同步到服务器" : "· 不同步服务器（需手动 scp）");
+  askConfirm(summary + "\n\n确认开始？", function () {
+    var btn = document.getElementById("btnPublish");
+    btn.disabled = true;
+    btn.textContent = "发布中…（下方看实时进度）";
+    document.getElementById("log").scrollIntoView({ behavior: "smooth", block: "nearest" });
+    runJob("/api/publish", { items: items, message: document.getElementById("msg").value,
+                             push: flags.push, sync: flags.sync }, function (res) {
+      if (res.ok) {
+        pending = [];
+        document.getElementById("list").innerHTML = "";
+        document.getElementById("emptyNote").style.display = "block";
+        document.getElementById("fetchNote").textContent = "";
+      }
+      btn.disabled = false;
+      btn.textContent = "发布（写入索引 + 生成站点）";
+      loadStatus();
+    });
+  });
+}
+
+/* ── 初始化 / 推送 ── */
+document.getElementById("btnPublish").addEventListener("click", publish);
+document.getElementById("btnInit").addEventListener("click", function () {
+  var btn = document.getElementById("btnInit");
+  btn.disabled = true;
+  btn.textContent = "初始化中…";
+  runJob("/api/init", { remote: document.getElementById("remote").value }, function () {
+    btn.disabled = false;
+    btn.textContent = "初始化并推送";
+    loadStatus();
+  });
+});
+document.getElementById("btnPush").addEventListener("click", function () {
+  var btn = document.getElementById("btnPush");
+  btn.disabled = true;
+  btn.textContent = "推送中…";
+  runJob("/api/push", {}, function () {
+    btn.disabled = false;
+    btn.textContent = "仅执行 git push";
+    loadStatus();
+  });
+});
+
+/* ── 文献管理（查 / 改 / 删 / 重抓 / 刷新被引）── */
+var mItems = [];
+var mFilter = { q: "", tag: "*", journal: "*", from: "", to: "" };
+function mFiltered() {
+  return mItems.filter(function (it) {
+    if (mFilter.tag !== "*" && (it.tags || []).indexOf(mFilter.tag) === -1) return false;
+    if (mFilter.journal !== "*" && (it.journal || "") !== mFilter.journal) return false;
+    if (mFilter.from && (it.published || "") < mFilter.from) return false;
+    if (mFilter.to && (it.published || "") > mFilter.to) return false;
+    if (mFilter.q) {
+      var hay = (it.id + " " + (it.doi || "") + " " + (it.title || "") + " " + (it.title_zh || "") + " "
+        + (it.journal || "") + " " + (it.authors || []).join(" ") + " " + (it.keywords || []).join(" ")
+        + " " + (it.tags || []).join(" ")).toLowerCase();
+      if (hay.indexOf(mFilter.q) === -1) return false;
+    }
+    return true;
+  });
+}
+function mTagCounts() {
+  var c = {};
+  mItems.forEach(function (it) { (it.tags || []).forEach(function (t) { c[t] = (c[t] || 0) + 1; }); });
+  return c;
+}
+function mRenderChips() {
+  var box = document.getElementById("mTagChips");
+  if (!box) return;
+  var counts = mTagCounts();
+  box.innerHTML = "";
+  var mk = function (label, val, n) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.setAttribute("aria-pressed", String(mFilter.tag === val));
+    b.innerHTML = label + (n !== undefined ? ' <span class="n">' + n + "</span>" : "");
+    b.addEventListener("click", function () {
+      mFilter.tag = (mFilter.tag === val ? "*" : val);
+      mRenderChips(); mRender();
+    });
+    box.appendChild(b);
+  };
+  mk("全部", "*");
+  Object.keys(counts).sort().forEach(function (t) { mk(t, t, counts[t]); });
+  // 期刊下拉也在这里重建（期刊来自 status.journals，可能很多）
+  var sel = document.getElementById("mJournal");
+  var cur = mFilter.journal;
+  sel.innerHTML = '<option value="*">期刊 全部</option>';
+  (status.journals || []).forEach(function (j) {
+    var o = document.createElement("option");
+    o.value = j; o.textContent = j;
+    sel.appendChild(o);
+  });
+  sel.value = cur;
+  if (sel.selectedIndex < 0) sel.value = "*";
+}
+function mWire() {
+  var s = document.getElementById("mSearch");
+  var j = document.getElementById("mJournal");
+  var f = document.getElementById("mFrom");
+  var t = document.getElementById("mTo");
+  var r = document.getElementById("mReset");
+  if (s && !s.dataset.wired) {
+    s.dataset.wired = "1";
+    s.addEventListener("input", function () { mFilter.q = s.value.trim().toLowerCase(); mRender(); });
+    j.addEventListener("change", function () { mFilter.journal = j.value; mRender(); });
+    f.addEventListener("change", function () { mFilter.from = f.value; mRender(); });
+    t.addEventListener("change", function () { mFilter.to = t.value; mRender(); });
+    r.addEventListener("click", function () {
+      mFilter = { q: "", tag: "*", journal: "*", from: "", to: "" };
+      s.value = ""; j.value = "*"; f.value = ""; t.value = "";
+      mRenderChips(); mRender();
+    });
+  }
+  /* 日期框：点击任意位置都弹日历（否则只有点右上角小图标才有反应） */
+  document.querySelectorAll("input[type=date]").forEach(function (el) {
+    if (el.dataset.dateWired) return;
+    el.dataset.dateWired = "1";
+    el.addEventListener("click", function () { try { el.showPicker(); } catch (e) {} });
+    el.addEventListener("focus", function () { try { el.showPicker(); } catch (e) {} });
+  });
+}
+function mRender() {
+  var list = mFiltered();
+  var c = document.getElementById("mCount");
+  if (c) c.textContent = (mFilter.q || mFilter.tag !== "*" || mFilter.journal !== "*" || mFilter.from || mFilter.to)
+    ? "匹配 " + list.length + " / " + mItems.length + " 篇" : "共 " + mItems.length + " 篇";
+  renderManage(list);
+}
+function loadItems() {
+  return api("/api/items").then(function (papers) {
+    mItems = papers.items || [];
+    mRenderChips();
+    mRender();
+  });
+}
+function renderManage(items) {
+  var box = document.getElementById("manageList");
+  box.innerHTML = "";
+  editOpen = null;
+  if (!items.length) { box.appendChild(el("p", "note", "文献库为空")); return; }
+  items.forEach(function (it) { box.appendChild(manageRow(it)); });
+}
+function manageRow(it) {
+  var node = el("div", "mrow");
+  var info = el("div", "minfo");
+  info.appendChild(el("div", "t", it.title || "—"));
+  if (it.title_zh) info.appendChild(el("div", "", "中文标题：" + it.title_zh));
+  info.appendChild(el("div", "", (it.authors || []).slice(0, 3).join(", ") + ((it.authors || []).length > 3 ? " et al." : "")));
+  var jline = el("div");
+  jline.appendChild(document.createTextNode("期刊："));
+  if (it.journal) {
+    jline.appendChild(el("span", "", it.journal));
+  }
+  jline.appendChild(document.createTextNode(" · " + (it.published || it.year || "—")
+    + (it.article_type ? " · " + it.article_type : "") + " · 被引 " + (it.cited_by || 0) + (it.oa ? " · OA" : "")));
+  info.appendChild(jline);
+  var doiLine = el("div", "");
+  if (it.doi) {
+    var a = document.createElement("a");
+    a.href = "https://doi.org/" + it.doi;
+    a.textContent = it.doi;
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.style.color = "var(--accent)";
+    doiLine.appendChild(document.createTextNode("DOI："));
+    doiLine.appendChild(a);
+  } else {
+    doiLine.textContent = "DOI：—";
+  }
+  info.appendChild(doiLine);
+  info.appendChild(el("div", "", "关键词：" + ((it.keywords || []).join("、") || "—")));
+  info.appendChild(el("div", "", "标签：" + ((it.tags || []).join("、") || "—") + " · 收录：" + (it.added || "—") + " · id：" + (it.id || "—")));
+  node.appendChild(info);
+
+  var act = el("div", "mact");
+  var btnEdit = el("button", "tiny", "编辑");
+  btnEdit.addEventListener("click", function () { openEdit(node, it); });
+  var btnRef = el("button", "tiny", "重新抓取");
+  btnRef.addEventListener("click", function () {
+    btnRef.disabled = true;
+    btnRef.textContent = "抓取中…";
+    runJob("/api/refresh", { ids: [it.id], push: document.getElementById("doPush").checked,
+                             sync: document.getElementById("doSync").checked }, function (res) {
+      if (res && res.hint) toast(res.hint);
+      loadItems(); loadStatus();
+    });
+  });
+  var btnTr = el("button", "tiny", "重新翻译");
+  btnTr.addEventListener("click", function () {
+    btnTr.disabled = true;
+    btnTr.textContent = "翻译中…（初译+审校约需十几秒）";
+    runJob("/api/translate", { ids: [it.id], push: document.getElementById("doPush").checked,
+                               sync: document.getElementById("doSync").checked }, function (res) {
+      if (res && res.hint) toast(res.hint);
+      loadItems(); loadStatus();
+    });
+  });
+  var btnDel = el("button", "tiny danger", "删除");
+  btnDel.addEventListener("click", function () {
+    askConfirm("确定删除这篇文献？\n标题：" + (it.title || it.id) + "\n将从 papers.json 移除并同步 GitHub。", function () {
+      btnDel.disabled = true;
+      btnDel.textContent = "删除中…";
+      runJob("/api/delete", { id: it.id, push: document.getElementById("doPush").checked,
+                              sync: document.getElementById("doSync").checked }, function () {
+        loadItems();
+        loadStatus();
+      });
+    });
+  });
+  act.appendChild(btnEdit);
+  act.appendChild(btnRef);
+  act.appendChild(btnTr);
+  act.appendChild(btnDel);
+  node.appendChild(act);
+  return node;
+}
+function openEdit(node, it) {
+  if (editOpen) editOpen.remove();
+  var form = el("div", "editform");
+  function field(labelText, key, opts) {
+    opts = opts || {};
+    var box = el("div", opts.full ? "full" : "");
+    box.appendChild(el("label", "", labelText));
+    var input;
+    if (opts.type === "textarea") input = document.createElement("textarea");
+    else {
+      input = document.createElement("input");
+      input.type = opts.type || "text";
+    }
+    input.value = it[key] || "";
+    input.addEventListener("input", function () { it[key] = input.value; });
+    box.appendChild(input);
+    form.appendChild(box);
+  }
+  field("中文标题 title_zh（可选）", "title_zh", { full: true });
+  field("文章类型 article_type（出版社惯例）", "article_type", { full: true, list: "typeList" });
+  it.keywordsText = (it.keywords || []).join("、");
+  field("关键词 keywords（按文章原文填写，逗号/顿号分隔）", "keywordsText", { full: true });
+
+  var tagBox = el("div", "full");
+  tagBox.appendChild(el("label", "", "标签 tags（点选已有，或输入新标签后回车）"));
+  var tp = tagPicker(it.tags || [], function (sel) { it.tags = sel; });
+  tagBox.appendChild(tp.node);
+  form.appendChild(tagBox);
+
+  field("中文摘要 abstract_zh（可选）", "abstract_zh", { type: "textarea", full: true });
+
+  field("备注 note（可选）", "note", { type: "textarea", full: true });
+
+  var btnRow = el("div", "full");
+  btnRow.style.display = "flex";
+  btnRow.style.gap = "8px";
+  var save = el("button", "primary tiny", "保存");
+  var cancel = el("button", "tiny", "取消");
+  btnRow.appendChild(save);
+  btnRow.appendChild(cancel);
+  form.appendChild(btnRow);
+  node.appendChild(form);
+  editOpen = form;
+  save.addEventListener("click", function () {
+    save.disabled = true;
+    save.textContent = "保存中…";
+    runJob("/api/update", { items: [{ id: it.id, tags: it.tags || [],
+                                      title_zh: it.title_zh || "", abstract_zh: it.abstract_zh || "",
+                                      article_type: it.article_type || "", keywords: parseKw(it.keywordsText),
+                                      note: it.note || "" }],
+                            push: document.getElementById("doPush").checked,
+                            sync: document.getElementById("doSync").checked }, function () {
+      editOpen.remove(); editOpen = null;
+      loadItems(); loadStatus();
+    });
+  });
+  cancel.addEventListener("click", function () { form.remove(); editOpen = null; });
+}
+document.getElementById("btnSync").addEventListener("click", function () {
+  var btn = document.getElementById("btnSync");
+  btn.disabled = true;
+  btn.textContent = "同步中…（下方看实时进度）";
+  runJob("/api/sync-server", {}, function () {
+    btn.disabled = false;
+    btn.textContent = "同步站点到服务器";
+  });
+});
+document.getElementById("btnCited").addEventListener("click", function () {
+  var btn = document.getElementById("btnCited");
+  btn.disabled = true;
+  btn.textContent = "刷新中…（不离开页面）";
+  runJob("/api/refresh-cited", { push: document.getElementById("doPush").checked,
+                                 sync: document.getElementById("doSync").checked }, function (res) {
+    btn.disabled = false;
+    btn.textContent = "刷新全部被引数";
+    if (res && res.hint) toast(res.hint);
+    loadItems(); loadStatus();
+  });
+});
+/* 批量补译：只填空缺、不覆盖已有译文 —— 限流/故障后的安全回补通道，可反复执行 */
+document.getElementById("btnTrMiss").addEventListener("click", function () {
+  var ids = mItems.filter(function (it) {
+    return !String(it.title_zh || "").trim()
+        || (String(it.abstract || "").trim() && !String(it.abstract_zh || "").trim());
+  }).map(function (it) { return it.id; });
+  if (!ids.length) { toast("全部文献都已有中文"); return; }
+  var btn = document.getElementById("btnTrMiss");
+  btn.disabled = true;
+  btn.textContent = "补译中…（" + ids.length + " 篇，逐篇进行，勿关页面）";
+  runJob("/api/translate", { ids: ids, only_missing: true,
+                             push: document.getElementById("doPush").checked,
+                             sync: document.getElementById("doSync").checked }, function (res) {
+    btn.disabled = false;
+    btn.textContent = "翻译缺中文的";
+    if (res && res.hint) toast(res.hint);
+    loadItems(); loadStatus();
+  });
+});
+
+loadStatus();
+mWire();
+</script>
+</body>
+</html>

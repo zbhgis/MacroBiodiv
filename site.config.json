@@ -1,0 +1,14 @@
+{
+  "title": "MacroBiodiv",
+  "subtitle": "宏观生物多样性文献库",
+  "lede": "收集宏观生态与生物多样性领域公开发表的文献基本信息，可搜索、可筛选、可溯源。",
+  "repo": "MacroBiodiv",
+  "branch": "main",
+  "owner": "zbhgis",
+  "tracker": "/api/v1/track",
+  "api": "",
+  "server": {
+    "host": "root@47.98.133.104",
+    "webroot": "/var/www/macrobiodiv"
+  }
+}

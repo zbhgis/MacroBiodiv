@@ -1,0 +1,2 @@
+# MacroBiodiv 无第三方依赖：标准库（urllib / http.server / json）已覆盖
+# 抓取、管理后台与建站全部功能。此文件保留以对齐 GeoSciPlot 的使用习惯。
