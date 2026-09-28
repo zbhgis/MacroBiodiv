@@ -76,7 +76,8 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   配置 `site_url` 后自动生成，聊天工具分享出卡片
 - 详情页内嵌 Schema.org **ScholarlyArticle JSON-LD**（标题/作者/期刊/出版商/日期/DOI/关键词），
   搜索引擎可直接理解文献结构
-- 构建时生成 **robots.txt + sitemap.xml**（全站 URL + lastmod），同样依赖 `site_url` 配置
+- 构建时生成 **robots.txt + sitemap.xml**（全站 URL + lastmod）与 **atom.xml**（最新 20 篇订阅源，
+  中文摘要优先），同样依赖 `site_url` 配置
 
 ### 3.3 全站搜索 `/search/`
 
@@ -146,7 +147,8 @@ papers.json 单一数据源避免双写不同步。
 
 - 数据与索引随 GitHub 仓 `zbhgis/MacroBiodiv`；站点无图，生产包只有 HTML/JS
 - nginx：`deploy/nginx-macrobiodiv.conf`（webroot /var/www/macrobiodiv，/api/ 反代主站
-  FastAPI 做浏览统计）；DNS / 证书步骤见 `deploy/部署操作手册.md`
+  FastAPI 做浏览统计；安全响应头 nosniff / SAMEORIGIN / Referrer-Policy；
+  /assets/ 因带 ?v= 版本号放行 30d 长缓存）；DNS / 证书步骤见 `deploy/部署操作手册.md`
 - 端口约定：**管理后台 5201**（5200 被 MultiColor 的管理后台占用），本地预览 7332
 - 浏览统计沿用主站 tracker：打点 `/macrobiodiv/{path}`，读取 `?prefix=/macrobiodiv/`
 

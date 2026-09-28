@@ -658,6 +658,12 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(200, UI_HTML.read_bytes(), "text/html; charset=utf-8")
             else:
                 self._send(500, b"admin_ui.html not found", "text/plain; charset=utf-8")
+        elif path == "/favicon.png":
+            fp = ROOT / "assets_src" / "favicon.png"
+            if fp.exists():
+                self._send(200, fp.read_bytes(), "image/png")
+            else:
+                self._send(404, b"not found", "text/plain; charset=utf-8")
         elif path == "/api/status":
             self._json(repo_state())
         elif path == "/api/items":

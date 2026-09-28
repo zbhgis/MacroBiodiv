@@ -981,7 +981,7 @@ def build_index(cfg: dict, items: list) -> str:
 <main class="grid" id="grid">
 {chr(10).join(card_html(p) for p in first_page)}
 </main>
-<p class="empty" id="empty">没有符合条件的文献</p>
+<p class="empty" id="empty"{' style="display:block"' if not items else ''}>{'文献库暂无内容 —— 运行 python scripts/admin.py 添加文献' if not items else '没有符合条件的文献'}</p>
 
 <div class="pgbar">
   <button id="prev" type="button" title="上一页">{pg_ico_l}上一页</button>
@@ -1182,12 +1182,14 @@ def main() -> int:
 
     cfg = load_cfg()
     if not PAPERS_JSON.exists():
-        print("! 找不到 meta/papers.json，请先在管理界面添加文献（python scripts/admin.py）")
-        return 1
-    items = sort_items(json.loads(PAPERS_JSON.read_text(encoding="utf-8")).get("items", []))
+        # papers.json 缺失视同空库，照常出空态站（管理界面首启前也能构建预览）
+        print("! meta/papers.json 不存在 —— 生成空态站点")
+        items = []
+    else:
+        items = sort_items(json.loads(PAPERS_JSON.read_text(encoding="utf-8")).get("items", []))
     if not items:
-        print("! 文献索引为空")
-        return 1
+        # 空库也照常出站（删光文献后站点显示空态，而不是构建失败）
+        print("! 文献索引为空 —— 生成空态站点")
 
     # 过期的详情页目录 → 改名移入 site_trash/（绝不原地删除）。
     # GeoSciPlot 的经验：shutil.rmtree 会触发沙箱的批量删除保护；纯改名则无此问题。
@@ -1256,7 +1258,27 @@ def main() -> int:
             sm.append(f"<url><loc>{base}{u}</loc><lastmod>{today}</lastmod></url>")
         sm.append("</urlset>")
         (SITE / "sitemap.xml").write_text("\n".join(sm) + "\n", encoding="utf-8")
-        print(f"· robots.txt + sitemap.xml（{len(urls)} 个 URL）")
+        # Atom 订阅源：最新 20 篇（按收录日期），文献库的订阅闭环
+        newest = sorted(items, key=lambda p: p.get("added") or "", reverse=True)[:20]
+        atom = ['<?xml version="1.0" encoding="utf-8"?>',
+                '<feed xmlns="http://www.w3.org/2005/Atom">',
+                f'<title>{esc(cfg["title"])} · {esc(cfg["subtitle"])}</title>',
+                f'<link href="{base}/"/><id>{base}/</id>',
+                f'<updated>{time.strftime("%Y-%m-%dT00:00:00Z")}</updated>']
+        for p in newest:
+            summ = (p.get("abstract_zh") or p.get("abstract") or "")[:300]
+            atom += ['<entry>',
+                     f'<title>{esc(display_title(p))}</title>',
+                     f'<link href="{base}/{p["id"]}/"/>',
+                     f'<id>urn:doi:{p.get("doi", p["id"])}</id>',
+                     f'<updated>{p.get("added") or time.strftime("%Y-%m-%d")}T00:00:00Z</updated>',
+                     f'<summary>{esc(summ)}</summary>']
+            for a in (p.get("authors") or [])[:5]:
+                atom.append(f'<author><name>{esc(a)}</name></author>')
+            atom.append('</entry>')
+        atom.append('</feed>')
+        (SITE / "atom.xml").write_text("\n".join(atom) + "\n", encoding="utf-8")
+        print(f"· robots.txt + sitemap.xml（{len(urls)} 个 URL）+ atom.xml（{len(newest)} 条）")
 
     (SITE / "index.html").write_text(build_index(cfg, items), encoding="utf-8")
     search_dir = SITE / "search"

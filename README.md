@@ -85,6 +85,7 @@ cd site && scp -r ./* root@47.98.133.104:/var/www/macrobiodiv/
 - 右侧悬浮按钮队列：全站搜索 / 返回 Home / GitHub / 明暗主题 / 回到顶部（与主站 zbhgis.com 的 rail 同款同序）
 - 筛选与排序均可通过 URL 分享：`/?tag=海冰&journal=Nature&from=2024-01-01&to=2026-12-31&sort=cited`
 - 分享出卡片（Open Graph）+ 搜索引擎收录（ScholarlyArticle JSON-LD / robots.txt / sitemap.xml）
+- **Atom 订阅源** `/atom.xml`：最新 20 篇文献（按收录时间），RSS 阅读器可直接订阅
 
 ## 数据来源
 
