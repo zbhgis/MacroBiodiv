@@ -711,13 +711,25 @@ JS = """\
     });
   }
 
-  /* 支持带参数的链接（标签跳转 / 分享筛选结果）：/?tag=海冰&journal=Nature */
+  /* 支持带参数的链接（标签跳转 / 分享筛选结果）：/?tag=海冰&journal=Nature&sort=cited */
   var applied = false;
   try {
     var params = new URLSearchParams(location.search);
-    ["q", "tag", "journal", "from", "to"].forEach(function (k) {
+    ["q", "tag", "journal", "from", "to", "sort"].forEach(function (k) {
       var v = params.get(k);
       if (!v) return;
+      if (k === "sort") {
+        // 排序可分享，但仅本次生效 —— 分享链接不应永久改写接收者的排序偏好
+        if (["pub", "pub_asc", "cited"].indexOf(v) === -1) return;
+        applied = true;
+        state.sort = v;
+        if (sortseg) {
+          sortseg.querySelectorAll("button").forEach(function (x) {
+            x.setAttribute("aria-pressed", String(x.getAttribute("data-sort") === v));
+          });
+        }
+        return;
+      }
       applied = true;
       if (k === "q") {
         state.q = v.trim().toLowerCase();
