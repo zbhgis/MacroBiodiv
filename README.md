@@ -83,7 +83,8 @@ cd site && scp -r ./* root@47.98.133.104:/var/www/macrobiodiv/
 - **文章类型**按出版社惯例标注（Article / Research Article / Perspective / Comment / News & Views /
   Review / Spotight 等）：大模型结合 OpenAlex 体裁提示自动判定，管理界面可修改
 - 右侧悬浮按钮队列：全站搜索 / 返回 Home / GitHub / 明暗主题 / 回到顶部（与主站 zbhgis.com 的 rail 同款同序）
-- 筛选结果可通过 URL 参数分享：`/?tag=海冰&journal=Nature&from=2024-01-01&to=2026-12-31`
+- 筛选与排序均可通过 URL 分享：`/?tag=海冰&journal=Nature&from=2024-01-01&to=2026-12-31&sort=cited`
+- 分享出卡片（Open Graph）+ 搜索引擎收录（ScholarlyArticle JSON-LD / robots.txt / sitemap.xml）
 
 ## 数据来源
 

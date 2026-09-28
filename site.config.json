@@ -10,5 +10,6 @@
   "server": {
     "host": "root@47.98.133.104",
     "webroot": "/var/www/macrobiodiv"
-  }
+  },
+  "site_url": "https://macrobiodiv.zbhgis.com"
 }

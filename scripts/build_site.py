@@ -52,6 +52,7 @@ DEFAULT_CFG = {
     "owner": "zbhgis",
     "tracker": "/api/v1/track",
     "api": "",
+    "site_url": "",                  # 如 https://macrobiodiv.zbhgis.com，用于 og:url / sitemap
     "server": {"host": "", "webroot": "/var/www/macrobiodiv"},
 }
 
@@ -764,11 +765,23 @@ JS = """\
 
 
 def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "",
-               description: str = "") -> str:
+               description: str = "", path: str = "", og_type: str = "website") -> str:
     up = "../" if depth else ""
     gh = gh_url or "https://github.com/{}/{}".format(
         cfg.get("owner") or "OWNER", cfg["repo"])
     desc = description or f"{cfg['subtitle']} —— {cfg['lede']}"
+    # Open Graph：配置了 site_url 才输出，链接分享（微信/Telegram/X）出卡片
+    base = (cfg.get("site_url") or "").rstrip("/")
+    og = ""
+    if base:
+        og_rows = [
+            f'<meta property="og:title" content="{esc(title)}">',
+            f'<meta property="og:description" content="{esc(desc[:200])}">',
+            f'<meta property="og:type" content="{esc(og_type)}">',
+            f'<meta property="og:url" content="{esc(base + path)}">',
+            f'<meta property="og:site_name" content="{esc(cfg["title"])}">',
+        ]
+        og = "\n".join(og_rows)
     return f"""<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -776,6 +789,7 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{esc(title)}</title>
 <meta name="description" content="{esc(desc)}">
+{og}
 <link rel="stylesheet" href="{up}assets/style.css?v={BUILD_VER}">
 <link rel="icon" type="image/png" href="{up}assets/favicon.png">
 <script>try{{var t=localStorage.getItem("mbd-theme");if(t)document.documentElement.setAttribute("data-theme",t)}}catch(e){{}}</script>
@@ -977,7 +991,7 @@ def build_index(cfg: dict, items: list) -> str:
 </div>
 
 <script>window.MBD_PAGE = {PAGE_SIZE};</script>"""
-    return page_shell(cfg, cfg["title"], body)
+    return page_shell(cfg, cfg["title"], body, path="/")
 
 
 def _volume_pages(p: dict) -> str:
@@ -1124,9 +1138,26 @@ def build_detail(cfg: dict, items: list, idx: int) -> str:
     desc = (p.get("title") or "") + " — " + (p.get("journal") or "")
     if (p.get("abstract") or "").strip():
         desc += "：" + p["abstract"].strip()[:120]
+    # 学术结构化数据（Schema.org ScholarlyArticle），利于搜索引擎理解文献信息
+    base = (cfg.get("site_url") or "").rstrip("/")
+    ld = {
+        "@context": "https://schema.org", "@type": "ScholarlyArticle",
+        "headline": p.get("title") or "", "inLanguage": "en",
+        "author": [{"@type": "Person", "name": a} for a in (p.get("authors") or [])],
+        "datePublished": p.get("published") or p.get("year") or None,
+        "isPartOf": p.get("journal") or None,
+        "publisher": p.get("publisher") or None,
+        "identifier": p.get("doi") or None,
+        "url": f"https://doi.org/{p['doi']}" if p.get("doi") else None,
+        "keywords": ", ".join((p.get("keywords") or []) + (p.get("tags") or [])) or None,
+    }
+    ld = {k: v for k, v in ld.items() if v}
+    ld_html = (json.dumps(ld, ensure_ascii=False) if base else "")
+    ld_block = ('<script type="application/ld+json">' + ld_html + "</script>") if ld_html else ""
+    body = body + ld_block
     return page_shell(cfg, f"{p.get('title')} · {cfg['title']}", body, depth=1,
                       gh_url=f"https://github.com/{cfg.get('owner') or 'OWNER'}/{cfg['repo']}",
-                      description=desc)
+                      description=desc, path=f"/{p['id']}/", og_type="article")
 
 
 def build_search_page(cfg: dict, items: list) -> str:
@@ -1142,7 +1173,7 @@ def build_search_page(cfg: dict, items: list) -> str:
 <input id="spage-q" class="spage-q" type="search" placeholder="输入关键词搜索全站内容…" autocomplete="off" autofocus>
 <div class="spage-count" id="spage-count"></div>
 <div class="spage-list" id="spage-list" data-up="../"></div>"""
-    return page_shell(cfg, f"全站搜索 · {cfg['title']}", body, depth=1)
+    return page_shell(cfg, f"全站搜索 · {cfg['title']}", body, depth=1, path="/search/")
 
 
 def main() -> int:
@@ -1211,6 +1242,21 @@ def main() -> int:
     (SITE / "assets" / "papers-data.js").write_text(
         "window.MBD_DATA = " + json.dumps(data, ensure_ascii=False, separators=(",", ":")) + ";\n",
         encoding="utf-8")
+
+    # robots.txt + sitemap.xml：配置了 site_url 才生成（部署完整性 / 搜索引擎收录）
+    base = (cfg.get("site_url") or "").rstrip("/")
+    if base:
+        robots_lines = ["User-agent: *", "Allow: /", "Sitemap: " + base + "/sitemap.xml"]
+        (SITE / "robots.txt").write_text("\n".join(robots_lines) + "\n", encoding="utf-8")
+        today = time.strftime("%Y-%m-%d")
+        urls = ["/", "/search/"] + ["/" + p["id"] + "/" for p in items]
+        sm = ['<?xml version="1.0" encoding="UTF-8"?>',
+              '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+        for u in urls:
+            sm.append(f"<url><loc>{base}{u}</loc><lastmod>{today}</lastmod></url>")
+        sm.append("</urlset>")
+        (SITE / "sitemap.xml").write_text("\n".join(sm) + "\n", encoding="utf-8")
+        print(f"· robots.txt + sitemap.xml（{len(urls)} 个 URL）")
 
     (SITE / "index.html").write_text(build_index(cfg, items), encoding="utf-8")
     search_dir = SITE / "search"

@@ -70,6 +70,14 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 上一篇 / 下一篇（等宽卡片，中文标题 + 期刊·年份）
 ```
 
+### 3.2.1 分享与收录（SEO）
+
+- 页面输出 Open Graph 标签（og:title/description/type/url/site_name）：详情页 `og:type=article`，
+  配置 `site_url` 后自动生成，聊天工具分享出卡片
+- 详情页内嵌 Schema.org **ScholarlyArticle JSON-LD**（标题/作者/期刊/出版商/日期/DOI/关键词），
+  搜索引擎可直接理解文献结构
+- 构建时生成 **robots.txt + sitemap.xml**（全站 URL + lastmod），同样依赖 `site_url` 配置
+
 ### 3.3 全站搜索 `/search/`
 
 - 无检索后端：在 `papers-data.js` 全量元数据上做客户端匹配，多词空格分隔 = AND
