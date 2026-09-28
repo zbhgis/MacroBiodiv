@@ -53,7 +53,9 @@ def normalize_doi(text: str) -> str:
     ascii_part = re.match(r"[\x21-\x7e]+", m.group(0))
     if not ascii_part:
         return ""
-    doi = ascii_part.group(0).rstrip(DOI_TAIL)
+    doi = ascii_part.group(0)
+    # 带 URL 查询串的粘贴（doi.org/10.x/xxx?utm=…）会把参数当成 DOI，在 ? 处截断
+    doi = doi.split("?", 1)[0].rstrip(DOI_TAIL)
     # 行尾标点被截断后可能留下悬空括号内容，去掉不成对的右括号
     while doi and doi[-1] in ")" and doi.count("(") < doi.count(")"):
         doi = doi[:-1]
