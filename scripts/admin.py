@@ -138,6 +138,9 @@ def repo_state() -> dict:
 
 JOBS: dict[str, dict] = {}
 JOBS_LOCK = threading.Lock()
+# papers.json 的读写锁：发布/更新/刷新/补译/删除都是「读→改→写回」，
+# 并发执行（如刷新被引未完又点发布）会互相覆盖丢数据，统一在此串行化
+DATA_LOCK = threading.Lock()
 
 
 def step(log: list[dict], name: str, cmd: list[str] | None, timeout: int = 300) -> tuple[bool, str]:
@@ -271,34 +274,35 @@ def do_fetch(dois: list) -> dict:
 def do_publish(items: list, message: str, push: bool, sync: bool) -> dict:
     """把「待发布」条目写入 papers.json → 构建站点 → git → 同步服务器。"""
     log: list[dict] = []
-    papers = load_papers()
-    by_doi = {str(i.get("doi") or "").lower(): i for i in papers["items"]}
-
     added, skipped, failed = 0, 0, 0
-    for it in items:
-        doi = normalize_doi(str(it.get("doi") or ""))
-        if not doi:
-            failed += 1
-            continue
-        if doi.lower() in by_doi:
-            skipped += 1
-            continue
-        rec = dict(it.get("record") or {})
-        title = str(rec.get("title") or "").strip()
-        if not title:
-            failed += 1
-            log.append({"step": f"跳过 {doi}", "ok": False, "out": "缺少标题（抓取记录不完整）"})
-            continue
-        # 服务端重新定死关键字段，不信任 UI 传来的 id / doi 形态
-        rec["doi"] = doi
-        rec["id"] = paper_id(doi)
-        rec.setdefault("added", today())
-        apply_manual(rec, it)
-        by_doi[doi.lower()] = rec
-        added += 1
+    with DATA_LOCK:
+        papers = load_papers()
+        by_doi = {str(i.get("doi") or "").lower(): i for i in papers["items"]}
 
-    papers["items"] = list(by_doi.values())
-    save_papers(papers)
+        for it in items:
+            doi = normalize_doi(str(it.get("doi") or ""))
+            if not doi:
+                failed += 1
+                continue
+            if doi.lower() in by_doi:
+                skipped += 1
+                continue
+            rec = dict(it.get("record") or {})
+            title = str(rec.get("title") or "").strip()
+            if not title:
+                failed += 1
+                log.append({"step": f"跳过 {doi}", "ok": False, "out": "缺少标题（抓取记录不完整）"})
+                continue
+            # 服务端重新定死关键字段，不信任 UI 传来的 id / doi 形态
+            rec["doi"] = doi
+            rec["id"] = paper_id(doi)
+            rec.setdefault("added", today())
+            apply_manual(rec, it)
+            by_doi[doi.lower()] = rec
+            added += 1
+
+        papers["items"] = list(by_doi.values())
+        save_papers(papers)
     summary = f"papers.json 新增 {added} 条"
     if skipped:
         summary += f"，跳过重复 {skipped} 条"
@@ -312,8 +316,8 @@ def do_publish(items: list, message: str, push: bool, sync: bool) -> dict:
 
 
 def do_update(updates: list) -> dict:
-    """批量更新手动字段（tags / title_zh / note），不动自动抓取字段。"""
-    papers = load_papers()
+    """批量更新手动字段（tags / title_zh / abstract_zh / article_type / note / keywords），
+    不动自动抓取字段。"""
     upd_map = {}
     for u in updates:
         fid = (u.get("id") or "").strip()
@@ -323,40 +327,43 @@ def do_update(updates: list) -> dict:
         return {"ok": False, "log": [{"step": "更新元数据", "ok": False, "out": "没有可更新的字段"}]}
 
     n = 0
-    for it in papers["items"]:
-        upd = upd_map.get(it.get("id"))
-        if upd:
-            apply_manual(it, upd)
-            n += 1
-    save_papers(papers)
+    with DATA_LOCK:
+        papers = load_papers()
+        for it in papers["items"]:
+            upd = upd_map.get(it.get("id"))
+            if upd:
+                apply_manual(it, upd)
+                n += 1
+        save_papers(papers)
     return {"ok": True,
             "log": [{"step": "更新元数据", "ok": True, "out": f"papers.json 更新 {n} 条"}]}
 
 
 def do_refresh(ids: list) -> dict:
     """重新抓取指定条目的元数据（保留 tags / title_zh / note / added）。"""
-    papers = load_papers()
     want = {i for i in ids if i}
     ok_n, err_n = 0, 0
     log: list[dict] = []
-    for idx, it in enumerate(papers["items"]):
-        if it.get("id") not in want:
-            continue
-        if idx:
-            time.sleep(0.3)
-        try:
-            record = fetch_paper(str(it.get("doi") or ""))
-            keep = {k: it[k] for k in ("id", "added", "title_zh", "abstract_zh", "article_type", "note", "tags", "keywords") if k in it}
-            record.update(keep)
-            record["id"] = it.get("id")     # id 由入库时的 DOI 算出，保持不变
-            papers["items"][idx] = record
-            ok_n += 1
-            log.append({"step": f"刷新 {it.get('id')}", "ok": True,
-                        "out": (record.get("title") or "")[:60]})
-        except Exception as e:
-            err_n += 1
-            log.append({"step": f"刷新 {it.get('id')}", "ok": False, "out": str(e)})
-    save_papers(papers)
+    with DATA_LOCK:
+        papers = load_papers()
+        for idx, it in enumerate(papers["items"]):
+            if it.get("id") not in want:
+                continue
+            if idx:
+                time.sleep(0.3)
+            try:
+                record = fetch_paper(str(it.get("doi") or ""))
+                keep = {k: it[k] for k in ("id", "added", "title_zh", "abstract_zh", "article_type", "note", "tags", "keywords") if k in it}
+                record.update(keep)
+                record["id"] = it.get("id")     # id 由入库时的 DOI 算出，保持不变
+                papers["items"][idx] = record
+                ok_n += 1
+                log.append({"step": f"刷新 {it.get('id')}", "ok": True,
+                            "out": (record.get("title") or "")[:60]})
+            except Exception as e:
+                err_n += 1
+                log.append({"step": f"刷新 {it.get('id')}", "ok": False, "out": str(e)})
+        save_papers(papers)
     if not log:
         return {"ok": False, "log": [{"step": "重新抓取", "ok": False, "out": "没有匹配的条目"}]}
     return {"ok": err_n == 0, "log": log,
@@ -365,19 +372,20 @@ def do_refresh(ids: list) -> dict:
 
 def do_refresh_cited() -> dict:
     """批量刷新全部文献的被引数（只查 OpenAlex，单字段轻量）。"""
-    papers = load_papers()
     log = [{"step": "刷新被引（OpenAlex）", "out": "", "ok": None}]
     n, err = 0, 0
-    for idx, it in enumerate(papers["items"]):
-        if idx:
-            time.sleep(0.25)
-        try:
-            oa = fetch_openalex(str(it.get("doi") or ""))
-            it["cited_by"] = oa.get("cited_by", it.get("cited_by", 0))
-            n += 1
-        except Exception:
-            err += 1
-    save_papers(papers)
+    with DATA_LOCK:
+        papers = load_papers()
+        for idx, it in enumerate(papers["items"]):
+            if idx:
+                time.sleep(0.25)
+            try:
+                oa = fetch_openalex(str(it.get("doi") or ""))
+                it["cited_by"] = oa.get("cited_by", it.get("cited_by", 0))
+                n += 1
+            except Exception:
+                err += 1
+        save_papers(papers)
     log[0]["ok"] = err == 0
     log[0]["out"] = f"更新 {n} 条" + (f"，失败 {err} 条" if err else "")
     return {"ok": err == 0, "log": log,
@@ -395,53 +403,55 @@ def do_translate(ids: list, only_missing: bool = False) -> dict:
         return {"ok": False,
                 "log": [{"step": "翻译", "ok": False,
                          "out": "未配置大模型：请先设置环境变量 LLM_API_KEY / LLM_BASE_URL / LLM_MODEL_NAME"}]}
-    papers = load_papers()
     want = {i for i in ids if i}
     log: list[dict] = []
     ok_n, err_n, skip_n = 0, 0, 0
-    for idx, it in enumerate(papers["items"]):
-        if it.get("id") not in want:
-            continue
-        if only_missing and str(it.get("title_zh") or "").strip() \
-                and (str(it.get("abstract_zh") or "").strip() or not str(it.get("abstract") or "").strip()):
-            skip_n += 1
-            log.append({"step": f"翻译 {it.get('id')}", "ok": True, "out": "已有中文，跳过（不覆盖）"})
-            continue
-        # 断路冷却中且已有失败：剩余条目注定失败，直接中止而不是逐条空转
-        cool = llm.cooling_down()
-        if cool and err_n:
-            left = len(want) - ok_n - err_n - skip_n
-            log.append({"step": "中止剩余翻译", "ok": False,
-                        "out": f"LLM 断路冷却（剩 {cool}s）——服务刚连续失败过，剩余 {left} 条未处理；"
-                               f"稍后用「翻译缺中文的」批量回补"})
-            break
-        title = str(it.get("title") or "").strip()
-        if not title:
-            log.append({"step": f"翻译 {it.get('id')}", "ok": False, "out": "缺少英文标题"})
-            err_n += 1
-            continue
-        try:
-            # budget=600：后台任务没有浏览器在等，预算放宽
-            hint = str(it.get("oa_type") or it.get("type") or "")
-            res = llm.translate_paper(title, str(it.get("abstract") or ""), budget=600,
-                                      type_hint=hint)
-            # 覆写保护：模型偶尔丢字段，空结果不落盘，保留现有译文
-            if res.get("title_zh"):
-                it["title_zh"] = res["title_zh"]
-            if res.get("abstract_zh"):
-                it["abstract_zh"] = res["abstract_zh"]
-            if res.get("article_type"):
-                it["article_type"] = res["article_type"]
-            ok_n += 1
-            tag = "初译+审校" if res.get("passes", 2) >= 2 else "仅初译"
-            note = res.get("note") or ""
-            log.append({"step": f"翻译 {it.get('id')}", "ok": True,
-                        "out": f"{it.get('title_zh', '')[:40]}（{tag}{'：' + note if note else ''}）"})
-        except llm.LLMError as e:
-            err_n += 1
-            log.append({"step": f"翻译 {it.get('id')}", "ok": False, "out": str(e)})
-        time.sleep(0.5)     # 每篇间隔，配合 llm 层的请求节流
-    save_papers(papers)
+    papers = None
+    with DATA_LOCK:
+        papers = load_papers()
+        for idx, it in enumerate(papers["items"]):
+            if it.get("id") not in want:
+                continue
+            if only_missing and str(it.get("title_zh") or "").strip() \
+                    and (str(it.get("abstract_zh") or "").strip() or not str(it.get("abstract") or "").strip()):
+                skip_n += 1
+                log.append({"step": f"翻译 {it.get('id')}", "ok": True, "out": "已有中文，跳过（不覆盖）"})
+                continue
+            # 断路冷却中且已有失败：剩余条目注定失败，直接中止而不是逐条空转
+            cool = llm.cooling_down()
+            if cool and err_n:
+                left = len(want) - ok_n - err_n - skip_n
+                log.append({"step": "中止剩余翻译", "ok": False,
+                            "out": f"LLM 断路冷却（剩 {cool}s）——服务刚连续失败过，剩余 {left} 条未处理；"
+                                   f"稍后用「翻译缺中文的」批量回补"})
+                break
+            title = str(it.get("title") or "").strip()
+            if not title:
+                log.append({"step": f"翻译 {it.get('id')}", "ok": False, "out": "缺少英文标题"})
+                err_n += 1
+                continue
+            try:
+                # budget=600：后台任务没有浏览器在等，预算放宽
+                hint = str(it.get("oa_type") or it.get("type") or "")
+                res = llm.translate_paper(title, str(it.get("abstract") or ""), budget=600,
+                                          type_hint=hint)
+                # 覆写保护：模型偶尔丢字段，空结果不落盘，保留现有译文
+                if res.get("title_zh"):
+                    it["title_zh"] = res["title_zh"]
+                if res.get("abstract_zh"):
+                    it["abstract_zh"] = res["abstract_zh"]
+                if res.get("article_type"):
+                    it["article_type"] = res["article_type"]
+                ok_n += 1
+                tag = "初译+审校" if res.get("passes", 2) >= 2 else "仅初译"
+                note = res.get("note") or ""
+                log.append({"step": f"翻译 {it.get('id')}", "ok": True,
+                            "out": f"{it.get('title_zh', '')[:40]}（{tag}{'：' + note if note else ''}）"})
+            except llm.LLMError as e:
+                err_n += 1
+                log.append({"step": f"翻译 {it.get('id')}", "ok": False, "out": str(e)})
+            time.sleep(0.5)     # 每篇间隔，配合 llm 层的请求节流
+        save_papers(papers)
     if not log:
         return {"ok": False, "log": [{"step": "翻译", "ok": False, "out": "没有匹配的条目"}]}
     summary = f"成功 {ok_n} 条" + (f"，跳过 {skip_n} 条" if skip_n else "") \
@@ -452,14 +462,15 @@ def do_translate(ids: list, only_missing: bool = False) -> dict:
 
 
 def do_delete(fid: str) -> dict:
-    papers = load_papers()
-    items = papers.get("items", [])
-    it = next((x for x in items if x.get("id") == fid), None)
-    if not it:
-        return {"ok": False, "log": [{"step": "删除", "ok": False, "out": f"id 不存在：{fid}"}]}
+    with DATA_LOCK:
+        papers = load_papers()
+        items = papers.get("items", [])
+        it = next((x for x in items if x.get("id") == fid), None)
+        if not it:
+            return {"ok": False, "log": [{"step": "删除", "ok": False, "out": f"id 不存在：{fid}"}]}
 
-    papers["items"] = [x for x in items if x.get("id") != fid]
-    save_papers(papers)
+        papers["items"] = [x for x in items if x.get("id") != fid]
+        save_papers(papers)
     return {"ok": True, "item": it,
             "log": [{"step": f"删除 {fid}", "ok": True,
                      "out": f"已移除「{str(it.get('title') or '')[:50]}」（git 提交后详情页随构建自动消失）"}]}

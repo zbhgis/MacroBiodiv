@@ -86,6 +86,7 @@ def haystack(p: dict) -> str:
         p.get("note") or "",
         p.get("publisher") or "",
         p.get("type") or "",
+        p.get("article_type") or "",   # 体裁可搜（如 Perspective / Review）
         " ".join(p.get("keywords") or []),
         " ".join(p.get("tags") or []),
         p.get("abstract") or "",
@@ -924,7 +925,7 @@ def card_html(p: dict) -> str:
 
 
 def build_index(cfg: dict, items: list) -> str:
-    years = flat([p.get("year") for p in items])
+    years = flat([p.get("year") for p in items if p.get("year")])
     tag_counter: Counter = Counter()
     journal_counter: Counter = Counter()
     for p in items:
