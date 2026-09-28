@@ -729,6 +729,10 @@ JS = """\
           box.querySelectorAll("button").forEach(function (x) {
             x.setAttribute("aria-pressed", String(x.getAttribute("data-v") === v));
           });
+        } else {
+          // 日期区间：回填输入框，避免"筛选生效但输入框是空的"的困惑
+          var inp = document.getElementById("f-" + k);
+          if (inp) inp.value = v;
         }
       }
     });
