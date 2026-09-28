@@ -651,7 +651,8 @@ JS = """\
 
   var reset = document.getElementById("reset");
   if (reset) reset.addEventListener("click", function () {
-    state = { q: "", tag: "*", journal: "*", from: "", to: "", sort: state.sort, page: 1 };
+    state = { q: "", tag: "*", journal: "*", from: "", to: "", sort: state.sort, page: 1,
+              per: state.per };   // 保留每页数量（此 bug 继承自 GeoSciPlot，文献多时重置后分页会失效）
     var fF = document.getElementById("f-from"), fT = document.getElementById("f-to");
     if (fF) fF.value = "";
     if (fT) fT.value = "";
@@ -842,10 +843,16 @@ _NAME_PARTICLES = {"de", "van", "von", "del", "della", "di", "da", "la", "le",
                    "du", "ten", "ter", "der", "den", "el", "bin", "ibn"}
 
 
+_NAME_SUFFIXES = {"jr", "jr.", "sr", "sr.", "ii", "iii", "iv"}
+
+
 def _cite_author(name: str) -> str:
     """『Hiroshi Sumata』→『Sumata H』（GB/T 7714 风格，末词为姓）；
-    姓氏粒子词（de/van/von…）并入姓：『Laura de Steur』→『de Steur L』。"""
-    parts = name.strip().split()
+    姓氏粒子词（de/van/von…）并入姓：『Laura de Steur』→『de Steur L』；
+    名后缀（Jr./III…）先剥掉：『Robert F. Spielhagen Jr.』→『Spielhagen R F』。"""
+    parts = [p for p in name.strip().split() if p.lower() not in _NAME_SUFFIXES]
+    if not parts:
+        return name.strip()
     if len(parts) == 1:
         return parts[0]
     i = len(parts) - 2
