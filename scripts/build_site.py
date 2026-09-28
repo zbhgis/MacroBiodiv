@@ -974,12 +974,16 @@ def build_index(cfg: dict, items: list) -> str:
 
 
 def _volume_pages(p: dict) -> str:
-    """卷期页紧凑串（引用样式）：12(1): 1151-1159 / 12: 3948。"""
-    parts = p.get("volume") or ""
-    if p.get("issue"):
-        parts += f"({p['issue']})"
-    if p.get("pages"):
-        parts += (": " if parts else "") + str(p["pages"])
+    """卷期页紧凑串（引用样式）：12(1): 1151-1159 / 12: 3948；
+    缺卷号只有期号时不输出悬空括号（期号并入页码前段省略）。"""
+    vol = (p.get("volume") or "").strip()
+    issue = (p.get("issue") or "").strip()
+    pages = (p.get("pages") or "").strip()
+    parts = vol
+    if vol and issue:
+        parts += f"({issue})"
+    if pages:
+        parts += (": " if parts else "") + pages
     return parts
 
 
