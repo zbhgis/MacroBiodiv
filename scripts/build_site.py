@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import re
 import shutil
 import sys
 import time
@@ -1169,7 +1170,8 @@ def build_detail(cfg: dict, items: list, idx: int) -> str:
         "keywords": ", ".join((p.get("keywords") or []) + (p.get("tags") or [])) or None,
     }
     ld = {k: v for k, v in ld.items() if v}
-    ld_html = (json.dumps(ld, ensure_ascii=False) if base else "")
+    # "</script>" 会出现于标题/摘要时会把内嵌 script 提前截断：把 "<" 转成 Unicode 转义
+    ld_html = (json.dumps(ld, ensure_ascii=False).replace("<", "\\u003c") if base else "")
     ld_block = ('<script type="application/ld+json">' + ld_html + "</script>") if ld_html else ""
     body = body + ld_block
     return page_shell(cfg, f"{p.get('title')} · {cfg['title']}", body, depth=1,
@@ -1276,22 +1278,28 @@ def main() -> int:
         sm.append("</urlset>")
         (SITE / "sitemap.xml").write_text("\n".join(sm) + "\n", encoding="utf-8")
         # Atom 订阅源：最新 20 篇（按收录日期），文献库的订阅闭环
+        # XML 不允许的控制字符（\x00-\x08 等）会导致解析失败，先剥掉
+        xml_bad = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
+
+        def xml_text(s: str) -> str:
+            return esc(xml_bad.sub("", s or ""))
+
         newest = sorted(items, key=lambda p: p.get("added") or "", reverse=True)[:20]
         atom = ['<?xml version="1.0" encoding="utf-8"?>',
                 '<feed xmlns="http://www.w3.org/2005/Atom">',
-                f'<title>{esc(cfg["title"])} · {esc(cfg["subtitle"])}</title>',
+                f'<title>{xml_text(cfg["title"])} · {xml_text(cfg["subtitle"])}</title>',
                 f'<link href="{base}/"/><id>{base}/</id>',
                 f'<updated>{time.strftime("%Y-%m-%dT00:00:00Z")}</updated>']
         for p in newest:
             summ = (p.get("abstract_zh") or p.get("abstract") or "")[:300]
             atom += ['<entry>',
-                     f'<title>{esc(display_title(p))}</title>',
+                     f'<title>{xml_text(display_title(p))}</title>',
                      f'<link href="{base}/{p["id"]}/"/>',
-                     f'<id>urn:doi:{p.get("doi", p["id"])}</id>',
+                     f'<id>urn:doi:{xml_text(p.get("doi", p["id"]))}</id>',
                      f'<updated>{p.get("added") or time.strftime("%Y-%m-%d")}T00:00:00Z</updated>',
-                     f'<summary>{esc(summ)}</summary>']
+                     f'<summary>{xml_text(summ)}</summary>']
             for a in (p.get("authors") or [])[:5]:
-                atom.append(f'<author><name>{esc(a)}</name></author>')
+                atom.append(f'<author><name>{xml_text(a)}</name></author>')
             atom.append('</entry>')
         atom.append('</feed>')
         (SITE / "atom.xml").write_text("\n".join(atom) + "\n", encoding="utf-8")

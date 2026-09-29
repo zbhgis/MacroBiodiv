@@ -320,10 +320,16 @@ function fetchDois() {
   var btn = document.getElementById("btnFetch");
   btn.disabled = true;
   var added = 0, dup = 0, fail = 0, i = 0;
+  // 会话内已抓取的 DOI（含待发布表单里的）：同批重复在客户端立即标出，
+  // 不等发布时才被服务端静默跳过
+  var seenDois = {};
+  pending.forEach(function (p) {
+    if (p.record && p.record.doi) seenDois[String(p.record.doi).toLowerCase()] = 1;
+  });
   (function next() {
     if (i >= dois.length) {
       var lines = ["抓取完成：新增 " + added + " 篇"];
-      if (dup) lines.push("· 重复跳过 " + dup + " 条（DOI 已在文献库中）");
+      if (dup) lines.push("· 重复跳过 " + dup + " 条（DOI 已在文献库或本批次中）");
       if (fail) lines.push("· 失败 " + fail + " 条（详见下方错误信息）");
       note.textContent = lines.join("\n");
       btn.disabled = false;
@@ -335,7 +341,17 @@ function fetchDois() {
       var rec = (res.items || [])[0];
       if (!rec) { fail++; }
       else if (rec.duplicate) { dup++; appendFailCard(rec); }
-      else if (rec.ok) { added++; addItem(rec); }
+      else if (rec.ok) {
+        var dk = String((rec.record || {}).doi || "").toLowerCase();
+        if (dk && seenDois[dk]) {
+          rec.duplicate = true;
+          rec.error = "本批次内重复（同一 DOI 已在待发布列表）";
+          dup++; appendFailCard(rec);
+        } else {
+          if (dk) seenDois[dk] = 1;
+          added++; addItem(rec);
+        }
+      }
       else { fail++; appendFailCard(rec); }
       note.textContent = "抓取中… " + i + "/" + dois.length;
       next();
