@@ -13,8 +13,11 @@
 body{margin:0;background:var(--bg);color:var(--text);font:14px/1.6 ui-sans-serif,system-ui,"PingFang SC","Microsoft YaHei",sans-serif}
 .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 .wrap{max-width:980px;margin:0 auto;padding:32px 20px 80px}
+.brand{display:flex;align-items:center;gap:14px}
+.brand img{width:42px;height:42px;border-radius:10px;flex:none}
 h1{font-size:22px;margin:0;font-weight:600}
 h2{font-size:13px;margin:34px 0 10px;padding-bottom:7px;border-bottom:1px solid var(--line);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-weight:500;color:var(--dim);letter-spacing:.06em}
+h2::before{content:"";display:inline-block;width:3px;height:12px;background:var(--accent);border-radius:2px;margin-right:9px;vertical-align:-1px}
 .sub{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;color:var(--faint);margin:8px 0 0}
 .tabs{display:flex;gap:8px;margin:26px 0 0}
 .tab{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;padding:9px 16px;border:1px solid var(--line2);border-radius:6px 6px 0 0;background:transparent;color:var(--dim);cursor:pointer;border-bottom:none}
@@ -33,8 +36,15 @@ h2{font-size:13px;margin:34px 0 10px;padding-bottom:7px;border-bottom:1px solid 
 .item{border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:14px;background:var(--card);display:grid;grid-template-columns:300px 1fr;gap:16px}
 @media (max-width:760px){.item{grid-template-columns:1fr}}
 .rec{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;color:var(--faint);line-height:1.8;word-break:break-all;min-width:0}
-.rec .t{color:var(--text);font-size:12.5px;line-height:1.6}
-.rec .j{display:inline-block;margin:4px 0 0;padding:1px 8px;border:1px solid var(--accent);border-radius:3px;color:var(--accent);font-size:10.5px}
+.rec .top{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:7px}
+.rec .j{display:inline-block;padding:1px 8px;border:1px solid var(--accent);border-radius:3px;color:var(--accent);font-size:10.5px;max-width:15em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rec .tchip{display:inline-block;padding:1px 7px;border:1px solid var(--line2);border-radius:3px;color:var(--dim);font-size:10px}
+.rec .y{color:var(--faint);font-size:10.5px}
+.rec .t{color:var(--text);font-size:13px;line-height:1.55;font-weight:600}
+.rec .tzh{color:var(--dim);font-size:12px;margin-top:2px;font-family:ui-sans-serif,system-ui,"PingFang SC","Microsoft YaHei",sans-serif}
+.rec .tbadge{display:inline-block;padding:1px 8px;border-radius:3px;font-size:10.5px;border:1px solid var(--ok);color:var(--ok);margin:6px 0 0}
+.rec .tbadge.mid{border-color:var(--accent);color:var(--accent)}
+.rec .tbadge.warn{border-color:var(--bad);color:var(--bad)}
 .rec .err{color:var(--bad)}
 .rec .abs{margin-top:6px;color:var(--dim);display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
 .fields{display:grid;grid-template-columns:1fr 1fr;gap:9px 12px;min-width:0}
@@ -62,12 +72,21 @@ details summary{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace
 details pre{margin:8px 0 0;padding:10px;border:1px solid var(--line);border-radius:5px;background:var(--card);font-size:11px;line-height:1.55;max-height:280px;overflow:auto;white-space:pre-wrap}
 .note{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;color:var(--faint);line-height:1.8}
 #fetchNote{white-space:pre-line}
+/* 发布区：成组卡片，提示这是一组需要确认的操作 */
+.pubbox{border:1px solid var(--line);border-radius:8px;background:var(--card);padding:14px 16px 4px;margin-top:0}
+.pubbox .row:first-child{margin-top:0}
+#btnPublish{padding:9px 18px}
 .hint{padding:9px 12px;border:1px solid var(--line);border-left:2px solid var(--accent);border-radius:4px;background:var(--card);font-size:12px;color:var(--dim);margin-top:10px}
 /* 文献管理列表 */
 .mrow{display:grid;grid-template-columns:1fr auto;gap:14px;border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:12px;background:var(--card);align-items:start}
 @media (max-width:700px){.mrow{grid-template-columns:1fr}}
 .minfo{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;color:var(--faint);line-height:1.8;word-break:break-all;min-width:0}
-.minfo .t{color:var(--text);font-size:12.5px;line-height:1.6;font-family:ui-sans-serif,system-ui,"PingFang SC","Microsoft YaHei",sans-serif;font-weight:600}
+.minfo .top{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.minfo .j{display:inline-block;padding:1px 8px;border:1px solid var(--accent);border-radius:3px;color:var(--accent);font-size:10.5px;max-width:15em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.minfo .tchip{display:inline-block;padding:1px 7px;border:1px solid var(--line2);border-radius:3px;color:var(--dim);font-size:10px}
+.minfo .y{color:var(--faint);font-size:10.5px}
+.minfo .t{color:var(--text);font-size:13px;line-height:1.55;font-family:ui-sans-serif,system-ui,"PingFang SC","Microsoft YaHei",sans-serif;font-weight:600}
+.minfo .talt{color:var(--dim);font-size:12px;margin-top:2px;font-family:ui-sans-serif,system-ui,"PingFang SC","Microsoft YaHei",sans-serif}
 .mact{display:flex;flex-direction:column;gap:8px}
 .editform{grid-column:1/-1;border-top:1px dashed var(--line2);padding-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:9px 12px}
 @media (max-width:700px){.editform{grid-template-columns:1fr}}
@@ -103,8 +122,13 @@ details pre{margin:8px 0 0;padding:10px;border:1px solid var(--line);border-radi
   <option value="Editorial"><option value="Erratum"><option value="Preprint">
 </datalist>
 <div class="wrap">
-  <h1>MacroBiodiv · 本地管理</h1>
-  <p class="sub">只监听 127.0.0.1，仅本机可访问 · 推送使用你本机已配置的 git 凭据</p>
+  <div class="brand">
+    <img src="/favicon.png" alt="MacroBiodiv">
+    <div>
+      <h1>MacroBiodiv · 本地管理</h1>
+      <p class="sub">只监听 127.0.0.1，仅本机可访问 · 推送使用你本机已配置的 git 凭据</p>
+    </div>
+  </div>
 
   <div class="status" id="status"><span>读取仓库状态…</span></div>
 
@@ -140,14 +164,16 @@ details pre{margin:8px 0 0;padding:10px;border:1px solid var(--line);border-radi
     <p class="note" id="emptyNote">还没有待发布的文献。粘贴 DOI 后点「抓取并解析」，每篇会出现在这里。</p>
 
     <h2>发布</h2>
-    <div class="row">
-      <input id="msg" style="flex:1 1 320px;max-width:460px" placeholder="提交信息（留空自动生成）">
-      <label class="mono" style="display:flex;align-items:center;gap:6px;margin:0;font-size:11px"><input type="checkbox" id="doPush" checked style="width:auto"> 同时推送到 GitHub</label>
-      <label class="mono" style="display:flex;align-items:center;gap:6px;margin:0;font-size:11px"><input type="checkbox" id="doSync" checked style="width:auto"> 同步到服务器</label>
-    </div>
-    <div class="row">
-      <button class="primary" id="btnPublish">发布（写入索引 + 生成站点）</button>
-      <button id="btnPush">仅执行 git push</button>
+    <div class="pubbox">
+      <div class="row">
+        <input id="msg" style="flex:1 1 320px;max-width:460px" placeholder="提交信息（留空自动生成）">
+        <label class="mono" style="display:flex;align-items:center;gap:6px;margin:0;font-size:11px"><input type="checkbox" id="doPush" checked style="width:auto"> 同时推送到 GitHub</label>
+        <label class="mono" style="display:flex;align-items:center;gap:6px;margin:0;font-size:11px"><input type="checkbox" id="doSync" checked style="width:auto"> 同步到服务器</label>
+      </div>
+      <div class="row">
+        <button class="primary" id="btnPublish">发布（写入索引 + 生成站点）</button>
+        <button id="btnPush">仅执行 git push</button>
+      </div>
     </div>
     <div class="log" id="log"></div>
   </div>
@@ -413,25 +439,33 @@ function buildItemNode(rec) {
   rec.node = node;
 
   var left = el("div", "rec");
+  // 顶行：期刊徽章 + 体裁 + 日期 —— 与站点卡片同一视觉语言
+  var top = el("div", "top");
+  top.appendChild(el("span", "j", p.journal || "—"));
+  if (rec.article_type) top.appendChild(el("span", "tchip", rec.article_type));
+  top.appendChild(el("span", "y", p.published || p.year || "?"));
+  left.appendChild(top);
   left.appendChild(el("div", "t", p.title || "—"));
-  if (rec.title_zh) left.appendChild(el("div", "", "中文名：" + rec.title_zh));
-  var jrow = el("div");
-  jrow.appendChild(el("span", "j", p.journal || "—"));
-  left.appendChild(jrow);
-  left.appendChild(el("div", "", (p.published || p.year || "?") + " · " + (p.volume ? "Vol " + p.volume + (p.issue ? " Iss " + p.issue : "") : "") + (p.pages ? " · " + p.pages : "")));
+  if (rec.title_zh) left.appendChild(el("div", "tzh", rec.title_zh));
   left.appendChild(el("div", "", "作者 " + (p.authors || []).length + " 人：" + (p.authors || []).slice(0, 3).join(", ") + ((p.authors || []).length > 3 ? " et al." : "")));
-  var stat = el("div", "", "被引 " + (p.cited_by || 0) + (p.oa ? " · OA" : "") + " · id " + (p.id || "?") + " · 来源 " + (p.source || "?"));
+  left.appendChild(el("div", "", (p.volume ? "Vol " + p.volume + (p.issue ? " · Iss " + p.issue : "") + " · " : "") + (p.pages ? p.pages + " · " : "") + "被引 " + (p.cited_by || 0) + (p.oa ? " · OA" : "") + " · id " + (p.id || "?")));
+  var stat = el("div", "", "来源 " + (p.source || "?"));
   if (!p.title) { stat.className = "err"; stat.textContent = "✗ 抓取结果不完整（无标题）"; }
   left.appendChild(stat);
-  // 翻译状态（两重：初译 + 审校；含限流/降级说明）
-  var transText = rec.translated
-    ? "中文化 ✓ " + ((rec.passes || 2) >= 2 ? "初译+审校" : "仅初译" + (rec.tnote ? "（" + rec.tnote + "）" : "")) + "（下方可修改）"
-    : (rec.translate_error ? "⚠ 中文化失败：" + rec.translate_error + "（可先发布英文版，之后在文献管理「翻译缺中文的」补译）" : "");
-  var trans = el("div", "", transText);
-  if (rec.translate_error) trans.style.color = "var(--bad)";
-  else if (rec.translated && (rec.passes || 2) < 2) trans.style.color = "var(--accent)";
-  else if (rec.translated) trans.style.color = "var(--ok)";
-  left.appendChild(trans);
+  // 翻译状态徽章（两重：初译 + 审校；含限流/降级说明，悬停看详情）
+  var transWrap = el("div");
+  var tCls, tText;
+  if (rec.translated) {
+    if ((rec.passes || 2) >= 2) { tCls = "tbadge"; tText = "中文化 ✓ 初译+审校"; }
+    else { tCls = "tbadge mid"; tText = "中文化 ◑ 仅初译"; }
+  } else { tCls = "tbadge warn"; tText = "中文化 ✗ 失败"; }
+  var tb = el("span", tCls, tText);
+  var tip = rec.translated
+    ? ((rec.passes || 2) < 2 ? (rec.tnote || "审校未完成，可「重新翻译」补审校") : "译文可在右侧表单修改")
+    : (rec.translate_error || "");
+  if (tip) tb.title = tip;
+  transWrap.appendChild(tb);
+  left.appendChild(transWrap);
   if (p.abstract) left.appendChild(el("div", "abs", p.abstract));
 
   var right = el("div", "fields");
@@ -705,17 +739,17 @@ function renderManage(items) {
 function manageRow(it) {
   var node = el("div", "mrow");
   var info = el("div", "minfo");
-  info.appendChild(el("div", "t", it.title || "—"));
-  if (it.title_zh) info.appendChild(el("div", "", "中文标题：" + it.title_zh));
+  // 顶行：期刊徽章 + 体裁 + 日期 —— 与站点卡片同一视觉语言
+  var top = el("div", "top");
+  top.appendChild(el("span", "j", it.journal || "—"));
+  if (it.article_type) top.appendChild(el("span", "tchip", it.article_type));
+  top.appendChild(el("span", "y", (it.published || it.year || "—") + " · 被引 " + (it.cited_by || 0) + (it.oa ? " · OA" : "")));
+  info.appendChild(top);
+  // 标题：中文优先（与站点一致），另一语言作副行
+  var zh = String(it.title_zh || "").trim(), en = String(it.title || "").trim();
+  info.appendChild(el("div", "t", zh || en || "—"));
+  if (zh && en && zh !== en) info.appendChild(el("div", "talt", en));
   info.appendChild(el("div", "", (it.authors || []).slice(0, 3).join(", ") + ((it.authors || []).length > 3 ? " et al." : "")));
-  var jline = el("div");
-  jline.appendChild(document.createTextNode("期刊："));
-  if (it.journal) {
-    jline.appendChild(el("span", "", it.journal));
-  }
-  jline.appendChild(document.createTextNode(" · " + (it.published || it.year || "—")
-    + (it.article_type ? " · " + it.article_type : "") + " · 被引 " + (it.cited_by || 0) + (it.oa ? " · OA" : "")));
-  info.appendChild(jline);
   var doiLine = el("div", "");
   if (it.doi) {
     var a = document.createElement("a");
