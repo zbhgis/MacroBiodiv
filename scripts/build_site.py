@@ -151,6 +151,10 @@ header.site{padding:72px 0 0}
 .ico{width:1em;height:1em;flex:none;transition:transform .18s ease}
 .ico-l{width:14px;height:14px}
 .ico-r{width:13px;height:13px}
+/* 回到顶部按钮：不参与 hover 的 scale 过渡，单独过渡 opacity，
+   否则淡入淡出时会跟着缩放抖动 */
+#topBtn{opacity:0;pointer-events:none}
+#topBtn.show{opacity:1;pointer-events:auto}
 /* 窄屏（≤640px）：垂直居中的队列会压住满宽内容，
    改为右下角横排 —— 断点、定位、尺寸全部对齐主站 zbhgis.com 的 .v3-rail 窄屏方案（统一设计）。
    同时给 body 补足底部内边距，避免遮住 footer。 */
@@ -372,9 +376,11 @@ JS = """\
   });
   var topBtn = document.getElementById("topBtn");
   if (topBtn) {
-    // 常驻显示（不做滚动阈值显隐）：短页面/内嵌浏览器的滚动事件时序差异
-    // 会让阈值方案出现"按钮消失"的观感问题 —— 常驻最稳
     topBtn.addEventListener("click", function () { window.scrollTo({ top: 0, behavior: "smooth" }); });
+    // 阈值 400px 与主站 zbhgis.com 的 .v3-rail-top 保持一致，两站行为统一
+    var onScroll = function () { topBtn.classList.toggle("show", window.scrollY > 400); };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
   }
 
   /* ── 详情页：通用复制按钮（data-copy 指向源元素 id：引用条 / BibTeX） ── */
