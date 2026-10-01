@@ -139,7 +139,32 @@ a{color:inherit;text-decoration:none}
 @media (min-width:641px){
   .wrap{max-width:1180px;padding-right:74px}
 }
-header.site{padding:72px 0 0}
+/* ── 顶部导航（参考主站 zbhgis.com 的 v3-nav 语言）
+   sticky + 毛玻璃 + 发丝下划线导航项；哲学同主站：导航管「去哪」，rail 管「工具」── */
+.topnav{position:sticky;top:0;z-index:60;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.tnav-wide{max-width:1180px;margin:0 auto;padding:0 24px;height:50px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.tnav-brand{font-size:16px;font-weight:600;letter-spacing:-.01em;color:var(--text);flex:none;transition:color .16s}
+.tnav-brand:hover{color:var(--accent)}
+.tnav-list{display:flex;align-items:center;gap:2px;list-style:none;margin:0;padding:0}
+.tnav-link{position:relative;display:inline-flex;align-items:center;gap:5px;padding:6px 10px;font-size:14.5px;line-height:1.4;color:var(--dim);transition:color .16s}
+.tnav-link::after{content:"";position:absolute;left:10px;right:10px;bottom:2px;height:1px;background:currentColor;opacity:.45;transform:scaleX(0);transform-origin:left center;transition:transform .2s ease,opacity .2s ease}
+.tnav-link:hover{color:var(--text)}
+.tnav-link:hover::after{transform:scaleX(1)}
+.tnav-link[data-active=true]{color:var(--accent)}
+.tnav-link[data-active=true]::after{transform:scaleX(1);opacity:.9}
+/* 移动端汉堡菜单 */
+.tnav-more{position:relative}
+.tnav-burger{display:inline-flex;padding:7px;border-radius:5px;color:var(--dim);cursor:pointer;list-style:none;transition:color .16s,background-color .16s}
+.tnav-burger:hover{color:var(--accent);background:var(--card)}
+.tnav-burger::-webkit-details-marker{display:none}
+.tnav-burger svg{width:18px;height:18px}
+.tnav-menu{position:absolute;right:0;top:calc(100% + 8px);min-width:150px;padding:5px;border:1px solid var(--line2);border-radius:6px;background:var(--card);box-shadow:0 10px 28px rgba(0,0,0,.16);z-index:70}
+.tnav-menu .tnav-link{display:flex;align-items:center;padding:8px 11px;font-size:14px;border-radius:4px;width:100%}
+.tnav-menu .tnav-link::after{display:none}
+.tnav-menu .tnav-link:hover{background:color-mix(in srgb,var(--accent) 12%,transparent)}
+@media (max-width:640px){.tnav-list{display:none}.tnav-more{display:block}}
+@media (min-width:641px){.tnav-more{display:none}}
+header.site{padding:36px 0 0}
 /* 右侧控件队列：桌面端垂直居中于视口右侧，与主站 zbhgis.com 的 .v3-rail 保持同一形状
    （42px 正圆 · --card 实底 · 发丝边框 · hover 变强调色并 scale 1.06） */
 .fab{position:fixed;right:16px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:9px;z-index:50}
@@ -239,7 +264,7 @@ select{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-siz
 .empty{padding:52px 0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:var(--faint);display:none;text-align:center}
 footer.site{margin-top:56px;padding:24px 0 64px;border-top:1px solid var(--line);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;color:var(--faint);display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between}
 /* ── 详情页 ── */
-.p-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:26px 0 0}
+.p-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:22px 0 0}
 .p-top .c-j{font-size:11.5px}
 .p-top .p-type,.p-top .p-ct{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;color:var(--faint)}
 .p-title{font-size:clamp(22px,3.2vw,32px);line-height:1.4;letter-spacing:-.01em;margin:14px 0 0;font-weight:700}
@@ -295,7 +320,7 @@ footer.site{margin-top:56px;padding:24px 0 64px;border-top:1px solid var(--line)
 .pager .pn-next .dir{justify-content:flex-end}
 .pager .pn-empty{min-height:68px;border:1px dashed var(--line);border-radius:6px}
 /* ── 返回全部：发丝边框小按钮，箭头 hover 左移 ── */
-.back{display:inline-flex;align-items:center;gap:7px;margin:36px 0 20px;padding:5px 11px 5px 9px;border:1px solid var(--line2);border-radius:6px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.35;color:var(--dim);transition:color .16s,border-color .16s,background-color .16s}
+.back{display:inline-flex;align-items:center;gap:7px;margin:28px 0 20px;padding:5px 11px 5px 9px;border:1px solid var(--line2);border-radius:6px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.35;color:var(--dim);transition:color .16s,border-color .16s,background-color .16s}
 .back:hover{color:var(--accent);border-color:var(--accent);background:var(--card)}
 .back:hover .ico-l{transform:translateX(-2px)}
 /* ── 窄屏收尾（必须写在上面这些规则之后，否则同优先级会被覆盖） ──
@@ -363,6 +388,14 @@ JS = """\
         viewsEl.textContent = n ? n + " 次" : "首次";
         viewsEl.style.color = "var(--text)";
       }).catch(function () { viewsEl.textContent = "—"; });
+  }
+
+  /* ── 顶部导航：汉堡菜单点击外部收起 ── */
+  var navMore = document.getElementById("navMore");
+  if (navMore) {
+    document.addEventListener("click", function (e) {
+      if (navMore.open && !navMore.contains(e.target)) navMore.removeAttribute("open");
+    });
   }
 
   var themeBtn = document.getElementById("themeBtn");
@@ -783,7 +816,8 @@ JS = """\
 
 
 def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "",
-               description: str = "", path: str = "", og_type: str = "website") -> str:
+               description: str = "", path: str = "", og_type: str = "website",
+               nav_active: str = "") -> str:
     up = "../" if depth else ""
     gh = gh_url or "https://github.com/{}/{}".format(
         cfg.get("owner") or "OWNER", cfg["repo"])
@@ -800,6 +834,44 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
             f'<meta property="og:site_name" content="{esc(cfg["title"])}">',
         ]
         og = "\n".join(og_rows)
+    # ── 顶部导航（参考主站 zbhgis.com 的 v3-nav 语言）──
+    # 哲学与主站一致：导航项管「去哪」，rail 只留「工具」（主题 / 回顶）。
+    # 菜单项按本站功能定：文献库 / 全站搜索 / GitHub / 主站「浩瀚地学」。
+    main_site = "https://zbhgis.com"
+    def nav_link(href: str, label: str, active: bool, up_href: str = "") -> str:
+        href_final = up + up_href if up_href else href
+        ext = ' target="_blank" rel="noopener"' if not up_href else ""
+        return (f'<li><a class="tnav-link" href="{esc(href_final)}"{ext}'
+                f' data-active="{str(active).lower()}"'
+                + (' aria-current="page"' if active else "")
+                + f'>{esc(label)}</a></li>')
+    nav_desktop = (
+        nav_link("", "文献库", nav_active == "home", up_href=".")
+        + nav_link("", "全站搜索", nav_active == "search", up_href="search/")
+        + nav_link(gh, "GitHub", False)
+        + nav_link(main_site, "浩瀚地学", False)
+    )
+    nav_mobile = (
+        nav_link("", "文献库", nav_active == "home", up_href=".")
+        + nav_link("", "全站搜索", nav_active == "search", up_href="search/")
+        + nav_link(gh, "GitHub", False)
+        + nav_link(main_site, "浩瀚地学", False)
+    )
+    topnav = f"""<header class="topnav">
+  <nav class="tnav-wide">
+    <a class="tnav-brand" href="{up}.">{esc(cfg['title'])}</a>
+    <ul class="tnav-list">
+      {nav_desktop}
+    </ul>
+    <details class="tnav-more" id="navMore">
+      <summary class="tnav-burger" aria-label="菜单"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
+      <div class="tnav-menu">
+        {nav_mobile}
+      </div>
+    </details>
+  </nav>
+</header>
+"""
     return f"""<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -813,8 +885,9 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
 <script>try{{var t=localStorage.getItem("mbd-theme");if(t)document.documentElement.setAttribute("data-theme",t)}}catch(e){{}}</script>
 </head>
 <body>
+{topnav}
 <div class="wrap">
-<div class="fab"><a class="tbtn" href="{up}search/" title="全站搜索" aria-label="全站搜索"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.2"/><path d="M10.2 10.2 14 14"/></svg></a><a class="tbtn" href="/" title="返回 Home（文献库首页）" aria-label="返回 Home"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 8 8 3l5.5 5M4 7v6h8V7"/></svg></a><a class="tbtn" href="{gh}" rel="noopener" target="_blank" title="在 GitHub 查看仓库（数据与索引）"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a><button type="button" class="tbtn" id="themeBtn" title="切换明暗主题" aria-label="切换明暗主题"><svg class="ic-sun" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M12.6 3.4l-1.1 1.1M4.5 11.5l-1.1 1.1"/></svg><svg class="ic-moon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 9.5A6 6 0 0 1 6.5 2.5a6 6 0 1 0 7 7z"/></svg></button><button type="button" class="tbtn" id="topBtn" title="回到顶部" aria-label="回到顶部"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13.5v-9M4.5 8 8 4.5 11.5 8"/></svg></button></div>
+<div class="fab"><button type="button" class="tbtn" id="themeBtn" title="切换明暗主题" aria-label="切换明暗主题"><svg class="ic-sun" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M12.6 3.4l-1.1 1.1M4.5 11.5l-1.1 1.1"/></svg><svg class="ic-moon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 9.5A6 6 0 0 1 6.5 2.5a6 6 0 1 0 7 7z"/></svg></button><button type="button" class="tbtn" id="topBtn" title="回到顶部" aria-label="回到顶部"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13.5v-9M4.5 8 8 4.5 11.5 8"/></svg></button></div>
 {body}
 <footer class="site">
   <span>{esc(cfg['title'])} · {esc(cfg['subtitle'])}</span>
@@ -1009,7 +1082,7 @@ def build_index(cfg: dict, items: list) -> str:
 </div>
 
 <script>window.MBD_PAGE = {PAGE_SIZE};</script>"""
-    return page_shell(cfg, cfg["title"], body, path="/")
+    return page_shell(cfg, cfg["title"], body, path="/", nav_active="home")
 
 
 def _volume_pages(p: dict) -> str:
@@ -1176,7 +1249,8 @@ def build_detail(cfg: dict, items: list, idx: int) -> str:
     body = body + ld_block
     return page_shell(cfg, f"{p.get('title')} · {cfg['title']}", body, depth=1,
                       gh_url=f"https://github.com/{cfg.get('owner') or 'OWNER'}/{cfg['repo']}",
-                      description=desc, path=f"/{p['id']}/", og_type="article")
+                      description=desc, path=f"/{p['id']}/", og_type="article",
+                      nav_active="home")
 
 
 def build_search_page(cfg: dict, items: list) -> str:
@@ -1192,7 +1266,8 @@ def build_search_page(cfg: dict, items: list) -> str:
 <input id="spage-q" class="spage-q" type="search" placeholder="输入关键词搜索全站内容…" autocomplete="off" autofocus>
 <div class="spage-count" id="spage-count"></div>
 <div class="spage-list" id="spage-list" data-up="../"></div>"""
-    return page_shell(cfg, f"全站搜索 · {cfg['title']}", body, depth=1, path="/search/")
+    return page_shell(cfg, f"全站搜索 · {cfg['title']}", body, depth=1, path="/search/",
+                      nav_active="search")
 
 
 def main() -> int:
