@@ -41,7 +41,9 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 ### 2.3 右侧悬浮按钮队列
 
 42px 正圆 · `--card` 实底 · 发丝描边 · hover 变 accent 并 scale(1.06)。
-顺序固定：全站搜索 / 返回 Home / GitHub / 明暗主题 / 回到顶部 —— 与主站 zbhgis.com 的 rail 同款同序。
+顺序固定：**返回主站**（zbhgis.com，跨站回链）/ 全站搜索 / 返回 Home / GitHub / 明暗主题 / 回到顶部
+—— 在主站 rail 同款同序的基础上，于最上方增加「返回主站」。
+（曾试验过顶部导航栏方案，体验后决定回退：子站内容单一，rail 方案更克制。）
 
 ## 3. 页面设计
 

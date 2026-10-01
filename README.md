@@ -33,7 +33,7 @@ python scripts/admin.py        # 本地管理界面（仅本机可访问，自�
 - **文章类型**按出版社惯例标注（Article / Research Article / Perspective / Comment / News & Views…），
   大模型结合元数据体裁提示判定，管理界面可修改
 - **分享与收录**：Open Graph 卡片、ScholarlyArticle JSON-LD、robots.txt / sitemap.xml / Atom 订阅源
-- 右侧悬浮按钮队列（搜索 / Home / GitHub / 明暗主题 / 回到顶部），与主站 zbhgis.com 同款同序
+- 右侧悬浮按钮队列：**返回主站** / 搜索 / Home / GitHub / 明暗主题 / 回到顶部（与主站 zbhgis.com 同款同序，顶部增加跨站回链）
 - 浏览计数走主站统计 API；明暗双主题
 
 ## 大模型中文化
