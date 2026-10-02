@@ -1,6 +1,6 @@
 {
   "generated": "2026-10-02",
-  "count": 7,
+  "count": 6,
   "items": [
     {
       "doi": "10.1038/s41467-021-24264-9",
@@ -257,44 +257,6 @@
       "tags": [],
       "added": "2026-10-02",
       "cover": "covers/8ca6f18ca1.png"
-    },
-    {
-      "doi": "10.1038/s41467-026-71231-3",
-      "title": "Deciphering the Hidden Ecology and Connectivity of Vibrio in the Oceans",
-      "subtitle": "",
-      "authors": [
-        "Lapo Doni",
-        "Joaquin Trinanes",
-        "Emanuele Bosi",
-        "Luigi Vezzulli",
-        "Jaime Martinez-Urtaza"
-      ],
-      "journal": "Nature Communications",
-      "journal_short": "Nat Commun",
-      "publisher": "Springer Science and Business Media LLC",
-      "type": "journal-article",
-      "year": "2026",
-      "published": "2026-04-01",
-      "published_online": true,
-      "volume": "17",
-      "issue": "1",
-      "pages": "4707",
-      "abstract": "Long-range dispersals of marine bacteria in the oceans have remained largely indecipherable, which is particularly relevant for Vibrio , responsible for global epidemics in humans and animals. Here, we combine the analysis of 40 terabases of metagenomic data and satellite-tracked surface drifter data, from across the globe revealing that Vibrio are abundant members of the ocean surface and show a strong association with microplankton, which appears to govern their distribution and connectivity at a global scale. We identify long-distance biological corridors connecting Vibrio communities, including potentially pathogenic Vibrio . These corridors allow movement over thousands of kilometres in a fairly short time, with estimates of less than 1.5 years to cross an ocean basin. These findings have deep implications for the demography and community dynamics of Vibrio species and the epidemiology of associated diseases.",
-      "issn": "2041-1723",
-      "url": "https://www.nature.com/articles/s41467-026-71231-3",
-      "source": "crossref+openalex",
-      "cited_by": 2,
-      "oa": true,
-      "oa_type": "article",
-      "keywords": [],
-      "id": "cb9c280cc0",
-      "title_zh": "揭开海洋中*弧菌*的隐秘生态和连通性",
-      "abstract_zh": "海洋细菌的远距离扩散一直是个谜，这对于*弧菌属（Vibrio）* 尤为重要，因为弧菌属是导致人类和动物全球性流行病的罪魁祸首。本文结合了来自全球的 40TB 宏基因组数据和卫星追踪的海洋表面漂流浮标数据，揭示了*弧菌属*在海洋表层大量存在，并与微型浮游生物密切相关，而微型浮游生物似乎主导着其在全球范围内的分布和连通性。我们识别出了连接*弧菌*群落（包括潜在致病性*弧菌）* 的长距离生物走廊。这些走廊使得弧菌能够在相当短的时间内跨越数千公里，据估计，跨越一个海洋盆地仅需不到 1.5 年。这些发现对*弧菌*属物种的种群统计学和群落动态以及相关疾病的流行病学具有深远的意义。",
-      "article_type": "",
-      "note": "",
-      "tags": [],
-      "added": "2026-10-02",
-      "cover": "covers/cb9c280cc0.png"
     }
   ]
 }
