@@ -1,6 +1,6 @@
 {
   "generated": "2026-10-02",
-  "count": 4,
+  "count": 3,
   "items": [
     {
       "doi": "10.1038/s41561-024-01496-0",
@@ -125,55 +125,6 @@
       "tags": [],
       "added": "2026-10-02",
       "cover": "covers/b671d6b8bc.png"
-    },
-    {
-      "doi": "10.1038/s41467-026-70064-4",
-      "title": "Future scenarios for British biodiversity under climate and land-use change",
-      "subtitle": "",
-      "authors": [
-        "Rob Cooke",
-        "Victoria J. Burton",
-        "Calum Brown",
-        "Colin A. Harrower",
-        "Steven M. White",
-        "Chris Huntingford",
-        "Rob Dunford-Brown",
-        "Richard Fox",
-        "Paula A. Harrison",
-        "Cang Hui",
-        "Dario Massimino",
-        "Andy Purvis",
-        "Emma L. Robinson",
-        "James Rodger",
-        "Nick J. B. Isaac",
-        "James M. Bullock"
-      ],
-      "journal": "Nature Communications",
-      "journal_short": "Nat Commun",
-      "publisher": "Springer Science and Business Media LLC",
-      "type": "journal-article",
-      "year": "2026",
-      "published": "2026-03-31",
-      "published_online": true,
-      "volume": "17",
-      "issue": "1",
-      "pages": "2704",
-      "abstract": "Projections of biodiversity futures are needed to translate global policies into national action. We use dissimilarity modelling to project climate change scenarios for 1002 plant, 56 butterfly, and 219 bird species across Great Britain up to 2080. Under all scenarios we find extensive community reorganisation, with the disappearance of current bioclimates and emergence of novel ones. We also explore impacts of combined climate and land-use change, finding that even optimistic scenarios could see accumulating extinction debts. Scenarios featuring reduced emissions and a more sustainable society could bend the curve of loss, reducing species heading for extinction by 32% for plants, 14% for butterflies, and 20% for birds. Scenarios differ in impact between groups, with plants showing the most severe responses to environmental change. Overall, we show that actions taken during the next 20 years are crucial to mitigate the worst effects of climate and land-use change for biodiversity in Britain.",
-      "issn": "2041-1723",
-      "url": "https://www.nature.com/articles/s41467-026-70064-4",
-      "source": "crossref+openalex",
-      "cited_by": 2,
-      "oa": true,
-      "oa_type": "article",
-      "keywords": [],
-      "id": "8ca6f18ca1",
-      "title_zh": "气候变化和土地利用变化对英国生物多样性未来影响的展望",
-      "abstract_zh": "为了将全球政策转化为国家行动，我们需要对生物多样性的未来进行预测。我们利用差异性模型，预测了到2080年英国1002种植物、56种蝴蝶和219种鸟类在气候变化情景下的变化。在所有情景下，我们都发现群落结构发生了广泛的重组，现有生物气候消失，新的生物气候出现。我们还探讨了气候变化和土地利用变化共同作用的影响，发现即使是乐观的情景也可能导致物种灭绝债务的累积。减少排放和构建更可持续社会的情景可以扭转物种灭绝的趋势，使植物、蝴蝶和鸟类的灭绝物种数量分别减少32%、14%和20%。不同情景对不同物种的影响程度不同，其中植物对环境变化的响应最为强烈。总而言之，我们的研究表明，未来20年采取的行动对于减轻气候变化和土地利用变化对英国生物多样性的最严重影响至关重要。",
-      "article_type": "",
-      "note": "",
-      "tags": [],
-      "added": "2026-10-02",
-      "cover": "covers/8ca6f18ca1.png"
     }
   ]
 }
