@@ -1,6 +1,6 @@
 {
   "generated": "2026-10-02",
-  "count": 6,
+  "count": 5,
   "items": [
     {
       "doi": "10.1038/s41467-021-24264-9",
@@ -86,42 +86,6 @@
       "abstract_zh": "海洋缺氧事件是海洋中地质学上急剧发生的极端缺氧阶段，这些事件扰乱了海洋生态系统并引发了演化更替。这些事件通常持续约150万年，在中生代（约1.83亿至8500万年前）频繁发生，该时期与大陆裂解和广泛的大火成岩省火山活动相关。一种假说认为，缺氧事件是由火山碳脱气所塑造的温室世界地表化学风化增强所致。本文结合板块重建、构造-地球化学分析和全球生物地球化学建模对该假说进行了检验。我们表明，大陆裂解和初始海底扩张期间基性岩性的风化增强可以合理地驱动一系列缺氧事件。风化脉冲共同导致大量营养元素磷释放到海洋中，刺激了生物初级生产力。这反过来增强了有机碳埋藏，并引起了广泛的海水脱氧，其规模足以驱动反复发生的缺氧。该模型通过展示与气候变暖相关的强烈风化期间充分量化的玄武岩磷释放来源，补充了以火山脱气为中心的触发这些事件的假说。本研究凸显了大陆重组期间固体地球与生物圈之间的紧密耦合。",
       "article_type": "Research Article",
       "cover": "covers/b25def1491.png"
-    },
-    {
-      "doi": "10.1038/s41586-022-05686-x",
-      "title": "Regime shift in Arctic Ocean sea ice thickness",
-      "subtitle": "",
-      "authors": [
-        "Hiroshi Sumata",
-        "Laura de Steur",
-        "Dmitry V. Divine",
-        "Mats A. Granskog",
-        "Sebastian Gerland"
-      ],
-      "journal": "Nature",
-      "journal_short": "Nature",
-      "publisher": "Springer Science and Business Media LLC",
-      "type": "journal-article",
-      "year": "2023",
-      "published": "2023-03-15",
-      "published_online": true,
-      "volume": "615",
-      "issue": "7952",
-      "pages": "443-449",
-      "abstract": "Manifestations of climate change are often shown as gradual changes in physical or biogeochemical properties 1 . Components of the climate system, however, can show stepwise shifts from one regime to another, as a nonlinear response of the system to a changing forcing 2 . Here we show that the Arctic sea ice regime shifted in 2007 from thicker and deformed to thinner and more uniform ice cover. Continuous sea ice monitoring in the Fram Strait over the last three decades revealed the shift. After the shift, the fraction of thick and deformed ice dropped by half and has not recovered to date. The timing of the shift was preceded by a two-step reduction in residence time of sea ice in the Arctic Basin, initiated first in 2005 and followed by 2007. We demonstrate that a simple model describing the stochastic process of dynamic sea ice thickening explains the observed ice thickness changes as a result of the reduced residence time. Our study highlights the long-lasting impact of climate change on the Arctic sea ice through reduced residence time and its connection to the coupled ocean–sea ice processes in the adjacent marginal seas and shelves of the Arctic Ocean.",
-      "issn": "0028-0836",
-      "url": "https://www.nature.com/articles/s41586-022-05686-x",
-      "source": "crossref+openalex",
-      "cited_by": 246,
-      "oa": true,
-      "id": "f7fc8438a3",
-      "added": "2026-09-19",
-      "title_zh": "北极海冰厚度的状态转变",
-      "note": "",
-      "tags": [],
-      "abstract_zh": "气候变化的表现通常体现为物理或生物地球化学性质的渐进变化¹。然而，气候系统的组成部分可能表现出从一个状态到另一个状态的阶梯式转变，这是系统对变化的强迫的非线性响应²。我们在此表明，北极海冰状态在2007年发生了转变，从较厚且变形的冰转变为较薄且更均匀的冰盖。过去三十年来在弗拉姆海峡的连续海冰监测揭示了这一转变。转变之后，厚冰和变形冰的比例下降了一半，至今尚未恢复。转变发生之前，北极盆地的海冰停留时间经历了两步减少，首先始于2005年，随后在2007年进一步减少。我们证明，一个描述动态海冰增厚随机过程的简单模型可以解释观测到的冰厚变化，这是停留时间减少的结果。我们的研究强调了气候变化通过减少停留时间对北极海冰的长期影响，以及其与北极海洋相邻边缘海和陆架上耦合的海洋–海冰过程之间的联系。",
-      "article_type": "Research Article",
-      "cover": "covers/f7fc8438a3.png"
     },
     {
       "doi": "10.1126/sciadv.ady3258",
