@@ -28,11 +28,27 @@ h2::before{content:"";display:inline-block;width:3px;height:12px;background:var(
 .badge{padding:1px 7px;border:1px solid var(--line2);border-radius:3px}
 .badge.ok{color:var(--ok);border-color:var(--ok)}
 .badge.warn{color:var(--bad);border-color:var(--bad)}
-#doiBox{border:1px dashed var(--line2);border-radius:8px;padding:14px;transition:border-color .16s,background-color .16s}
-#doiBox.on{border-color:var(--accent);background:var(--card)}
+#doiBox,#wkBox{border:1px dashed var(--line2);border-radius:8px;padding:14px;transition:border-color .16s,background-color .16s}
+#doiBox.on,#wkBox.on{border-color:var(--accent);background:var(--card)}
+#wkBox{cursor:pointer}
+#wkBox .big{font-size:13px;color:var(--dim)}
+#wkFile{display:none}
 #doiIn{width:100%;min-height:110px;resize:vertical;padding:9px 11px;border:1px solid var(--line2);border-radius:5px;background:transparent;color:var(--text);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.7}
 #doiIn:focus{outline:none;border-color:var(--accent)}
 #doiFile{display:none}
+#coverFile{display:none}
+/* 封面图：DOI 框下的「待配区」+ 卡片里的封面区块（拖拽 / 粘贴 / 点选同一路径） */
+#coverStaging{display:none;align-items:center;gap:9px;flex-wrap:wrap;margin-top:10px;padding:10px 12px;border:1px dashed var(--line2);border-radius:8px}
+#coverStaging.on{display:flex}
+#coverStaging .sthumb{width:56px;height:38px;object-fit:cover;border-radius:4px;border:1px solid var(--line2);cursor:pointer}
+#coverStaging .sthumb:hover{border-color:var(--bad)}
+.covbox{border:1px dashed var(--line2);border-radius:8px;padding:10px;transition:border-color .16s,background-color .16s}
+.covbox.on{border-color:var(--accent);background:var(--card)}
+.covbox .covprev{display:flex;align-items:center;gap:10px;min-height:20px}
+.covbox img{max-width:200px;max-height:110px;object-fit:cover;border-radius:5px;border:1px solid var(--line2)}
+.covbox .empty-tip{font-size:11.5px;color:var(--faint);line-height:1.7}
+.covbtns{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.mthumb{width:64px;height:42px;object-fit:cover;border-radius:4px;border:1px solid var(--line2);flex:none}
 .item{border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:14px;background:var(--card);display:grid;grid-template-columns:300px 1fr;gap:16px}
 @media (max-width:760px){.item{grid-template-columns:1fr}}
 .rec{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;color:var(--faint);line-height:1.8;word-break:break-all;min-width:0}
@@ -143,20 +159,24 @@ details pre{margin:8px 0 0;padding:10px;border:1px solid var(--line);border-radi
 
   <div class="tabs">
     <button class="tab active" data-tab="add">添加文献</button>
+    <button class="tab" data-tab="weekly">每周速递</button>
     <button class="tab" data-tab="manage">文献管理</button>
   </div>
 
   <div class="tabpage" id="tab-add">
-    <h2 style="margin-top:0">输入 DOI</h2>
+    <h2 style="margin-top:0">输入 DOI 与封面图</h2>
     <div id="doiBox">
-      <textarea id="doiIn" placeholder="每行一个 DOI；也支持直接粘贴引用串 / doi.org 链接，会自动提取，例如：&#10;10.1038/s41467-021-24264-9&#10;https://doi.org/10.1126/science.ado5008&#10;Wu S, et al. Nat Commun (2021). https://doi.org/10.1038/..."></textarea>
+      <textarea id="doiIn" placeholder="每行一个 DOI；也支持直接粘贴引用串 / doi.org 链接，会自动提取，例如：&#10;10.1038/s41467-021-24264-9&#10;https://doi.org/10.1126/science.ado5008&#10;Wu S, et al. Nat Commun (2021). https://doi.org/10.1038/...&#10;另可直接把图片粘贴 / 拖进本框作为封面图（与抓取到的文献按顺序配对）"></textarea>
       <div class="row" style="margin-top:10px">
         <button class="primary" id="btnFetch">抓取并解析</button>
         <button id="btnTxt">从 .txt 导入</button>
+        <button id="btnCover">添加封面图</button>
         <input id="doiFile" type="file" accept=".txt,.csv,.ris,.bib,text/plain">
-        <span class="note" style="flex:1">抓取来自 Crossref + OpenAlex（标题 / 作者 / 期刊 / 卷期页 / 摘要 / 关键词 / 被引 / OA），不需要等待太久</span>
+        <input id="coverFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
+        <span class="note" style="flex:1">抓取来自 Crossref + OpenAlex；图片（PNG/JPEG/WebP/GIF，≤8MB）可粘贴 / 拖拽 / 点选，作为文章封面</span>
       </div>
     </div>
+    <div id="coverStaging"></div>
     <p class="note" id="fetchNote" style="margin-top:8px"></p>
 
     <h2>核对信息（可修改手动字段）</h2>
@@ -176,6 +196,26 @@ details pre{margin:8px 0 0;padding:10px;border:1px solid var(--line);border-radi
       </div>
     </div>
     <div class="log" id="log"></div>
+  </div>
+
+  <div class="tabpage" id="tab-weekly" style="display:none">
+    <h2 style="margin-top:0">上传周报 Markdown</h2>
+    <div id="wkBox">
+      <div class="big">点选或把周报 <b>.md</b> 拖到这里（可多选）</div>
+      <p class="note" style="margin:6px 0 0">收录流程：md 落盘 content/weekly/（周报页自动收录）→ 解析「# 文献N」的
+        DOI 与图表 → 新 DOI 抓取元数据入库（周报自带中文标题 / 摘要 / 体裁注记直接预填）→
+        图表图下载作封面，<b>图表为无的用站点 logo 兜底</b> → 生成主页卡片，之后在「文献管理」统一管理。<br>
+        同名文件再次上传 = 覆盖更新该期（已在库的 DOI 自动跳过，只补新增）。</p>
+      <div class="row" style="margin-top:10px">
+        <button class="primary" id="btnWkPick">选择 .md 文件</button>
+        <input id="wkFile" type="file" accept=".md,text/markdown" multiple>
+        <span class="note" style="flex:1">构建与推送 / 同步服务器按「添加文献」页发布区的开关执行</span>
+      </div>
+    </div>
+
+    <h2>已收录期次</h2>
+    <div id="wkList"><p class="note">读取中…</p></div>
+    <div class="log" id="wkLog"></div>
   </div>
 
   <div class="tabpage" id="tab-manage" style="display:none">
@@ -202,13 +242,21 @@ details pre{margin:8px 0 0;padding:10px;border:1px solid var(--line);border-radi
   <h2>说明</h2>
   <p class="note">
     · 粘贴的 DOI 会立即抓取元数据，并调用本地大模型做<b>中文翻译（初译 + 审校，两重处理）</b>；只有点「发布」后才写入 <b>meta/papers.json</b>、生成站点并提交。<br>
+    · <b>封面图</b>：图片可直接粘贴 / 拖进 DOI 输入框（进「待配区」，抓取后按顺序自动配给新文献），
+      或在每篇卡片的封面区块单独上传；服务端校验真实格式（PNG/JPEG/WebP/GIF，≤8MB）后存
+      assets_src/covers/{id}.{ext}，发布时按 id 探测写入 papers.json，前台展示在卡片顶图与详情页。<br>
     · 大模型配置走环境变量 LLM_API_KEY / LLM_BASE_URL / LLM_MODEL_NAME（OpenAI 兼容接口）。
       限流预案：429 指数退避并遵守 Retry-After → 重试耗尽进入 60s 断路冷却（期间直接跳过不撞 API）→
       审校失败或超预算自动降级为「仅初译」→ 初译失败则中文留空。任何失败都不阻断抓取与发布，
       事后用文献管理的「翻译缺中文的」批量回补（只补空缺、可反复执行）。<br>
     · 译文（中文标题 / 中文摘要）在表单里可直接修改，修改稿视为定稿 —— 重新抓取 / 刷新被引不会覆盖，只有「重新翻译」会重写。<br>
-    · 文献 id 由 DOI（小写）sha1 前 10 位算出 —— 重复 DOI 发布时会被自动跳过。<br>
+    · 文献 id 由 DOI（小写）sha1 前 10 位算出 —— 重复 DOI 发布时会被自动跳过；封面文件名与 id 一一对应，换封面即覆盖。<br>
     · 「重新抓取」更新标题 / 作者 / 期刊 / 摘要等自动字段；「刷新被引」只批量更新 cited_by。<br>
+    · <b>每周速递</b>：上传周报 md 自动两件事 —— ① 落盘 content/weekly/，周报页随构建收录；
+      ② 解析「# 文献N」小节，DOI 抓取元数据入库生成主页卡片（周报自带中文标题 / 摘要 / 体裁注记直接预填，
+      不走大模型；缺中文可事后用「翻译缺中文的」回补）。文献封面优先用本期图表图，图表为无或下载失败用站点 logo 兜底。<br>
+    · 周报同名文件重复上传 = 覆盖更新该期（库内已有 DOI 自动跳过）；「删除此期」只删周报页，
+      已生成的文献卡片需到文献管理单独删除。<br>
     · 发布 = 写 meta/papers.json → build_site.py → git add/commit/push →（可选）同步服务器。
   </p>
 </div>
@@ -280,14 +328,14 @@ function toast(msg) {
   document.body.appendChild(t);
   setTimeout(function () { t.remove(); }, 3500);
 }
-function askConfirm(msg, onOk) {
+function askConfirm(msg, onOk, onCancel) {
   var mask = el("div", "modal-mask");
   var box = el("div", "modal");
   box.appendChild(el("div", "mmsg", msg));
   var row = el("div", "mrow");
   var no = el("button", "", "取消");
   var yes = el("button", "primary", "确认");
-  no.addEventListener("click", function () { mask.remove(); });
+  no.addEventListener("click", function () { mask.remove(); if (onCancel) onCancel(); });
   yes.addEventListener("click", function () { mask.remove(); onOk(); });
   row.appendChild(no); row.appendChild(yes);
   box.appendChild(row); mask.appendChild(box);
@@ -301,14 +349,195 @@ function api(path, body) {
   } : undefined).then(function (r) { return r.json(); });
 }
 
+/* ── 封面图（GeoSciPlot 同款识别逻辑）──
+   粘贴 / 拖拽 / 点选的图片先读成 dataURL：
+   · 落在 DOI 输入框 → 进入「待配区」，抓取成功后按顺序自动配给新文献
+   · 落在具体文献的封面区块 → 直接作为该篇的封面
+   统一经 /api/cover 上传落盘（服务端魔数校验后存 assets_src/covers/{id}.{ext}） */
+var stagedCovers = [];      // 待配区：[{name, data}]（data = dataURL）
+var coverPick = null;       // 共享 file input 的当前目标：{holder, box, onChange}
+var COVER_MAX_MB = 8;
+
+function coverStrip() {
+  var box = document.getElementById("coverStaging");
+  box.innerHTML = "";
+  if (!stagedCovers.length) { box.className = ""; return; }
+  box.className = "on";
+  box.appendChild(el("span", "note", "封面图待配对 " + stagedCovers.length + " 张（抓取成功后按顺序自动配给新文献，点缩略图移除）："));
+  stagedCovers.forEach(function (c, i) {
+    var img = document.createElement("img");
+    img.className = "sthumb";
+    img.src = c.data;
+    img.alt = c.name || "";
+    img.title = (c.name || "粘贴图片") + "（点击移除）";
+    img.addEventListener("click", function () {
+      stagedCovers.splice(i, 1);
+      coverStrip();
+    });
+    box.appendChild(img);
+  });
+}
+function stageCoverFile(file) {
+  if (!file) return;
+  if (String(file.type || "").indexOf("image/") !== 0) {
+    toast("只支持图片文件（PNG / JPEG / WebP / GIF）");
+    return;
+  }
+  if (file.size > COVER_MAX_MB * 1024 * 1024) {
+    toast("图片超过 " + COVER_MAX_MB + "MB 上限");
+    return;
+  }
+  var r = new FileReader();
+  r.onload = function () {
+    stagedCovers.push({ name: file.name || "粘贴图片", data: String(r.result) });
+    coverStrip();
+  };
+  r.readAsDataURL(file);
+}
+function uploadCover(fid, dataUrl, cb) {
+  api("/api/cover", { id: fid, dataUrl: dataUrl }).then(function (res) {
+    if (cb) cb(res || { ok: false, error: "响应为空" });
+  }).catch(function (e) { if (cb) cb({ ok: false, error: String(e) }); });
+}
+/* 封面区块渲染：holder = {id, cover(服务端路径), coverData(本地预览 dataURL)} */
+function renderCover(box, holder, onChange) {
+  box.innerHTML = "";
+  var prev = el("div", "covprev");
+  if (holder.coverData) {
+    var im1 = document.createElement("img");
+    im1.src = holder.coverData; im1.alt = "封面预览";
+    prev.appendChild(im1);
+  } else if (holder.cover) {
+    var im2 = document.createElement("img");
+    im2.src = "/api/cover/" + holder.id + "?t=" + (holder._ct || 0);
+    im2.alt = "封面预览";
+    prev.appendChild(im2);
+  } else {
+    prev.appendChild(el("span", "empty-tip",
+      "未设置 —— 把图片拖到这里、Ctrl+V 粘贴，或点「上传封面」；发布后展示在卡片与详情页"));
+  }
+  box.appendChild(prev);
+  var btns = el("div", "covbtns");
+  var up = el("button", "tiny", (holder.cover || holder.coverData) ? "更换封面" : "上传封面");
+  up.type = "button";
+  up.addEventListener("click", function () {
+    coverPick = { holder: holder, box: box, onChange: onChange };
+    document.getElementById("coverFile").click();
+  });
+  btns.appendChild(up);
+  if (holder.cover || holder.coverData) {
+    var rmv = el("button", "tiny danger", "移除封面");
+    rmv.type = "button";
+    rmv.addEventListener("click", function () {
+      api("/api/cover", { id: holder.id, remove: true }).then(function () {
+        holder.cover = ""; holder.coverData = "";
+        renderCover(box, holder, onChange);
+        if (onChange) onChange(holder);
+      });
+    });
+    btns.appendChild(rmv);
+  }
+  box.appendChild(btns);
+  /* 拖拽监听只挂一次：renderCover 会随预览刷新反复执行，重复挂会导致一次 drop 触发多次上传 */
+  if (!box.dataset.covWired) {
+    box.dataset.covWired = "1";
+    box.addEventListener("dragover", function (e) { e.preventDefault(); box.classList.add("on"); });
+    box.addEventListener("dragleave", function () { box.classList.remove("on"); });
+    box.addEventListener("drop", function (e) {
+      e.preventDefault();
+      box.classList.remove("on");
+      var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (!f) return;
+      coverPick = { holder: holder, box: box, onChange: onChange };
+      readCoverTo(f, assignCover);
+    });
+  }
+}
+function readCoverTo(file, done) {
+  if (!file || String(file.type || "").indexOf("image/") !== 0) {
+    toast("只支持图片文件（PNG / JPEG / WebP / GIF）");
+    return;
+  }
+  if (file.size > COVER_MAX_MB * 1024 * 1024) {
+    toast("图片超过 " + COVER_MAX_MB + "MB 上限");
+    return;
+  }
+  var r = new FileReader();
+  r.onload = function () { done(String(r.result)); };
+  r.readAsDataURL(file);
+}
+function assignCover(dataUrl) {
+  var cp = coverPick;
+  if (!cp) return;
+  cp.holder.coverData = dataUrl;      // 先本地预览，上传落盘后回填服务端路径
+  renderCover(cp.box, cp.holder, cp.onChange);
+  uploadCover(cp.holder.id, dataUrl, function (res) {
+    if (res.ok) { cp.holder.cover = res.cover; }
+    else { cp.holder.cover = ""; cp.holder.coverData = ""; toast("封面上传失败：" + (res.error || "未知错误")); }
+    renderCover(cp.box, cp.holder, cp.onChange);
+    if (cp.onChange) cp.onChange(cp.holder);
+  });
+}
+/* 共享 file input：coverPick 有目标 → 直接配给那篇文献；没有（btnCover 进入）→ 压入待配区 */
+document.getElementById("coverFile").addEventListener("change", function (e) {
+  var f = e.target.files && e.target.files[0];
+  e.target.value = "";
+  if (!f) return;
+  if (!coverPick) { stageCoverFile(f); return; }
+  readCoverTo(f, assignCover);
+});
+document.getElementById("btnCover").addEventListener("click", function () {
+  coverPick = null;       // 进入待配区模式：选中的图片先入待配区，抓取后按顺序配对
+  document.getElementById("coverFile").click();
+});
+/* DOI 输入框：识别粘贴的图片（纯文本照常走 textarea 默认粘贴） */
+document.getElementById("doiBox").addEventListener("paste", function (e) {
+  var items = (e.clipboardData || {}).items || [];
+  var imgs = [];
+  for (var i = 0; i < items.length; i++) {
+    if (items[i].type && String(items[i].type).indexOf("image/") === 0) {
+      var f = items[i].getAsFile && items[i].getAsFile();
+      if (f) imgs.push(f);
+    }
+  }
+  if (!imgs.length) return;
+  e.preventDefault();
+  imgs.forEach(stageCoverFile);
+});
+/* DOI 输入框：拖拽识别 —— 图片进待配区，.txt/.ris/.bib 文本文件进 textarea */
+var doiBoxEl = document.getElementById("doiBox");
+doiBoxEl.addEventListener("dragover", function (e) { e.preventDefault(); doiBoxEl.classList.add("on"); });
+doiBoxEl.addEventListener("dragleave", function () { doiBoxEl.classList.remove("on"); });
+doiBoxEl.addEventListener("drop", function (e) {
+  e.preventDefault();
+  doiBoxEl.classList.remove("on");
+  var files = (e.dataTransfer && e.dataTransfer.files) || [];
+  Array.prototype.forEach.call(files, function (f) {
+    if (String(f.type || "").indexOf("image/") === 0) { stageCoverFile(f); return; }
+    if (/\.(txt|csv|ris|bib)$/i.test(f.name || "")) {
+      var r = new FileReader();
+      r.onload = function () {
+        var box = document.getElementById("doiIn");
+        box.value = (box.value ? box.value.replace(/\s+$/, "") + "\n" : "") + String(r.result);
+        toast("已导入 " + f.name);
+      };
+      r.readAsText(f);
+    } else {
+      toast("只识别图片（封面）与 .txt/.csv/.ris/.bib（DOI 列表）");
+    }
+  });
+});
+
 /* ── 标签页 ── */
 function showTab(name) {
   document.querySelectorAll(".tab").forEach(function (t) {
     t.classList.toggle("active", t.getAttribute("data-tab") === name);
   });
-  document.getElementById("tab-add").style.display = name === "add" ? "" : "none";
-  document.getElementById("tab-manage").style.display = name === "manage" ? "" : "none";
+  document.querySelectorAll(".tabpage").forEach(function (p) {
+    p.style.display = p.id === "tab-" + name ? "" : "none";
+  });
   if (name === "manage") loadItems();
+  if (name === "weekly") loadWeekly();
 }
 document.querySelectorAll(".tab").forEach(function (t) {
   t.addEventListener("click", function () { showTab(t.getAttribute("data-tab")); });
@@ -325,6 +554,7 @@ function loadStatus() {
     box.appendChild(b);
     box.appendChild(el("span", "", "分支 " + s.branch));
     box.appendChild(el("span", "", "文献 " + s.count + " 篇"));
+    box.appendChild(el("span", "", "周报 " + (s.weekly || 0) + " 期"));
     box.appendChild(el("span", "", "未提交 " + s.dirty + " 项"));
     document.getElementById("initBox").style.display = s.isRepo ? "none" : "block";
     document.getElementById("remote").value = s.defaultRemote || "";
@@ -422,6 +652,17 @@ document.getElementById("doiFile").addEventListener("change", function (e) {
 
 function addItem(rec) {
   pending.push(rec);
+  // 待配区的封面按顺序自动配给新文献（GeoSciPlot「标准导入」同款逻辑）：
+  // 先本地预览，同时上传落盘 —— 发布时服务端按 id 探测文件写 papers.json
+  if (stagedCovers.length && rec.record && rec.record.id) {
+    var c = stagedCovers.shift();
+    coverStrip();
+    rec.cover = "";
+    rec.coverData = c.data;
+    uploadCover(rec.record.id, c.data, function (res) {
+      if (!res.ok) { rec.coverData = ""; toast("封面「" + (c.name || "粘贴图片") + "」上传失败：" + (res.error || "未知错误")); }
+    });
+  }
   var node = buildItemNode(rec);
   document.getElementById("list").appendChild(node);
   document.getElementById("emptyNote").style.display = "none";
@@ -435,6 +676,8 @@ function buildItemNode(rec) {
   rec.keywordsText = (p.keywords || []).join("、");
   rec.note = "";
   rec.tags = [];
+  rec.cover = rec.cover || "";
+  rec.coverData = rec.coverData || "";
   var node = el("div", "item");
   rec.node = node;
 
@@ -469,6 +712,15 @@ function buildItemNode(rec) {
   if (p.abstract) left.appendChild(el("div", "abs", p.abstract));
 
   var right = el("div", "fields");
+
+  // 封面区块（右列首位）：拖拽 / 粘贴 / 点选更换；发布时服务端按 id 探测文件
+  var covWrap = el("div", "full");
+  covWrap.appendChild(el("label", "", "封面图 cover（可选，文章封面 / 图形摘要，≤8MB）"));
+  var covBox = el("div", "covbox");
+  covWrap.appendChild(covBox);
+  right.appendChild(covWrap);
+  renderCover(covBox, rec);
+
   function field(labelText, key, opts) {
     opts = opts || {};
     var box = el("div", opts.full ? "full" : "");
@@ -505,6 +757,8 @@ function buildItemNode(rec) {
 
   var rm = el("button", "tiny danger", "移除（不入库）");
   rm.addEventListener("click", function () {
+    // 已上传过的封面文件一并清掉，避免留下无人引用的孤儿图片
+    if (rec.cover) api("/api/cover", { id: p.id, remove: true });
     pending = pending.filter(function (x) { return x !== rec; });
     node.remove();
     if (!pending.length) document.getElementById("emptyNote").style.display = "block";
@@ -517,8 +771,8 @@ function buildItemNode(rec) {
 }
 
 /* ── 发布 ── */
-function renderLog(log) {
-  var box = document.getElementById("log");
+function renderLog(log, boxId) {
+  var box = document.getElementById(boxId || "log");
   box.innerHTML = "";
   (log || []).forEach(function (s) {
     var row = el("div", "step");
@@ -544,25 +798,25 @@ function renderLog(log) {
   });
 }
 /* 长操作统一走后台任务：POST 拿任务号 → 每 0.8s 轮询进度 → 实时滚动日志 → 结束回调 */
-function runJob(path, body, done) {
+function runJob(path, body, done, boxId) {
   api(path, body).then(function (res) {
     var jid = res && res.job;
     if (!jid) {                                  // 兼容同步返回的结果
-      if (res && res.log) renderLog(res.log);
+      if (res && res.log) renderLog(res.log, boxId);
       if (done) done(res || { ok: false });
       return;
     }
     var timer = setInterval(function () {
       api("/api/job/" + jid).then(function (s) {
-        renderLog(s.log);
+        renderLog(s.log, boxId);
         if (!s.done) return;
         clearInterval(timer);
-        if (s.hint) document.getElementById("log").appendChild(el("div", "hint", s.hint));
+        if (s.hint) document.getElementById(boxId || "log").appendChild(el("div", "hint", s.hint));
         if (done) done({ ok: s.ok, log: s.log, hint: s.hint });
       }).catch(function () { /* 网络抖动，下轮再取 */ });
     }, 800);
   }).catch(function (e) {
-    renderLog([{ step: "请求失败", ok: false, out: String(e) }]);
+    renderLog([{ step: "请求失败", ok: false, out: String(e) }], boxId);
     if (done) done({ ok: false });
   });
 }
@@ -739,8 +993,15 @@ function renderManage(items) {
 function manageRow(it) {
   var node = el("div", "mrow");
   var info = el("div", "minfo");
-  // 顶行：期刊徽章 + 体裁 + 日期 —— 与站点卡片同一视觉语言
+  // 顶行：封面缩略图（如有）+ 期刊徽章 + 体裁 + 日期 —— 与站点卡片同一视觉语言
   var top = el("div", "top");
+  if (it.cover) {
+    var th = document.createElement("img");
+    th.className = "mthumb";
+    th.src = "/api/cover/" + it.id;
+    th.alt = "封面缩略图";
+    top.appendChild(th);
+  }
   top.appendChild(el("span", "j", it.journal || "—"));
   if (it.article_type) top.appendChild(el("span", "tchip", it.article_type));
   top.appendChild(el("span", "y", (it.published || it.year || "—") + " · 被引 " + (it.cited_by || 0) + (it.oa ? " · OA" : "")));
@@ -839,6 +1100,15 @@ function openEdit(node, it) {
   tagBox.appendChild(tp.node);
   form.appendChild(tagBox);
 
+  // 封面区块：上传/更换/移除立即落盘，点「保存」时服务端按文件探测同步字段
+  var covBox = el("div", "full");
+  covBox.appendChild(el("label", "", "封面图 cover（拖拽 / 粘贴 / 点选更换）"));
+  var covHolder = { id: it.id, cover: it.cover || "", coverData: "" };
+  var cb = el("div", "covbox");
+  covBox.appendChild(cb);
+  form.appendChild(covBox);
+  renderCover(cb, covHolder, function (h) { it.cover = h.cover; });
+
   field("中文摘要 abstract_zh（可选）", "abstract_zh", { type: "textarea", full: true });
 
   field("备注 note（可选）", "note", { type: "textarea", full: true });
@@ -908,6 +1178,135 @@ document.getElementById("btnTrMiss").addEventListener("click", function () {
     loadItems(); loadStatus();
   });
 });
+
+/* ── 每周速递：上传周报 md → 落盘收录 + 解析 DOI/图表生成文献卡片 ── */
+var wkIssues = [];
+var wkSiteUrl = "";
+
+function loadWeekly() {
+  return api("/api/weekly").then(function (r) {
+    wkIssues = r.issues || [];
+    wkSiteUrl = r.siteUrl || "";
+    wkRender();
+  });
+}
+function wkRender() {
+  var box = document.getElementById("wkList");
+  box.innerHTML = "";
+  if (!wkIssues.length) {
+    box.appendChild(el("p", "note", "还没有周报 —— 把第一期 md 拖到上方框里收录"));
+    return;
+  }
+  wkIssues.forEach(function (it) { box.appendChild(wkRow(it)); });
+}
+function wkRow(it) {
+  var node = el("div", "mrow");
+  var info = el("div", "minfo");
+  var top = el("div", "top");
+  top.appendChild(el("span", "tchip", it.date || "无日期"));
+  top.appendChild(el("span", "tchip", it.slug));
+  top.appendChild(el("span", "y", "文献 " + it.n + " 篇 · DOI " + it.nDoi + " · 已入库 " + it.inLib +
+    (it.n > it.nDoi ? " · " + (it.n - it.nDoi) + " 篇无 DOI" : "")));
+  info.appendChild(top);
+  info.appendChild(el("div", "t", it.title));
+  // 逐篇收录状态：● 已入库 · ○ DOI 待生成卡片 · × 无 DOI（只出周报页）
+  info.appendChild(el("div", "", "收录状态 " + it.dois.map(function (d) {
+    return d.doi ? (d.inLib ? "●" : "○") : "×";
+  }).join("") + (it.dois.length ? "（● 已入库 · ○ 待生成 · × 无 DOI）" : "（未解析到文献小节）")));
+  node.appendChild(info);
+
+  var act = el("div", "mact");
+  if (wkSiteUrl) {
+    var btnView = el("button", "tiny", "查看页面");
+    btnView.addEventListener("click", function () {
+      window.open(wkSiteUrl + "/weekly/" + it.slug + "/", "_blank", "noopener");
+    });
+    act.appendChild(btnView);
+  }
+  var btnRedo = el("button", "tiny", "覆盖重传");
+  btnRedo.addEventListener("click", function () { wkPickFlow(); });
+  var btnDel = el("button", "tiny danger", "删除此期");
+  btnDel.addEventListener("click", function () {
+    askConfirm("确定删除这一期周报？\n《" + it.title + "》\n\n将删除 " + it.file + " 并重建站点；"
+      + "已生成的文献卡片保留（在文献管理里单独删）。", function () {
+      btnDel.disabled = true;
+      btnDel.textContent = "删除中…";
+      runJob("/api/weekly-delete", { name: it.file,
+                                     push: document.getElementById("doPush").checked,
+                                     sync: document.getElementById("doSync").checked },
+             function () { loadWeekly(); loadStatus(); }, "wkLog");
+    });
+  });
+  act.appendChild(btnRedo);
+  act.appendChild(btnDel);
+  node.appendChild(act);
+  return node;
+}
+
+/* 上传流：选/拖 .md（可多选）→ 逐个「预解析 → 确认 → 后台任务」；
+   取消某一个 = 中止剩余队列 */
+function wkPickFlow() { document.getElementById("wkFile").click(); }
+function wkUploadQueue(files) {
+  var i = 0;
+  (function next() {
+    if (i >= files.length) { loadWeekly(); loadStatus(); return; }
+    wkUploadOne(files[i++], next);
+  })();
+}
+function wkUploadOne(file, done) {
+  var reader = new FileReader();
+  reader.onload = function () {
+    var content = String(reader.result);
+    api("/api/weekly-parse", { name: file.name, content: content }).then(function (pv) {
+      if (!pv || !pv.ok) {
+        toast("「" + file.name + "」预解析失败：" + ((pv && pv.error) || "未知错误"));
+        done();
+        return;
+      }
+      var fresh = pv.items.filter(function (x) { return x.doi && !x.inLib; });
+      var dup = pv.items.filter(function (x) { return x.inLib; }).length;
+      var noDoi = pv.items.filter(function (x) { return !x.doi; }).length;
+      var lines = ["即将收录《" + pv.title + "》（" + (pv.date || "无日期") + "）",
+        "· 解析 " + pv.n + " 篇文献：新入库 " + fresh.length + " 篇"
+          + (dup ? "、已入库跳过 " + dup + " 篇" : "")
+          + (noDoi ? "、无 DOI " + noDoi + " 篇（只出周报页，不出卡片）" : ""),
+        "· 新文献封面：" + fresh.filter(function (x) { return x.hasImg; }).length
+          + " 篇用图表图、" + fresh.filter(function (x) { return !x.hasImg; }).length
+          + " 篇无图表（站点 logo 兜底）",
+        "· " + (pv.overwrite ? "覆盖已有文件 " : "新文件 ") + pv.file
+          + "（周报页 " + pv.slug + " 随构建收录）"];
+      (pv.warnings || []).forEach(function (w) { lines.push("⚠ " + w); });
+      askConfirm(lines.join("\n") + "\n\n确认开始？", function () {
+        runJob("/api/weekly", { name: pv.file, content: content,
+                                push: document.getElementById("doPush").checked,
+                                sync: document.getElementById("doSync").checked },
+               done, "wkLog");
+      }, done);        // 取消 → 中止队列
+    }).catch(function (e) { toast("预解析请求失败：" + e); done(); });
+  };
+  reader.readAsText(file);
+}
+(function wkWire() {
+  var box = document.getElementById("wkBox");
+  var inp = document.getElementById("wkFile");
+  box.addEventListener("click", function () { wkPickFlow(); });
+  inp.addEventListener("click", function (e) { e.stopPropagation(); });
+  inp.addEventListener("change", function () {
+    var files = Array.prototype.slice.call(inp.files || []);
+    inp.value = "";
+    if (files.length) wkUploadQueue(files);
+  });
+  box.addEventListener("dragover", function (e) { e.preventDefault(); box.classList.add("on"); });
+  box.addEventListener("dragleave", function () { box.classList.remove("on"); });
+  box.addEventListener("drop", function (e) {
+    e.preventDefault();
+    box.classList.remove("on");
+    var files = Array.prototype.filter.call((e.dataTransfer && e.dataTransfer.files) || [],
+      function (f) { return /\.md$/i.test(f.name || ""); });
+    if (!files.length) { toast("只识别 .md 周报文件"); return; }
+    wkUploadQueue(files);
+  });
+})();
 
 loadStatus();
 mWire();

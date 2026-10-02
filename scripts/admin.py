@@ -9,9 +9,14 @@
 功能（流程照搬 GeoSciPlot：上传内容 → 填手动字段 → 点发布）：
     1. 粘贴 DOI（单条 / 多行批量 / 含 DOI 的任意文本）→ 按 DOI 自动抓取
        基本信息（Crossref + OpenAlex，见 fetch_doi.py）
-    2. 逐条补 标签 / 中文标题 / 备注
+       同时识别粘贴 / 拖拽的图片（封面图）：进入「待配区」，抓取成功后
+       按顺序自动配给新文献（GeoSciPlot「标准导入」的同款配对逻辑）
+    2. 逐条补 标签 / 中文标题 / 备注 / 封面图
     3. 文献管理：编辑手动字段、重新抓取、刷新被引、删除
-    4. 点「发布」→ 自动执行：写 meta/papers.json → build_site.py
+    4. 每周速递：上传周报 md → 落盘 content/weekly/（周报页自动收录）
+       + 解析「# 文献N」的 DOI/图表 → 抓元数据入库（周报自带中文直接预填）
+       + 图表图作封面（图表为无 → 站点 logo 兜底）
+    5. 点「发布」→ 自动执行：写 meta/papers.json → build_site.py
        → git add / commit / push →（可选）同步到服务器
 
 为什么不需要登录：服务只监听 127.0.0.1，物理上只有本机能连；推送用你本机已配置的
@@ -24,12 +29,15 @@ git 凭据（SSH key 或凭据管理器），**不需要在服务器上存任何
 from __future__ import annotations
 
 import argparse
+import base64
+import binascii
 import json
 import re
 import subprocess
 import sys
 import threading
 import time
+import urllib.request
 import uuid
 import webbrowser
 from datetime import date
@@ -38,6 +46,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from fetch_doi import fetch_paper, fetch_openalex, normalize_doi, paper_id  # noqa: E402
+from render_md import parse_front_matter, parse_weekly_papers  # noqa: E402
 import llm  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -49,11 +58,24 @@ UI_HTML = Path(__file__).resolve().parent / "admin_ui.html"
 PYTHON = sys.executable
 DEFAULT_REMOTE = "https://github.com/zbhgis/MacroBiodiv.git"
 MAX_BODY = 20 * 1024 * 1024
+# 封面图（文章封面 / 图形摘要）：随 git 入库存 assets_src/covers/{id}.{ext}，
+# build_site.py 构建时整体拷到 site/assets/covers/。papers.json 里的 cover 字段
+# 存 "covers/{id}.{ext}"（相对 assets/），由服务端按 id 探测文件得出 —— 不信任
+# 客户端传来的路径，文件在才是真相。
+COVERS = ROOT / "assets_src" / "covers"
+COVER_EXTS = ("png", "jpg", "jpeg", "webp", "gif")
+COVER_MAX = 8 * 1024 * 1024
+COVER_MIME = {"png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg",
+              "webp": "image/webp", "gif": "image/gif"}
 # 手动字段：自动抓取不会覆盖；abstract_zh 由大模型初填，之后视同手动字段（可在界面修改，
 # 重新抓取 / 刷新被引都会保留，只有显式「重新翻译」才重写）
 MANUAL_TEXT = ("title_zh", "abstract_zh", "article_type", "note")
 # keywords 手动维护（按文章原文填写；API 层拿不到作者关键词，不从正文推断）
 MANUAL_LIST = ("tags", "keywords")
+# ── 每周速递：内容源 content/weekly/*.md（build_site.py 直接消费该目录），
+#    上传的周报 md 在此落盘；文献封面缺图时用站点 logo 兜底 ──
+WEEKLY_SRC = ROOT / "content" / "weekly"
+LOGO_SRC = ROOT / "assets_src" / "logo.png"
 
 
 # ────────────────────────── 工具 ──────────────────────────
@@ -105,6 +127,73 @@ def apply_manual(item: dict, upd: dict) -> None:
                 item[k] = [t.strip() for t in str(v).split("|") if t.strip()]
 
 
+# ────────────────────────── 封面图 ──────────────────────────
+
+def _image_ext(raw: bytes) -> str:
+    """魔数嗅探图片真实格式 —— data URL 声明的 MIME 可伪造，以文件头为准。"""
+    if raw.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "png"
+    if raw.startswith(b"\xff\xd8\xff"):
+        return "jpg"
+    if raw.startswith((b"GIF87a", b"GIF89a")):
+        return "gif"
+    if raw[:4] == b"RIFF" and raw[8:12] == b"WEBP":
+        return "webp"
+    return ""
+
+
+def save_cover_bytes(fid: str, raw: bytes) -> tuple[bool, str]:
+    """图片字节 → assets_src/covers/{fid}.{ext}（魔数定格式）。返回 (ok, cover路径或错误)。"""
+    if not raw:
+        return False, "图片数据为空"
+    if len(raw) > COVER_MAX:
+        return False, f"图片超过 {COVER_MAX // (1024 * 1024)}MB 上限"
+    ext = _image_ext(raw)
+    if not ext:
+        return False, "只支持 PNG / JPEG / WebP / GIF"
+    # 换格式上传时清掉旧格式文件，避免站点引用到过期副本
+    for e in COVER_EXTS:
+        old = COVERS / f"{fid}.{e}"
+        if old.exists() and e != ext:
+            old.unlink()
+    COVERS.mkdir(parents=True, exist_ok=True)
+    (COVERS / f"{fid}.{ext}").write_bytes(raw)
+    return True, f"covers/{fid}.{ext}"
+
+
+def save_cover(fid: str, data_url: str) -> tuple[bool, str]:
+    """base64 data URL → assets_src/covers/{fid}.{ext}。返回 (ok, cover路径或错误信息)。"""
+    if not re.fullmatch(r"[0-9a-f]{10}", fid or ""):
+        return False, "id 不合法（须为 10 位十六进制）"
+    m = re.match(r"data:image/[a-z.+-]+;base64,(.+)", data_url or "", re.S)
+    if not m:
+        return False, "不是 base64 图片数据"
+    try:
+        raw = base64.b64decode(m.group(1))
+    except (binascii.Error, ValueError):
+        return False, "base64 解码失败"
+    return save_cover_bytes(fid, raw)
+
+
+def remove_cover(fid: str) -> None:
+    if not re.fullmatch(r"[0-9a-f]{10}", fid or ""):
+        return
+    for e in COVER_EXTS:
+        f = COVERS / f"{fid}.{e}"
+        if f.exists():
+            f.unlink()
+
+
+def detect_cover(fid: str) -> str:
+    """按 id 探测封面文件 → papers.json 的 cover 字段值；无则空串。"""
+    if not re.fullmatch(r"[0-9a-f]{10}", fid or ""):
+        return ""
+    for e in COVER_EXTS:
+        if (COVERS / f"{fid}.{e}").exists():
+            return f"covers/{fid}.{e}"
+    return ""
+
+
 def repo_state() -> dict:
     papers = load_papers()
     items = papers.get("items", [])
@@ -128,6 +217,7 @@ def repo_state() -> dict:
         "tags": sorted({t for i in items for t in (i.get("tags") or [])}),
         "journals": sorted({i.get("journal") for i in items if i.get("journal")}),
         "defaultRemote": DEFAULT_REMOTE,
+        "weekly": len(list(WEEKLY_SRC.glob("*.md"))) if WEEKLY_SRC.is_dir() else 0,
     }
 
 
@@ -186,6 +276,13 @@ def start_job(kind: str, body: dict) -> str:
             elif kind == "delete":
                 res = do_delete_and_finish((body.get("id") or "").strip(), body.get("message") or "",
                                            bool(body.get("push", True)), bool(body.get("sync", True)))
+            elif kind == "weekly":
+                res = do_weekly_and_finish(body.get("name") or "", body.get("content") or "",
+                                           body.get("message") or "",
+                                           bool(body.get("push", True)), bool(body.get("sync", True)))
+            elif kind == "weekly-delete":
+                res = do_weekly_delete_and_finish(body.get("name") or "", body.get("message") or "",
+                                                  bool(body.get("push", True)), bool(body.get("sync", True)))
             elif kind == "sync-server":
                 res = do_sync_server()
             elif kind == "init":
@@ -298,6 +395,10 @@ def do_publish(items: list, message: str, push: bool, sync: bool) -> dict:
             rec["id"] = paper_id(doi)
             rec.setdefault("added", today())
             apply_manual(rec, it)
+            # 封面：按 id 探测 assets_src/covers/ 里的实际文件（上传接口早已落盘）
+            cov = detect_cover(rec["id"])
+            if cov:
+                rec["cover"] = cov
             by_doi[doi.lower()] = rec
             added += 1
 
@@ -333,6 +434,12 @@ def do_update(updates: list) -> dict:
             upd = upd_map.get(it.get("id"))
             if upd:
                 apply_manual(it, upd)
+                # 封面以磁盘文件为准：编辑中上传/移除过封面，这里同步增删字段
+                cov = detect_cover(it.get("id"))
+                if cov:
+                    it["cover"] = cov
+                else:
+                    it.pop("cover", None)
                 n += 1
         save_papers(papers)
     return {"ok": True,
@@ -353,9 +460,14 @@ def do_refresh(ids: list) -> dict:
                 time.sleep(0.3)
             try:
                 record = fetch_paper(str(it.get("doi") or ""))
-                keep = {k: it[k] for k in ("id", "added", "title_zh", "abstract_zh", "article_type", "note", "tags", "keywords") if k in it}
+                keep = {k: it[k] for k in ("id", "added", "title_zh", "abstract_zh", "article_type", "note", "tags", "keywords", "cover") if k in it}
                 record.update(keep)
                 record["id"] = it.get("id")     # id 由入库时的 DOI 算出，保持不变
+                cov = detect_cover(record["id"])
+                if cov:
+                    record["cover"] = cov
+                else:
+                    record.pop("cover", None)
                 papers["items"][idx] = record
                 ok_n += 1
                 log.append({"step": f"刷新 {it.get('id')}", "ok": True,
@@ -471,6 +583,7 @@ def do_delete(fid: str) -> dict:
 
         papers["items"] = [x for x in items if x.get("id") != fid]
         save_papers(papers)
+    remove_cover(fid)       # 封面文件随条目一起删（站点重建后不再引用）
     return {"ok": True, "item": it,
             "log": [{"step": f"删除 {fid}", "ok": True,
                      "out": f"已移除「{str(it.get('title') or '')[:50]}」（git 提交后详情页随构建自动消失）"}]}
@@ -631,6 +744,237 @@ def do_delete_and_finish(fid: str, message: str, push: bool, sync: bool) -> dict
     return pipeline_after_content(log, message or f"delete: 文献 {fid}", push, sync)
 
 
+# ────────────────────────── 每周速递 ──────────────────────────
+# 上传周报 md → ① 落盘 content/weekly/（周报页面随构建自动收录）
+#               ② 解析「# 文献N」小节：DOI → Crossref/OpenAlex 抓元数据入库
+#                  （周报自带的中文标题/摘要/体裁注记直接预填，省大模型预算）
+#               ③ 图表图下载为封面；图表为无 / 下载失败 → 站点 logo 兜底
+# 生成的文献条目进 papers.json，与手动添加的一起在「文献管理」里统一管理。
+
+def weekly_safe_name(name: str) -> str:
+    """上传文件名清洗：去路径成分与非法字符，缺 .md 补上。"""
+    name = (name or "").strip().replace("\\", "/").split("/")[-1]
+    name = re.sub(r'[<>:"|?*\x00-\x1f]', "", name).strip()
+    if not name:
+        return ""
+    if not name.lower().endswith(".md"):
+        name += ".md"
+    return name
+
+
+def weekly_slug(title: str, stem: str) -> str:
+    """期号 slug，与 build_site.py 同规则：标题里的「精选N」优先。"""
+    m = re.search(r"精选(\d+)", title or "")
+    return f"weekly-{m.group(1) if m else (stem or '')[:8]}"
+
+
+def fetch_remote_image(url: str, timeout: int = 30) -> bytes:
+    """下载周报里的图表图（jsdelivr 等 CDN）。"""
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 MacroBiodivAdmin/1.0"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        data = r.read(COVER_MAX + 1)
+    if len(data) > COVER_MAX:
+        raise ValueError(f"图片超过 {COVER_MAX // (1024 * 1024)}MB 上限")
+    return data
+
+
+def weekly_cover(fid: str, images: list, log: list, label: str) -> None:
+    """周报文献的封面落盘：图表图按序尝试下载，无图 / 全失败 → 站点 logo 兜底。"""
+    err = ""
+    for u in images:
+        try:
+            ok, val = save_cover_bytes(fid, fetch_remote_image(u))
+        except Exception as e:
+            err = str(e) or repr(e)
+            continue
+        if ok:
+            log.append({"step": f"封面 {label}", "ok": True, "out": f"图表图 → {val}"})
+            return
+        err = val
+    if images:
+        log.append({"step": f"封面 {label}", "ok": False,
+                    "out": f"图表图下载失败（{err or '格式不支持'}）→ 用 logo 兜底"})
+    else:
+        log.append({"step": f"封面 {label}", "ok": True, "out": "图表为无 → 用站点 logo 兜底"})
+    if LOGO_SRC.exists():
+        COVERS.mkdir(parents=True, exist_ok=True)
+        (COVERS / f"{fid}.png").write_bytes(LOGO_SRC.read_bytes())
+    else:
+        log.append({"step": f"封面 {label}", "ok": False, "out": "assets_src/logo.png 不存在，该篇无封面"})
+
+
+def weekly_issues() -> dict:
+    """content/weekly/ 全部期次概览：期号、日期、DOI 及其入库状态（管理列表用）。"""
+    known = {str(i.get("doi") or "").lower() for i in load_papers().get("items", [])}
+    base = ""
+    cfg_path = ROOT / "site.config.json"
+    if cfg_path.exists():
+        try:
+            base = (json.loads(cfg_path.read_text(encoding="utf-8")).get("site_url") or "").rstrip("/")
+        except (json.JSONDecodeError, OSError):
+            pass
+    issues = []
+    if WEEKLY_SRC.is_dir():
+        for md in sorted(WEEKLY_SRC.glob("*.md")):
+            try:
+                text = md.read_text(encoding="utf-8")
+            except OSError:
+                continue
+            meta, _ = parse_front_matter(text)
+            parsed = parse_weekly_papers(text)
+            title = str(meta.get("title") or md.stem).strip()
+            dois = []
+            for p in parsed:
+                doi = normalize_doi(p["doi_line"] or "")
+                dois.append({"doi": doi, "inLib": bool(doi) and doi.lower() in known,
+                             "hasImg": bool(p["images"])})
+            issues.append({
+                "file": md.name, "title": title,
+                "date": str(meta.get("date") or "")[:10],
+                "slug": weekly_slug(title, md.stem),
+                "n": len(parsed),
+                "nDoi": sum(1 for d in dois if d["doi"]),
+                "inLib": sum(1 for d in dois if d["inLib"]),
+                "dois": dois,
+            })
+    issues.sort(key=lambda x: (x["date"], x["file"]), reverse=True)
+    return {"issues": issues, "siteUrl": base}
+
+
+def weekly_preview(name: str, content: str) -> dict:
+    """上传前预解析（无副作用）：给确认框展示将收录哪些文献。"""
+    fname = weekly_safe_name(name)
+    if not fname:
+        return {"ok": False, "error": "文件名不合法"}
+    if not (content or "").strip():
+        return {"ok": False, "error": "文件内容为空"}
+    meta, _ = parse_front_matter(content)
+    parsed = parse_weekly_papers(content)
+    known = {str(i.get("doi") or "").lower() for i in load_papers().get("items", [])}
+    items = []
+    for p in parsed:
+        doi = normalize_doi(p["doi_line"] or "")
+        items.append({"no": p["no"], "doi": doi,
+                      "title": p["title_en"] or p["title_zh"] or "?",
+                      "title_zh": p["title_zh"], "journal": p["journal"],
+                      "genre": p["genre"], "hasImg": bool(p["images"]),
+                      "inLib": bool(doi) and doi.lower() in known})
+    warnings = []
+    if not meta:
+        warnings.append("未识别到 front matter（title/date），周报页将回退用文件名作标题")
+    n_nodoi = sum(1 for it in items if not it["doi"])
+    if n_nodoi:
+        warnings.append(f"{n_nodoi} 篇未解析到 DOI，这些篇目不会生成文献卡片")
+    title = str(meta.get("title") or "").strip()
+    slug = weekly_slug(title, Path(fname).stem)
+    if WEEKLY_SRC.is_dir():
+        for md in WEEKLY_SRC.glob("*.md"):
+            if md.name == fname:
+                continue
+            try:
+                m2, _ = parse_front_matter(md.read_text(encoding="utf-8"))
+            except OSError:
+                continue
+            if weekly_slug(str(m2.get("title") or md.stem), md.stem) == slug:
+                warnings.append(f"期号与已有《{md.name}」相同（slug 均为 {slug}），构建时两条目的页面会互相覆盖")
+                break
+    return {"ok": True, "file": fname, "title": title or fname,
+            "date": str(meta.get("date") or "")[:10], "slug": slug,
+            "overwrite": (WEEKLY_SRC / fname).exists(),
+            "n": len(items), "items": items, "warnings": warnings}
+
+
+def do_weekly_import(name: str, content: str, log: list) -> dict:
+    """落盘周报 md + 解析入库（不动站点构建，由调用方接发布流水线）。"""
+    fname = weekly_safe_name(name)
+    if not fname or not (content or "").strip():
+        log.append({"step": "校验文件", "ok": False, "out": "文件名或内容不合法"})
+        return {"ok": False}
+    meta, _ = parse_front_matter(content)
+    parsed = parse_weekly_papers(content)
+    title = str(meta.get("title") or "").strip() or fname
+    log.append({"step": "解析周报", "ok": True, "out": f"《{title}》识别到 {len(parsed)} 篇文献"})
+
+    WEEKLY_SRC.mkdir(parents=True, exist_ok=True)
+    (WEEKLY_SRC / fname).write_text(content, encoding="utf-8", newline="\n")
+    log.append({"step": "落盘内容源", "ok": True,
+                "out": f"content/weekly/{fname}（周报页随本次构建自动收录）"})
+
+    added, skipped, failed = 0, 0, 0
+    with DATA_LOCK:
+        papers = load_papers()
+        by_doi = {str(i.get("doi") or "").lower(): i for i in papers["items"]}
+        for idx, p in enumerate(parsed):
+            label = f"文献{p['no']}"
+            doi = normalize_doi(p["doi_line"] or "")
+            if not doi:
+                log.append({"step": label, "ok": False, "out": "未解析到 DOI，跳过（不生成卡片）"})
+                failed += 1
+                continue
+            if doi.lower() in by_doi:
+                log.append({"step": label, "ok": True, "out": f"DOI 已在文献库，跳过（{doi}）"})
+                skipped += 1
+                continue
+            if idx:
+                time.sleep(0.3)      # 礼貌限速，与手动抓取同口径
+            try:
+                record = fetch_paper(doi)
+            except Exception as e:
+                log.append({"step": label, "ok": False, "out": f"抓取失败（{doi}）：{e}"})
+                failed += 1
+                continue
+            record["id"] = paper_id(doi)
+            # 周报自带中文 → 直接预填（标题行中文段 / 摘要节 / 体裁注记）；
+            # 个别空缺事后用「翻译缺中文的」批量回补
+            record["title_zh"] = p["title_zh"]
+            record["abstract_zh"] = p["abstract_zh"]
+            record["article_type"] = p["genre"]
+            record["note"] = ""
+            record["tags"] = []
+            record.setdefault("added", today())
+            weekly_cover(record["id"], p["images"], log, label)
+            cov = detect_cover(record["id"])
+            if cov:
+                record["cover"] = cov
+            by_doi[doi.lower()] = record
+            added += 1
+            log.append({"step": label, "ok": True,
+                        "out": f"已入库：{str(record['title_zh'] or record['title'])[:48]}（{record['id']}）"})
+        if added:
+            papers["items"] = list(by_doi.values())
+            save_papers(papers)
+    summary = f"收录完成：新增 {added} 篇"
+    if skipped:
+        summary += f"，已入库跳过 {skipped} 篇"
+    if failed:
+        summary += f"，失败 {failed} 篇"
+    log.append({"step": "收录汇总", "ok": True, "out": summary})
+    return {"ok": True, "added": added, "skipped": skipped, "failed": failed, "title": title}
+
+
+def do_weekly_and_finish(name: str, content: str, message: str, push: bool, sync: bool) -> dict:
+    log: list[dict] = []
+    res = do_weekly_import(name, content, log)
+    if not res.get("ok"):
+        return {"ok": False, "log": log, "hint": "周报处理失败（见日志），未构建站点"}
+    # 全部重复也要构建：周报页本身是新增/更新的内容
+    return pipeline_after_content(log, message or f"weekly: 收录《{res.get('title', name)}》", push, sync)
+
+
+def do_weekly_delete_and_finish(name: str, message: str, push: bool, sync: bool) -> dict:
+    log: list[dict] = []
+    fname = weekly_safe_name(name)
+    fp = WEEKLY_SRC / fname if fname else None
+    if not fp or not fp.exists():
+        return {"ok": False,
+                "log": [{"step": "删除周报", "ok": False, "out": f"文件不存在：{fname or name}"}]}
+    fp.unlink()
+    log.append({"step": "删除周报", "ok": True,
+                "out": f"已删除 content/weekly/{fname}（周报页随构建消失；"
+                       f"已生成的文献卡片保留，在文献管理里单独删除）"})
+    return pipeline_after_content(log, message or f"weekly: 删除 {fname}", push, sync)
+
+
 # ────────────────────────── HTTP ──────────────────────────
 
 class Handler(BaseHTTPRequestHandler):
@@ -679,8 +1023,23 @@ class Handler(BaseHTTPRequestHandler):
             self._json(repo_state())
         elif path == "/api/items":
             self._json(load_papers())
+        elif path == "/api/weekly":
+            self._json(weekly_issues())
         elif path.startswith("/api/job/"):
             self._json(job_snapshot(path[len("/api/job/"):]))
+        elif path.startswith("/api/cover/"):
+            # 封面预览：管理界面不直接暴露 assets_src 目录，经此路由读文件
+            fid = path[len("/api/cover/"):].split("?")[0]
+            sent = False
+            if re.fullmatch(r"[0-9a-f]{10}", fid):
+                for e in COVER_EXTS:
+                    fp = COVERS / f"{fid}.{e}"
+                    if fp.exists():
+                        self._send(200, fp.read_bytes(), COVER_MIME[e])
+                        sent = True
+                        break
+            if not sent:
+                self._send(404, b"no cover", "text/plain; charset=utf-8")
         else:
             self._send(404, b"not found", "text/plain; charset=utf-8")
 
@@ -690,6 +1049,23 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/fetch":
             # 纯抓取（网络往返），同步返回 —— 前端逐条发送，保持逐条反馈
             self._json(do_fetch(body.get("dois") or []))
+        elif path == "/api/weekly-parse":
+            # 上传前预解析（本地纯解析，无副作用），同步返回
+            self._json(weekly_preview(body.get("name") or "", body.get("content") or ""))
+        elif path == "/api/weekly":
+            # 长操作：落盘 + 逐篇抓取入库 + 封面 + 构建，后台任务执行
+            self._json({"job": start_job("weekly", body)})
+        elif path == "/api/weekly-delete":
+            self._json({"job": start_job("weekly-delete", body)})
+        elif path == "/api/cover":
+            fid = (body.get("id") or "").strip()
+            if body.get("remove"):
+                remove_cover(fid)
+                self._json({"ok": True, "cover": ""})
+            else:
+                ok, val = save_cover(fid, body.get("dataUrl") or "")
+                self._json({"ok": ok, "cover": val if ok else "",
+                            "error": "" if ok else val})
         elif path in ("/api/publish", "/api/update", "/api/refresh", "/api/refresh-cited",
                       "/api/translate", "/api/delete", "/api/sync-server", "/api/init", "/api/push"):
             # 长操作：立即返回任务号，后台线程执行，前端轮询 /api/job/<id>

@@ -13,10 +13,18 @@
     site/assets/papers-data.js     全量文献元数据（首页网格与搜索页共用）
 
 设计要点（样式与交互框架照搬 GeoSciPlot，把图片瀑布流换成文献信息卡片）：
+  · 顶部菜单栏（.mnav）：sticky 毛玻璃，移植主站 zbhgis.com 的 header；全部页面由
+    page_shell 统一注入；左站点名 / 右导航组（每周速递 · 全站统计 · 更多▾ 纯 CSS 下拉）
+  · 详情页为公众号推文式排版（对齐「浩瀚地学」文献精选推文实测规格）：窄栏 677px、
+    居中标题块 + accent 通栏底线、左竖线节标题（1.信息/2.摘要/3.图表/4.引用）、
+    「字段名：值」字段行、摘要 15px/1.8 左对齐、图表图片淡蓝光晕
   · 首屏卡片由 Python 直接输出静态 HTML（对爬虫/AI 引擎友好），翻页与筛选改由 JS 渲染
   · 筛选维度：标签 / 期刊 / 发表日期区间（按论文发表时间，不是收录时间）
   · 排序：发表 新→旧（默认）/ 旧→新 / 被引 多→少
   · 文献 id = DOI（小写）sha1 前 10 位，详情页目录与 id 一致
+  · 封面图（可选字段 cover）：源文件 assets_src/covers/{id}.{ext}（admin.py 上传落盘），
+    构建时整体拷到 site/assets/covers/；卡片出 16:9 通栏顶图，详情页作者行下出大图，
+    并写入 og:image 与 ScholarlyArticle JSON-LD 的 image（链接分享出封面卡片）
 """
 from __future__ import annotations
 
@@ -125,13 +133,56 @@ def sort_items(items: list) -> list:
 
 
 CSS = """\
-:root{--bg:#0d1117;--text:#e6edf3;--dim:#8b949e;--faint:#6e7681;--line:#1c2129;--line2:#30363d;--accent:#58a6ff;--card:#161b22;color-scheme:dark}
+:root{--bg:#0d1117;--text:#e6edf3;--dim:#8b949e;--faint:#6e7681;--line:#1c2129;--line2:#30363d;--accent:#58a6ff;--card:#161b22;--header-bg:#0d1117e6;--accent-soft:#58a6ff1a;color-scheme:dark}
 :root[data-theme=dark]{color-scheme:dark}
-:root[data-theme=light]{--bg:#fff;--text:#1f2328;--dim:#59636e;--faint:#818b98;--line:#e8ebef;--line2:#d0d7de;--accent:#0969da;--card:#f6f8fa;color-scheme:light}
+:root[data-theme=light]{--bg:#fff;--text:#1f2328;--dim:#59636e;--faint:#818b98;--line:#e8ebef;--line2:#d0d7de;--accent:#0969da;--card:#f6f8fa;--header-bg:#ffffffe6;--accent-soft:#0969da1a;color-scheme:light}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font:15px/1.7 ui-sans-serif,system-ui,"PingFang SC","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased}
 a{color:inherit;text-decoration:none}
 .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+/* ── 顶部菜单栏（移植主站 zbhgis.com 的 header，同源数值）：
+   sticky 顶栏 · 发丝底边 · 90% 不透明底 + blur(12px) 毛玻璃；
+   链接 hover 出下划线（scaleX 0→1），当前页 accent 常亮；
+   右端一枚 30px 方形 icon 按钮（v3-nav-icon 同语言，当前为占位） ── */
+.mnav{position:sticky;top:0;z-index:50;border-bottom:1px solid var(--line);background:var(--header-bg);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.mnav-in{max-width:1080px;margin:0 auto;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;gap:24px}
+.mnav-brand{flex:none;display:inline-flex;align-items:center;gap:10px;font-size:17px;font-weight:600;letter-spacing:-.01em;color:var(--text);transition:color .16s}
+.mnav-brand img{width:26px;height:26px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 1px var(--line)}
+.mnav-brand:hover{color:var(--accent)}
+.mnav-links{display:flex;align-items:center;list-style:none;margin:0;padding:0}
+.mnav-link{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;font-size:15px;line-height:1.4;color:var(--dim);position:relative;transition:color .16s}
+.mnav-link:after{content:"";position:absolute;bottom:1px;left:10px;right:10px;height:1px;background:currentColor;opacity:.45;transform:scaleX(0);transform-origin:0;transition:transform .2s,opacity .2s}
+.mnav-link:hover{color:var(--text)}
+.mnav-link:hover:after{transform:scaleX(1)}
+.mnav-link[data-active=true]{color:var(--accent)}
+.mnav-link[data-active=true]:after{opacity:.9;transform:scaleX(1)}
+/* 菜单项图标：主站 v3-nav-ico 同源（14px，currentColor，随 .mnav-link 的 5px gap 定位） */
+.mnav-ico{flex:none;width:14px;height:14px}
+/* 「更多」下拉：主站 v3-more / v3-nav-menu 同源 —— hover 或触发钮 focus-visible 展开，
+   display 直切无动画；caret 11px 悬停旋转；面板 --bg 实底 + 描边 + 主站同款投影 */
+.mnav-more{position:relative}
+.mnav-more-trigger{cursor:pointer;font:inherit;background:none;border:none}
+.mnav-more-caret{flex:none;width:11px;height:11px;transition:transform .16s}
+.mnav-more:hover .mnav-more-caret,.mnav-more:has(.mnav-more-trigger:focus-visible) .mnav-more-caret{transform:rotate(180deg)}
+.mnav-dd{display:none;position:absolute;top:100%;right:0;min-width:148px;margin:0;padding:5px;list-style:none;background:var(--bg);border:1px solid var(--line2);border-radius:6px;box-shadow:0 10px 28px rgba(0,0,0,.16);z-index:60}
+.mnav-more:hover .mnav-dd,.mnav-more:has(.mnav-more-trigger:focus-visible) .mnav-dd{display:block}
+.mnav-dd a{display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:4px;font-size:14px;color:var(--dim);white-space:nowrap;transition:color .16s,background-color .16s}
+.mnav-dd a .mnav-ico{width:15px;height:15px;color:var(--faint)}
+.mnav-dd a:hover{color:var(--text);background:var(--accent-soft)}
+.mnav-dd-sep{height:1px;background:var(--line);margin:5px 4px}
+/* 窄屏汉堡：主站 sm 断点的 details/summary 原生方案（无 JS），
+   summary 即主站 .v3-nav-icon（30px 方形 hover accent + accent-soft 底） */
+.mnav-m{display:none;position:relative}
+.mnav-icon{width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;border-radius:4px;color:var(--dim);cursor:pointer;transition:color .16s,background-color .16s;list-style:none}
+.mnav-icon::-webkit-details-marker{display:none}
+.mnav-icon:hover,.mnav-m[open] .mnav-icon{color:var(--accent);background:var(--accent-soft)}
+.mnav-icon svg{width:18px;height:18px}
+.mnav-m[open] .mnav-dd{display:block}
+@media (max-width:640px){
+  .mnav-in{padding:0 16px}
+  .mnav-links{display:none}
+  .mnav-m{display:block}
+}
 .wrap{max-width:1180px;margin:0 auto;padding:0 24px}
 /* 桌面/平板给右侧控件队列留出通道：队列占 right:16 + 42 = 58px，
    这里把正文右内边距顶到 74px，避免工具栏、卡片直接压到队列下面。
@@ -169,7 +220,7 @@ header.site{padding:72px 0 0}
 :root[data-theme=dark] .tbtn .ic-sun{display:none}:root[data-theme=dark] .tbtn .ic-moon{display:inline}
 .kicker{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0}
 h1{display:flex;align-items:center;gap:18px;font-size:clamp(44px,6.5vw,68px);line-height:1.08;letter-spacing:-.03em;margin:24px 0 0;font-weight:700}
-h1 img.logo{height:clamp(44px,5.4vw,58px);width:auto;flex:none}
+h1 img.logo{height:clamp(44px,5.4vw,58px);width:auto;flex:none;border-radius:12px}
 .lede{font-size:16px;color:var(--dim);max-width:52ch;margin:20px 0 0}
 .gh-note{display:inline-flex;align-items:center;gap:9px;margin:18px 0 0;padding:9px 16px;border:1px solid var(--accent);border-left-width:3px;border-radius:6px;background:var(--card);font-size:13.5px;color:var(--text)}
 .gh-note svg{width:16px;height:16px;flex:none;color:var(--accent)}
@@ -202,24 +253,25 @@ select{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-siz
 .chips button{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;padding:4px 10px;border:1px solid var(--line2);border-radius:4px;background:transparent;color:var(--dim);cursor:pointer;transition:color .16s,border-color .16s}
 .chips button:hover{color:var(--text)}
 .chips button[aria-pressed=true]{color:var(--accent);border-color:var(--accent)}
-/* ── 文献卡片网格：等宽 grid（卡片高度由内容决定，文献没有图片，
-   不需要瀑布流；卡片信息密度一致，等宽三列最整齐） ── */
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:26px}
-@media (max-width:1000px){.grid{grid-template-columns:repeat(2,1fr)}}
-@media (max-width:640px){.grid{grid-template-columns:1fr;gap:11px}}
-.card{display:flex;flex-direction:column;gap:7px;min-width:0;padding:13px 15px;border:1px solid var(--line);border-radius:6px;background:var(--card);transition:border-color .16s}
+/* ── 首页卡片瀑布流：移植 GeoSciPlot 的 multi-columns 方案（同源）。
+   等宽 grid 同一行会被"最高的那张"定高、矮卡下方必然留空 —— columns
+   每列独立堆叠，封面图自然比例不同，才能形成错落 ── */
+.grid{columns:4;column-gap:18px;margin-top:26px}
+@media (max-width:1100px){.grid{columns:3}}
+@media (max-width:760px){.grid{columns:2;column-gap:12px}}
+.card{break-inside:avoid;display:block;margin:0 0 18px;min-width:0;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--card);transition:border-color .16s}
 .card:hover{border-color:var(--accent)}
-.c-top{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
-.c-l{display:flex;align-items:center;gap:6px;min-width:0;flex:1}
 .c-ty{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:10px;color:var(--dim);border:1px solid var(--line2);border-radius:3px;padding:1px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:12em}
 .c-j{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:10.5px;color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);border-radius:3px;padding:1px 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+/* .c-y 详情页 .p-top 仍在复用 */
 .c-y{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;color:var(--faint);flex:none}
-.c-t{font-size:14.5px;font-weight:600;line-height:1.5;color:var(--text);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-.c-a{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.c-abs{font-size:12px;line-height:1.65;color:var(--dim);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.c-f{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:8px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:10.5px;color:var(--faint)}
-.c-f .tags{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.c-f .ct{flex:none}
+.c-t{font-size:14px;font-weight:600;line-height:1.5;color:var(--text);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+/* 封面通栏顶图：自然宽高比不裁切（瀑布流错落靠比例）；底色作加载占位防白闪 */
+.c-cov{display:block;width:100%;height:auto;background:var(--line)}
+/* 无封面占位块：期刊缩写居中（GeoSciPlot .ph 同语言） */
+.c-ph{display:flex;align-items:center;justify-content:center;min-height:140px;padding:18px;background:var(--line);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;letter-spacing:.08em;color:var(--faint);text-align:center}
+.c-cap{display:block;padding:10px 12px 12px}
+.c-meta{display:flex;flex-wrap:wrap;gap:5px;min-width:0;margin:0 0 7px}
 .pgbar{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;margin:44px 0 0;padding-top:24px;border-top:1px solid var(--line)}
 /* 步进按钮：只有文字 + 一枚内联箭头，hover 才点亮（与主站 .v3-pager-step 同语言） */
 .pgbar button{display:inline-flex;align-items:center;gap:6px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.35;padding:5px 11px;border:1px solid var(--line2);border-radius:6px;background:transparent;color:var(--dim);cursor:pointer;transition:color .16s,border-color .16s,background-color .16s}
@@ -238,37 +290,62 @@ select{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-siz
 .pgbar .info{margin-left:8px;padding-left:14px;border-left:1px solid var(--line);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;color:var(--faint);white-space:nowrap}
 .empty{padding:52px 0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:var(--faint);display:none;text-align:center}
 footer.site{margin-top:56px;padding:24px 0 64px;border-top:1px solid var(--line);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;color:var(--faint);display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between}
-/* ── 详情页 ── */
-.p-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:26px 0 0}
+/* ── 详情页（公众号推文式，移植「浩瀚地学」文献精选排版语言：
+   窄栏 677px 居中 · 标题块居中 + accent 通栏底线 · 节标题 accent 左竖线 ·
+   「字段名：值」同行字段行 · 摘要 15px/1.8 左对齐 · 图片撑栏淡蓝光晕；
+   色值一律取本站 token，明暗主题各自适配） ── */
+.pbody{max-width:677px;margin:0 auto}
+.p-top{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin:26px 0 0}
 .p-top .c-j{font-size:11.5px}
 .p-top .p-type,.p-top .p-ct{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;color:var(--faint)}
-.p-title{font-size:clamp(22px,3.2vw,32px);line-height:1.4;letter-spacing:-.01em;margin:14px 0 0;font-weight:700}
-.alt-title{font-size:15px;color:var(--dim);margin:10px 0 0;line-height:1.6}
-.p-auth{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;color:var(--dim);margin:14px 0 0;line-height:1.9;word-break:break-word}
-/* ── 公众号推文式分节：01 信息 / 02 摘要 / 03 引用 ── */
-.sec{margin-top:46px}
-.sec-h{display:flex;align-items:baseline;gap:12px;margin:0 0 18px;padding-bottom:10px;border-bottom:1px solid var(--line)}
-.sec-h .no{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:var(--accent);letter-spacing:.12em}
-.sec-h .tx{font-size:19px;font-weight:700;letter-spacing:-.01em}
-/* 信息卡：小标签在上、值在下，自动换行铺开（公众号文末信息卡风格） */
-.info-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px 20px}
-.ig{min-width:0}
-.ig i{display:block;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-style:normal;font-size:10.5px;color:var(--faint);letter-spacing:.08em;margin-bottom:5px}
-.ig b{display:block;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13.5px;font-weight:500;color:var(--text);line-height:1.7;word-break:break-word}
-.ig b .hl{color:var(--text)}
-.ig b a{border-bottom:1px solid var(--line2);transition:color .16s,border-color .16s}
-.ig b a:hover{color:var(--accent);border-color:var(--accent)}
-.ig.wide{grid-column:1/-1}
-.ig b a.tag{display:inline-block;margin:0 8px 8px 0;padding:3px 11px;border:1px solid var(--line2);border-radius:4px;font-size:13px;color:var(--dim)}
-.ig b a.tag:hover{color:var(--accent);border-color:var(--accent)}
-/* 摘要：中文为主阅读区（两端对齐、宽行距），英文原题收合 */
-.abs-main{font-size:16px;line-height:2.05;margin:0;color:var(--text);text-align:justify}
-.abs-main.abs-en-only{color:var(--dim);font-size:14px;line-height:1.9}
-.abs-alt{margin-top:18px}
+.p-head{padding-bottom:16px;border-bottom:1px solid var(--accent);text-align:center}
+.p-title{font-size:clamp(22px,3.2vw,30px);line-height:1.5;letter-spacing:-.01em;margin:14px 0 0;font-weight:700}
+.alt-title{font-size:14px;color:var(--dim);margin:8px 0 0;line-height:1.7}
+.p-auth{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:var(--dim);margin:12px 0 0;line-height:1.9;word-break:break-word}
+/* 图表：图片撑满栏宽、无圆角、淡蓝光晕（公众号 rgb(133,161,201) 同源） */
+.p-cover{margin:6px 0 0;background:var(--bg);box-shadow:0 0 5px rgba(133,161,201,.5)}
+.p-cover img{display:block;width:100%;height:auto}
+/* 节标题：accent 5px 左竖线 + 18px 加粗（公众号同源：无底线、无背景） */
+.sec{margin-top:32px}
+.sec-h{display:flex;align-items:center;margin:0 0 14px;padding:2px 0 2px 11px;border-left:5px solid var(--accent)}
+.sec-h .tx{font-size:18px;font-weight:700;letter-spacing:0;color:var(--accent)}
+/* ── 渲染样式切换（文献详情 ↔ 周报文章，两页共用同一份用户偏好）：
+   plain（周报默认）＝系统色标题、无装饰；accent（文献详情默认）＝强调蓝 + 左竖线。
+   头部内联脚本先读 localStorage 再渲染，按钮点击写偏好并刷新 ── */
+html[data-rstyle=plain] .sec-h{border-left-color:transparent}
+html[data-rstyle=plain] .sec-h .tx{color:var(--text)}
+html[data-rstyle=accent] .wk-content h2.md-h1,
+html[data-rstyle=accent] .wk-content h3.md-h2{padding:2px 0 2px 11px;border-bottom:none;border-left:5px solid var(--accent);color:var(--accent)}
+.rstyle{display:inline-flex;align-items:center;gap:6px;margin-left:auto}
+.rst-btn{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:none;background:none;border-radius:50%;cursor:pointer}
+.rst-btn:hover{background:none}
+.rst-dot{position:relative;display:block;width:15px;height:15px;border-radius:50%;transition:opacity .16s,box-shadow .16s}
+.rst-dot-plain{border:1.5px solid var(--dim)}
+.rst-dot-plain:before{content:"";position:absolute;left:1.5px;right:1.5px;top:50%;height:1.5px;margin-top:-1px;background:var(--dim);transform:rotate(-45deg)}
+.rst-dot-accent{background:var(--accent);border:1.5px solid var(--accent)}
+.rst-btn[aria-pressed=true] .rst-dot{box-shadow:0 0 0 2px var(--bg),0 0 0 3.5px var(--accent)}
+.rst-btn[aria-pressed=false] .rst-dot{opacity:.4}
+.p-top{position:relative}
+.p-top .rstyle{position:absolute;right:0;top:50%;transform:translateY(-50%);margin-left:0}
+@media (max-width:640px){.p-top .rstyle{position:static;transform:none;margin-left:auto}}
+/* 信息节：字段行（字段名：值 同行，15px / 1.8 行高 / 8px 上下呼吸，与推文一致） */
+.frows{margin:0}
+.frow{display:flex;flex-wrap:wrap;margin:0;padding:8px 0;font-size:15px;line-height:1.8;color:var(--text)}
+.frow .fk{flex:none;color:var(--dim);font-style:normal}
+.frow .fk::after{content:"："}
+.frow .fv{flex:1;min-width:0;word-break:break-word}
+.frow .fv a{border-bottom:1px solid var(--line2);transition:color .16s,border-color .16s}
+.frow .fv a:hover{color:var(--accent);border-color:var(--accent)}
+.frow .fv a.tag{display:inline-block;margin:0 8px 6px 0;padding:2px 10px;border:1px solid var(--line2);border-radius:4px;font-size:13px;color:var(--dim)}
+.frow .fv a.tag:hover{color:var(--accent);border-color:var(--accent)}
+/* 摘要：15px / 1.8 行高左对齐（对齐推文正文）；英文原题收合、备注强调块保留 */
+.abs-main{font-size:15px;line-height:1.8;margin:0;color:var(--text);text-align:left}
+.abs-main.abs-en-only{color:var(--dim)}
+.abs-alt{margin-top:16px}
 .abs-alt summary{cursor:pointer;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:var(--faint);transition:color .16s}
 .abs-alt summary:hover{color:var(--accent)}
-.abs-alt p{margin:12px 0 0;font-size:13.5px;line-height:1.9;color:var(--dim);text-align:justify}
-.abs-note{margin:18px 0 0;padding:11px 14px;border-left:2px solid var(--accent);background:var(--card);border-radius:0 6px 6px 0;font-size:13px;line-height:1.8;color:var(--dim)}
+.abs-alt p{margin:10px 0 0;font-size:13px;line-height:1.8;color:var(--dim);text-align:justify}
+.abs-note{margin:16px 0 0;padding:10px 13px;border-left:2px solid var(--accent);background:var(--card);border-radius:0 6px 6px 0;font-size:13px;line-height:1.8;color:var(--dim)}
 /* 引用条（GB/T 7714）+ 复制按钮 */
 .cite-line{padding:13px 15px;border:1px solid var(--line);border-radius:6px;background:var(--card);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.85;color:var(--dim);word-break:break-word;margin:0 0 12px}
 .a-end{margin:46px 0 0;text-align:center;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;letter-spacing:.4em;color:var(--faint);user-select:none}
@@ -329,6 +406,107 @@ mark{background:color-mix(in srgb,var(--accent) 24%,transparent);color:inherit;b
 @media (max-width:640px){
   .sres{gap:10px}
 }
+/* ── 每周速递（/weekly/）：移植自 mystation（zbhgis.com 主站）globals.css 的
+   v3-* / blog-content 同款数值，token 已换名（--text-primary→--text、
+   --text-secondary/muted→--dim、--text-faint→--faint、--hairline→--line、
+   --hairline-strong/--border→--line2、accent-soft-fade→transparent）。
+   静态站裁剪：ViewToggle/RSS/分组分页/侧栏手风琴/TOC scrollspy 均不做 ── */
+.wk-col{max-width:760px;margin:0 auto;padding:56px 24px 96px}
+.wk-head{display:flex;align-items:flex-end;gap:16px;margin:0 0 40px}
+.wk-kicker{margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+.wk-deco{margin:16px 0 0;font-size:clamp(28px,4vw,40px);font-weight:600;letter-spacing:-.03em;line-height:1.15;color:var(--text)}
+.wk-lede{margin:18px 0 0;font-size:16px;line-height:1.75;color:var(--dim);max-width:46ch}
+/* QuickNav 月份跳转 chip（v3-btn 同源） */
+.wk-quicknav{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 36px}
+.wk-btn{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.3;border:1px solid var(--line2);border-radius:4px;color:var(--dim);background:transparent;transition:color .16s,border-color .16s,background-color .16s}
+.wk-btn:hover{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
+.wk-btn .n{color:var(--faint)}
+/* 分组 section（v3-label 同源：mono 大写 + 右侧计数） */
+.wk-groups{display:flex;flex-direction:column;gap:40px}
+.wk-label{display:flex;align-items:baseline;justify-content:space-between;gap:16px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);padding-bottom:10px;border-bottom:1px solid var(--line2);margin:0 0 18px}
+.wk-label-right{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;letter-spacing:.04em;text-transform:none;color:var(--dim)}
+/* 条目行（v3-line 同源：标题 + 摘要两行 + 右侧标签列） */
+.wk-line{display:block;padding:13px 2px;border-top:1px solid var(--line);transition:background-color .16s}
+.wk-line:last-child{border-bottom:1px solid var(--line)}
+.wk-line:hover{background:linear-gradient(90deg,var(--accent-soft),transparent 70%)}
+.wk-line-in{display:flex;flex-direction:column;gap:8px}
+.wk-line-main{min-width:0}
+.wk-line-ttl{margin:0;font-size:15.5px;font-weight:600;letter-spacing:-.012em;line-height:1.5;color:var(--text);transition:color .16s}
+.wk-line:hover .wk-line-ttl{color:var(--accent)}
+.wk-line-sum{margin:4px 0 0;font-size:13px;line-height:1.65;color:var(--dim);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.wk-line-side{flex:none}
+.wk-line-tags{display:flex;gap:6px;flex-wrap:wrap}
+.wk-line-date{display:block;margin:6px 0 0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;color:var(--faint);font-variant-numeric:tabular-nums}
+@media (min-width:640px){.wk-line-in{flex-direction:row;justify-content:space-between;align-items:flex-start;gap:24px}.wk-line-main{flex:1}.wk-line-side{text-align:right}}
+/* 标签 chip（v3-tag 同源） */
+.wk-tag{display:inline-flex;align-items:center;height:19px;padding:0 6px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;line-height:1;border:1px solid var(--line2);border-radius:3px;color:var(--dim);white-space:nowrap}
+.wk-tag-accent{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
+/* ── 文章页三栏骨架（max-1400：左文章导航 250 / 中正文 760 / 右 TOC 180）── */
+.wk-shell{display:flex;max-width:1400px;margin:0 auto}
+.wk-side{display:none;width:250px;flex:none;border-right:1px solid var(--line)}
+.wk-side-in{position:sticky;top:80px;height:calc(100vh - 80px);overflow-y:auto;padding:24px 12px 24px 0}
+.wk-side-nav{padding:24px 16px}
+.wk-side-hd{margin:0 0 6px;padding-bottom:8px;border-bottom:1px solid var(--line);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+.wk-side-link{display:block;padding:6px 8px;border-left:1px solid transparent;font-size:13px;line-height:1.5;color:var(--dim);transition:color .16s,border-color .16s}
+.wk-side-link:hover{color:var(--text);border-left-color:var(--line2)}
+.wk-side-link[data-active="true"]{color:var(--accent);border-left-color:var(--accent)}
+.wk-toc{display:none;width:180px;flex:none}
+.wk-toc-in{position:sticky;top:80px;height:calc(100vh - 80px);overflow-y:auto;padding:24px 8px 32px 0}
+.wk-toc nav{display:flex;flex-direction:column;gap:4px}
+.wk-toc-link{position:relative;display:block;padding:6px 8px;border-left:1px solid transparent;font-size:13px;line-height:1.5;color:var(--dim);transition:color .16s,border-color .16s,padding-left .16s}
+.wk-toc-link:hover{color:var(--text);border-left-color:var(--line2)}
+.wk-toc-link[data-lv="1"]{padding-left:8px;color:var(--dim)}
+.wk-toc-link[data-lv="2"]{padding-left:20px}
+.wk-toc-link[data-lv="3"]{padding-left:30px;font-size:12.5px;color:var(--faint)}
+.wk-toc-link[data-lv="4"]{padding-left:42px;font-size:12px;color:var(--faint)}
+/* 导轨竖线（lv3 起挂在父级文字下方，主站同源） */
+.wk-toc-link[data-lv="3"]::before,.wk-toc-link[data-lv="4"]::before{content:"";position:absolute;top:5px;bottom:5px;width:1px;background:var(--line)}
+.wk-toc-link[data-lv="3"]::before{left:26px}
+.wk-toc-link[data-lv="4"]::before{left:36px}
+.wk-toc-link[data-lv="3"]:hover::before,.wk-toc-link[data-lv="4"]:hover::before{background:var(--line2)}
+@media (min-width:1024px){.wk-side{display:block}.wk-main{padding:40px 32px}}
+@media (min-width:1280px){.wk-toc{display:block}.wk-main{padding-left:40px;padding-right:24px}}
+.wk-main{flex:1;min-width:0;max-width:760px;width:100%;margin:0 auto;padding:40px 20px}
+.wk-h1{margin:0 0 20px}
+.wk-tagsrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 20px}
+.wk-tagsrow .dot{color:var(--faint)}
+.wk-meta{display:flex;flex-wrap:wrap;align-items:center;gap:16px;margin:0 0 12px;padding-bottom:16px;border-bottom:1px solid var(--line);font-size:12.5px;color:var(--dim)}
+.wk-meta span,.wk-meta a{display:inline-flex;align-items:center;gap:6px}
+.wk-meta svg{width:16px;height:16px;flex:none}
+.wk-dates{display:flex;flex-wrap:wrap;align-items:center;gap:16px;margin:0 0 40px;padding-bottom:16px;border-bottom:1px solid var(--line);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;color:var(--faint)}
+/* 正文排版（blog-content 同源） */
+.wk-content{font-size:16px;color:var(--dim)}
+.wk-content h2.md-h1{margin:40px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--line2);font-size:24px;font-weight:700;line-height:1.35;color:var(--text);scroll-margin-top:80px}
+.wk-content h3.md-h2{margin:32px 0 12px;font-size:20px;font-weight:600;line-height:1.4;color:var(--text);scroll-margin-top:80px}
+.wk-content h4{margin:20px 0 8px;font-size:16px;font-weight:600;color:var(--text)}
+.wk-content p{margin:0 0 16px;line-height:1.75}
+.wk-content strong{color:#85a4ff}
+.wk-content em{font-style:italic}
+.wk-content a{color:var(--accent)}
+.wk-content a:hover{text-decoration:underline}
+.wk-content .wk-img{margin:24px 0}
+.wk-content .wk-img img{display:block;max-width:100%;height:auto;border:1px solid var(--line2);border-radius:8px}
+.wk-content blockquote{margin:0 0 16px;padding-left:16px;border-left:4px solid var(--line2);font-style:italic;color:var(--faint)}
+.wk-content hr{border:none;border-top:1px solid var(--line2);margin:32px 0}
+/* 上一篇 / 下一篇（v3-prevnext 同源：双栏边框卡 + 虚线空位） */
+.wk-prevnext{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:46px;padding-top:24px;border-top:1px solid var(--line2)}
+.wk-pn{display:flex;flex-direction:column;gap:7px;min-width:0;padding:12px 14px;border:1px solid var(--line2);border-radius:6px;transition:border-color .16s,background-color .16s}
+.wk-pn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.wk-pn-dir{display:inline-flex;align-items:center;gap:5px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:10.5px;letter-spacing:.1em;color:var(--faint);transition:color .16s}
+.wk-pn:hover .wk-pn-dir{color:var(--accent)}
+.wk-pn-dir svg{width:12px;height:12px;flex:none;transition:transform .18s ease}
+.wk-pn:hover .wk-pn-dir svg{transform:translateX(-2px)}
+.wk-pn-to-next{text-align:right}
+.wk-pn-to-next .wk-pn-dir{justify-content:flex-end}
+.wk-pn:hover .wk-pn-to-next .wk-pn-dir svg{transform:translateX(2px)}
+.wk-pn-ttl{font-size:13.5px;line-height:1.5;letter-spacing:-.008em;color:var(--text);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.wk-pn-empty{min-height:68px;border:1px dashed var(--line2);border-radius:6px}
+@media (max-width:640px){
+  .wk-col{padding:40px 16px 80px}
+  .wk-shell{display:block}
+  .wk-main{padding:32px 16px}
+  .wk-prevnext{grid-template-columns:1fr}
+}
 """
 
 JS = """\
@@ -350,9 +528,12 @@ JS = """\
     } catch (e) {}
   }
 
-  /* ── 每篇文献浏览量（来自统计服务的按 path 计数） ── */
+  /* ── 每篇文献浏览量（来自统计服务的按 path 计数）。
+     本地预览（localhost / 127.0.0.1 / file://）没有统计后端，请求注定失败，
+     直接跳过不再发（消除控制台网络报错），与上方打点的 hostname 判断同一口径；
+     占位「…」回写「—」，避免停留在加载中状态 ── */
   var viewsEl = document.getElementById("views");
-  if (viewsEl) {
+  if (viewsEl && !location.hostname.match(/^(localhost|127\\.0\\.0\\.1|)$/)) {
     fetch((CFG.api || "") + "/api/v1/stats/views?prefix=/macrobiodiv/")
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {
@@ -363,6 +544,8 @@ JS = """\
         viewsEl.textContent = n ? n + " 次" : "首次";
         viewsEl.style.color = "var(--text)";
       }).catch(function () { viewsEl.textContent = "—"; });
+  } else if (viewsEl) {
+    viewsEl.textContent = "—";
   }
 
   var themeBtn = document.getElementById("themeBtn");
@@ -560,22 +743,25 @@ JS = """\
     a.href = it.id + "/";
     // 主标题已中文优先（数据构建期定好）；悬停提示给另一种语言的标题
     a.title = (it.tz && it.t === it.tz) ? (it.te || it.t) : (it.tz || it.t);
-    var top = el("span", "c-top");
-    var left = el("span", "c-l");
+    if (it.cv) {                          // 封面通栏顶图（自然比例），与静态首屏输出一致
+      var cov = document.createElement("img");
+      cov.className = "c-cov";
+      cov.loading = "lazy";
+      cov.src = it.cv;
+      cov.alt = "封面图";
+      a.appendChild(cov);
+    } else {                              // 无封面：期刊缩写占位块
+      a.appendChild(el("span", "c-ph", it.jb || it.j || "—"));
+    }
+    var cap = el("span", "c-cap");
+    var meta = el("span", "c-meta");      // 文章类型 + 期刊徽章
+    if (it.pt) meta.appendChild(el("span", "c-ty", it.pt));
     var jb = el("span", "c-j", it.jb || it.j || "—");
     if (it.j && it.jb) jb.title = it.j;
-    left.appendChild(jb);
-    if (it.pt) left.appendChild(el("span", "c-ty", it.pt));
-    top.appendChild(left);
-    top.appendChild(el("span", "c-y", it.y || ""));
-    a.appendChild(top);
-    a.appendChild(el("span", "c-t", it.t));
-    a.appendChild(el("span", "c-a", it.a || ""));
-    if (it.ab) a.appendChild(el("span", "c-abs", it.ab));
-    var foot = el("span", "c-f");
-    foot.appendChild(el("span", "tags", it.sub || "—"));
-    foot.appendChild(el("span", "ct", (it.ct || 0) > 0 ? "被引 " + it.ct : ""));
-    a.appendChild(foot);
+    meta.appendChild(jb);
+    cap.appendChild(meta);
+    cap.appendChild(el("span", "c-t", it.t));
+    a.appendChild(cap);
     return a;
   }
   function perSize(list) { return state.per > 0 ? state.per : (list.length || 1); }
@@ -779,16 +965,34 @@ JS = """\
   window.addEventListener("resize", onResize);
 
 })();
+
+/* ── 渲染样式切换（文章详情头部的两枚圆点）：html[data-rstyle] 已由
+   <head> 内联脚本按 localStorage 设好，这里只回写按钮选中态；
+   点击写偏好后刷新 —— 样式切换走整页重渲染 ── */
+(function () {
+  var btns = document.querySelectorAll(".rst-btn");
+  if (!btns.length) return;
+  var cur = document.documentElement.getAttribute("data-rstyle") || "plain";
+  Array.prototype.forEach.call(btns, function (b) {
+    b.setAttribute("aria-pressed", String(b.getAttribute("data-rs") === cur));
+    b.addEventListener("click", function () {
+      try { localStorage.setItem("mbd-rstyle", b.getAttribute("data-rs")); } catch (e) {}
+      location.reload();
+    });
+  });
+})();
 """
 
 
 def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "",
-               description: str = "", path: str = "", og_type: str = "website") -> str:
-    up = "../" if depth else ""
+               description: str = "", path: str = "", og_type: str = "website",
+               og_image: str = "", bare: bool = False, rstyle: str = "") -> str:
+    up = "../" * depth          # depth=2（weekly 文章页）需要 ../../，此前按布尔少了一级
     gh = gh_url or "https://github.com/{}/{}".format(
         cfg.get("owner") or "OWNER", cfg["repo"])
     desc = description or f"{cfg['subtitle']} —— {cfg['lede']}"
-    # Open Graph：配置了 site_url 才输出，链接分享（微信/Telegram/X）出卡片
+    # Open Graph：配置了 site_url 才输出，链接分享（微信/Telegram/X）出卡片；
+    # 有封面图时附 og:image（分享卡片带封面，og:image 需绝对 URL）
     base = (cfg.get("site_url") or "").rstrip("/")
     og = ""
     if base:
@@ -799,7 +1003,66 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
             f'<meta property="og:url" content="{esc(base + path)}">',
             f'<meta property="og:site_name" content="{esc(cfg["title"])}">',
         ]
+        if og_image:
+            og_rows.append(f'<meta property="og:image" content="{esc(og_image)}">')
         og = "\n".join(og_rows)
+    # ── 顶部菜单栏：全部页面共用，样式对齐主站 zbhgis.com（v3-nav 同源）。
+    #    左站点名 / 右导航组：每周速递（/weekly/，按 path 标 active）· 全站统计（预留）
+    #    · 更多▾ 下拉（hover / focus-visible 展开，纯 CSS；zbhgis 与 GeoSciPlot 外链）。
+    #    菜单项与下拉项均带主站同款 14/15px stroke 图标；≤640px 转 details 汉堡 ──
+    is_weekly = path.startswith("/weekly")
+    cur_w = ' aria-current="page"' if is_weekly else ''
+    ico_send = ('<svg class="mnav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg>')
+    ico_chart = ('<svg class="mnav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 20V10M12 20V4M6 20v-4"/></svg>')
+    ico_globe = ('<svg class="mnav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>')
+    # GeoSciPlot 图标与主站「更多」菜单同款（图片样式：方框 + 圆点 + 山形）
+    ico_geosci = ('<svg class="mnav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>')
+    nav = f"""<header class="mnav">
+<nav class="mnav-in">
+<a class="mnav-brand" href="/"><img src="{up}assets/favicon.png?v={BUILD_VER}" alt="" width="26" height="26">{esc(cfg['title'])}</a>
+<ul class="mnav-links">
+<li><a class="mnav-link" data-active="{str(is_weekly).lower()}" href="/weekly/"{cur_w}>{ico_send}每周速递</a></li>
+<li><a class="mnav-link" href="#" title="建设中（预留）">{ico_chart}全站统计</a></li>
+<li class="mnav-more"><button type="button" class="mnav-link mnav-more-trigger" aria-haspopup="true" title="更多站点">更多<svg class="mnav-more-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+<ul class="mnav-dd">
+<li><a href="https://zbhgis.com" rel="noopener" target="_blank">{ico_globe}zbhgis</a></li>
+<li><a href="https://geosciplot.zbhgis.com" rel="noopener" target="_blank">{ico_geosci}GeoSciPlot</a></li>
+</ul></li>
+</ul>
+<details class="mnav-m">
+<summary class="mnav-icon" title="菜单" aria-label="打开菜单"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
+<ul class="mnav-dd">
+<li><a href="/weekly/"{cur_w}>{ico_send}每周速递</a></li>
+<li><a href="#" title="建设中（预留）">{ico_chart}全站统计</a></li>
+<li class="mnav-dd-sep"></li>
+<li><a href="https://zbhgis.com" rel="noopener" target="_blank">{ico_globe}zbhgis</a></li>
+<li><a href="https://geosciplot.zbhgis.com" rel="noopener" target="_blank">{ico_geosci}GeoSciPlot</a></li>
+</ul>
+</details>
+</nav>
+</header>"""
+    # bare=True（每周速递等全宽页面）：正文不进 .wrap（自带容器），仅 footer 包一层
+    fab = f"""<div class="fab"><a class="tbtn" href="{up}search/" title="全站搜索" aria-label="全站搜索"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.2"/><path d="M10.2 10.2 14 14"/></svg></a><a class="tbtn" href="/" title="返回 Home（文献库首页）" aria-label="返回 Home"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 8 8 3l5.5 5M4 7v6h8V7"/></svg></a><a class="tbtn" href="{gh}" rel="noopener" target="_blank" title="在 GitHub 查看仓库（数据与索引）"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a><button type="button" class="tbtn" id="themeBtn" title="切换明暗主题" aria-label="切换明暗主题"><svg class="ic-sun" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M12.6 3.4l-1.1 1.1M4.5 11.5l-1.1 1.1"/></svg><svg class="ic-moon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 9.5A6 6 0 0 1 6.5 2.5a6 6 0 1 0 7 7z"/></svg></button><button type="button" class="tbtn" id="topBtn" title="回到顶部" aria-label="回到顶部"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13.5v-9M4.5 8 8 4.5 11.5 8"/></svg></button></div>"""
+    foot = f"""<footer class="site">
+  <span>{esc(cfg['title'])} · {esc(cfg['subtitle'])}</span>
+  <span><a href="https://github.com/{esc(cfg.get('owner') or 'OWNER')}/{esc(cfg['repo'])}" rel="noopener">GitHub 仓库</a> · 元数据来自 Crossref / OpenAlex · 版权归原出版方</span>
+</footer>"""
+    inner = f"""{fab}
+<div class="wrap">
+{body}
+{foot}
+</div>""" if not bare else f"""{fab}
+{body}
+<div class="wrap">
+{foot}
+</div>"""
+    # 渲染样式偏好（仅文章详情类页面传入）：先读 localStorage，无则用页面默认，
+    # 在 <head> 里就设好 html[data-rstyle]，避免正文样式闪烁
+    rstyle_head = ""
+    if rstyle:
+        rstyle_head = (f'<script>try{{var r=localStorage.getItem("mbd-rstyle");'
+                       f'document.documentElement.setAttribute("data-rstyle",r||"{rstyle}")}}'
+                       f'catch(e){{document.documentElement.setAttribute("data-rstyle","{rstyle}")}}</script>')
     return f"""<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -811,16 +1074,11 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
 <link rel="stylesheet" href="{up}assets/style.css?v={BUILD_VER}">
 <link rel="icon" type="image/png" href="{up}assets/favicon.png">
 <script>try{{var t=localStorage.getItem("mbd-theme");if(t)document.documentElement.setAttribute("data-theme",t)}}catch(e){{}}</script>
+{rstyle_head}
 </head>
 <body>
-<div class="wrap">
-<div class="fab"><a class="tbtn" href="https://zbhgis.com" rel="noopener" target="_blank" title="返回主站（浩瀚地学）" aria-label="返回主站"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M1.8 8h12.4M8 1.8a10.4 10.4 0 0 1 0 12.4M8 1.8a10.4 10.4 0 0 0 0 12.4"/></svg></a><a class="tbtn" href="{up}search/" title="全站搜索" aria-label="全站搜索"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.2"/><path d="M10.2 10.2 14 14"/></svg></a><a class="tbtn" href="/" title="返回 Home（文献库首页）" aria-label="返回 Home"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 8 8 3l5.5 5M4 7v6h8V7"/></svg></a><a class="tbtn" href="{gh}" rel="noopener" target="_blank" title="在 GitHub 查看仓库（数据与索引）"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a><button type="button" class="tbtn" id="themeBtn" title="切换明暗主题" aria-label="切换明暗主题"><svg class="ic-sun" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M12.6 3.4l-1.1 1.1M4.5 11.5l-1.1 1.1"/></svg><svg class="ic-moon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 9.5A6 6 0 0 1 6.5 2.5a6 6 0 1 0 7 7z"/></svg></button><button type="button" class="tbtn" id="topBtn" title="回到顶部" aria-label="回到顶部"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13.5v-9M4.5 8 8 4.5 11.5 8"/></svg></button></div>
-{body}
-<footer class="site">
-  <span>{esc(cfg['title'])} · {esc(cfg['subtitle'])}</span>
-  <span><a href="https://github.com/{esc(cfg.get('owner') or 'OWNER')}/{esc(cfg['repo'])}" rel="noopener">GitHub 仓库</a> · 元数据来自 Crossref / OpenAlex · 版权归原出版方</span>
-</footer>
-</div>
+{nav}
+{inner}
 <script src="{up}assets/papers-data.js?v={BUILD_VER}"></script>
 <script src="{up}assets/papers.js?v={BUILD_VER}"></script>
 </body>
@@ -846,6 +1104,18 @@ def filter_row(label: str, inner: str) -> str:
 def display_title(p: dict) -> str:
     """卡片/搜索结果的主展示标题：中文优先，无中文回落英文。"""
     return (p.get("title_zh") or "").strip() or (p.get("title") or "").strip()
+
+
+def rstyle_toggle(default: str) -> str:
+    """渲染样式切换按钮（两枚小圆点）：透明斜杠圈=plain（系统色无装饰），
+    蓝色实心圈=accent（强调蓝 + 标题左竖线）。点击写 localStorage 并刷新；
+    aria-pressed 由服务端按页面默认渲染，papers.js 按用户实际偏好修正。"""
+    return (f'<span class="rstyle" role="group" aria-label="渲染样式切换">'
+            f'<button type="button" class="rst-btn" data-rs="plain" title="普通样式：系统色，标题无装饰"'
+            f' aria-pressed="{str(default == "plain").lower()}"><i class="rst-dot rst-dot-plain"></i></button>'
+            f'<button type="button" class="rst-btn" data-rs="accent" title="强调样式：蓝色，标题带左侧装饰线"'
+            f' aria-pressed="{str(default == "accent").lower()}"><i class="rst-dot rst-dot-accent"></i></button>'
+            f'</span>')
 
 
 def alt_title(p: dict) -> str:
@@ -923,22 +1193,21 @@ def citation(p: dict) -> str:
 
 
 def card_html(p: dict) -> str:
-    tags = p.get("tags") or []
-    cap = " · ".join(tags) if tags else "—"
-    ab = abstract_disp(p)
-    cited = (p.get("cited_by") or 0)
-    cited_html = f'<span class="ct">被引 {cited}</span>' if cited else '<span class="ct"></span>'
+    """首页瀑布流卡片（GeoSciPlot 同源语言）：封面图 + 类型/期刊徽章 + 标题。
+    无封面输出期刊缩写占位块，保证瀑布流版式成立。"""
     jb = journal_badge(p) or "—"
     ty = display_type(p)
     ty_html = f'<span class="c-ty" title="{esc(ty)}">{esc(ty)}</span>' if ty else ''
     alt = alt_title(p)
     tip = esc(alt) if alt else esc(p.get('title'))
-    return f"""  <a class="card" href="{esc(p['id'])}/" data-id="{esc(p['id'])}" title="{tip}">
-    <span class="c-top"><span class="c-l"><span class="c-j" title="{esc(p.get('journal') or '')}">{esc(jb)}</span>{ty_html}</span><span class="c-y">{esc(p.get('year') or '')}</span></span>
-    <span class="c-t">{esc(display_title(p))}</span>
-    <span class="c-a">{esc(authors_preview(p.get('authors') or []))}</span>{f'{chr(10)}    <span class="c-abs">{esc(ab)}</span>' if ab else ''}
-    <span class="c-f"><span class="tags">{esc(cap)}</span>{cited_html}</span>
-  </a>"""
+    cov = (p.get("cover") or "").strip()
+    cov_html = (f'\n  <img class="c-cov" src="assets/{esc(cov)}?v={BUILD_VER}" alt="封面图" loading="lazy">'
+                if cov else
+                f'\n  <span class="c-ph">{esc(jb)}</span>')
+    return f"""<a class="card" href="{esc(p['id'])}/" title="{tip}">{cov_html}
+  <span class="c-cap"><span class="c-meta">{ty_html}<span class="c-j" title="{esc(p.get('journal') or '')}">{esc(jb)}</span></span>
+  <span class="c-t">{esc(display_title(p))}</span></span>
+</a>"""
 
 
 def build_index(cfg: dict, items: list) -> str:
@@ -965,7 +1234,7 @@ def build_index(cfg: dict, items: list) -> str:
                 'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
                 '<path d="M6 3l5 5-5 5"/></svg>')
     body = f"""<header class="site">
-  <h1><img class="logo" src="assets/logo.png" alt="MacroBiodiv logo">{esc(cfg['title'])}</h1>
+  <h1><img class="logo" src="assets/logo.png?v={BUILD_VER}" alt="MacroBiodiv logo">{esc(cfg['title'])}</h1>
   <a class="gh-note" href="https://github.com/{esc(cfg.get('owner') or 'OWNER')}/{esc(cfg['repo'])}" rel="noopener" target="_blank" title="在 GitHub 查看数据与索引">{ghsvg}<span>文献数据与索引存储于 <b>GitHub</b>（点此查看仓库）</span></a>
   <p class="lede">{esc(cfg['lede'])}</p>
   <div class="meta-row"><span id="count">共 {len(items)} 篇</span> · {len(tag_counter)} 个标签 · {len(journal_counter)} 本期刊 · {len(years)} 个年份 · 点击卡片查看详情</div>
@@ -1073,10 +1342,10 @@ def build_detail(cfg: dict, items: list, idx: int) -> str:
         f'<a class="tag" href="/search/?q={quote(str(k), safe="")}">{esc(k)}</a>' for k in kws
     ) if kws else ""
 
-    # ── 信息区（公众号「文末信息卡」式：小标签在上、值在下，网格铺开） ──
-    def ig(label: str, value: str, wide: bool = False) -> str:
-        cls = ' class="ig wide"' if wide else ' class="ig"'
-        return f'<div{cls}><i>{esc(label)}</i><b>{value}</b></div>'
+    # ── 信息区（公众号字段行式：「字段名：值」同行，15px/1.8，一行一字段） ──
+    def frow(label: str, value: str) -> str:
+        return (f'<p class="frow"><i class="fk">{esc(label)}</i>'
+                f'<span class="fv">{value}</span></p>')
 
     journal_dd = esc(p.get("journal") or "—")
     if p.get("journal_short") and p["journal_short"] != p.get("journal"):
@@ -1084,24 +1353,36 @@ def build_detail(cfg: dict, items: list, idx: int) -> str:
     date_dd = esc(p.get("published") or p.get("year") or "—")
     if p.get("published_online") and p.get("published"):
         date_dd += ' <span style="color:var(--faint)">（online）</span>'
-
-    info = [ig("期刊", f'<span class="hl">{journal_dd}</span>')]
     ty = display_type(p)
-    if ty:
-        info.append(ig("类型", esc(ty)))
-    info.append(ig("发表", date_dd))
-    if vp:
-        info.append(ig("卷期页", esc(vp)))
-    if p.get("publisher"):
-        info.append(ig("出版商", esc(p["publisher"])))
-    info.append(ig("被引", f"{cited}（OpenAlex）" if cited else "—"))
-    info.append(ig("收录", esc(p.get("added") or "—")))
-    info.append(ig("被浏览", '<span id="views">…</span>'))
+
+    # 字段顺序对齐公众号推文（标题在标题区展示，不重复入行）；可选字段有值才输出
+    info = []
     if doi:
-        info.append(ig("DOI", doi_html, wide=True))
+        info.append(frow("DOI", doi_html))
+    info.append(frow("期刊", f'<span class="hl">{journal_dd}</span>'))
+    if ty:
+        info.append(frow("类型", esc(ty)))
+    info.append(frow("发表", date_dd))
+    if vp:
+        info.append(frow("卷期页", esc(vp)))
+    if p.get("publisher"):
+        info.append(frow("出版商", esc(p["publisher"])))
+    info.append(frow("被引", f"{cited}（OpenAlex）" if cited else "—"))
+    info.append(frow("收录", esc(p.get("added") or "—")))
+    info.append(frow("被浏览", '<span id="views">…</span>'))
     if kws_html:
-        info.append(ig("关键词", kws_html, wide=True))
-    info.append(ig("标签", tags_html, wide=True))
+        info.append(frow("关键词", kws_html))
+    info.append(frow("标签", tags_html))
+
+    # 节标题：公众号「1.信息 / 2.摘要 / 3.图表」式，编号动态顺延（有封面图才有图表节）
+    n_sec = 0
+
+    def sech(txt: str) -> str:
+        nonlocal n_sec
+        n_sec += 1
+        return f'<h2 class="sec-h"><span class="tx">{n_sec}. {esc(txt)}</span></h2>'
+
+    info_sec = f'<section class="sec">{sech("信息")}<div class="frows">' + "".join(info) + "</div></section>"
 
     # ── 摘要区：中文摘要为主阅读区，英文原题摘要收合 ──
     abs_en = (p.get("abstract") or "").strip()
@@ -1117,7 +1398,7 @@ def build_detail(cfg: dict, items: list, idx: int) -> str:
     note = (p.get("note") or "").strip()
     if note:
         abs_blocks.append(f'<p class="abs-note">{esc(note)}</p>')
-    abs_sec = (f'<section class="sec"><h2 class="sec-h"><span class="no">02</span><span class="tx">摘要</span></h2>'
+    abs_sec = (f'<section class="sec">{sech("摘要")}'
                + "".join(abs_blocks) + "</section>") if abs_blocks else ""
 
     # ── 顶部徽章行 ──
@@ -1126,7 +1407,7 @@ def build_detail(cfg: dict, items: list, idx: int) -> str:
     top_row = (f'<div class="p-top"><span class="c-j" title="{esc(p.get("journal") or "")}">{esc(journal_badge(p) or "—")}</span>'
                f'<span class="c-y">{esc(p.get("year") or "")}</span>'
                + (f'<span class="p-ct">{esc(ty)}</span>' if ty else "")
-               + cited_html + oa_html + '</div>')
+               + cited_html + oa_html + rstyle_toggle("accent") + '</div>')
 
     # ── 标题：中文优先（与卡片一致），另一语言作副行 ──
     alt = alt_title(p)
@@ -1135,29 +1416,34 @@ def build_detail(cfg: dict, items: list, idx: int) -> str:
                 'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
                 '<path d="M10 3 5 8l5 5"/></svg>')
 
+    # ── 图表节（可选）：封面图独立成节（公众号「3.图表」式），无封面则整节不出现 ──
+    cov = (p.get("cover") or "").strip()
+    fig_sec = (f'<section class="sec">{sech("图表")}'
+               f'<figure class="p-cover"><img src="../assets/{esc(cov)}?v={BUILD_VER}" '
+               f'alt="文章图表 / 封面图"></figure></section>') if cov else ""
+
     body = f"""<a class="back" href="../">{back_ico}返回全部</a>
-{top_row}
+<div class="pbody">
+<div class="p-head">{top_row}
 <h1 class="p-title">{esc(display_title(p))}</h1>{alt_html}
 <p class="p-auth">{esc(" · ".join(p.get("authors") or []) or "—")}</p>
-<section class="sec">
-  <h2 class="sec-h"><span class="no">01</span><span class="tx">信息</span></h2>
-  <div class="info-grid">
-    {chr(10).join('    ' + x for x in info)}
-  </div>
-</section>
+</div>
+{info_sec}
 {abs_sec}
-<section class="sec">
-  <h2 class="sec-h"><span class="no">03</span><span class="tx">引用</span></h2>
+{fig_sec}
+<section class="sec">{sech("引用")}
   <div class="cite-line"><span id="citeline">{esc(citation(p))}</span></div>
   <div class="btx"><button type="button" data-copy="citeline">复制引用</button><button type="button" data-copy="bibtex">复制 BibTeX</button><details class="full"><summary>查看 BibTeX</summary><pre id="bibtex">{esc(to_bibtex(p))}</pre></details></div>
 </section>
 <p class="a-end">· END ·</p>
-{chr(10).join(pager)}"""
+{chr(10).join(pager)}
+</div>"""
     desc = (p.get("title") or "") + " — " + (p.get("journal") or "")
     if (p.get("abstract") or "").strip():
         desc += "：" + p["abstract"].strip()[:120]
     # 学术结构化数据（Schema.org ScholarlyArticle），利于搜索引擎理解文献信息
     base = (cfg.get("site_url") or "").rstrip("/")
+    og_image = (f"{base}/assets/{cov}" if (base and cov) else "")
     ld = {
         "@context": "https://schema.org", "@type": "ScholarlyArticle",
         "headline": p.get("title") or "", "inLanguage": "en",
@@ -1167,6 +1453,7 @@ def build_detail(cfg: dict, items: list, idx: int) -> str:
         "publisher": p.get("publisher") or None,
         "identifier": p.get("doi") or None,
         "url": f"https://doi.org/{p['doi']}" if p.get("doi") else None,
+        "image": og_image or None,
         "keywords": ", ".join((p.get("keywords") or []) + (p.get("tags") or [])) or None,
     }
     ld = {k: v for k, v in ld.items() if v}
@@ -1176,7 +1463,8 @@ def build_detail(cfg: dict, items: list, idx: int) -> str:
     body = body + ld_block
     return page_shell(cfg, f"{p.get('title')} · {cfg['title']}", body, depth=1,
                       gh_url=f"https://github.com/{cfg.get('owner') or 'OWNER'}/{cfg['repo']}",
-                      description=desc, path=f"/{p['id']}/", og_type="article")
+                      description=desc, path=f"/{p['id']}/", og_type="article",
+                      og_image=og_image, rstyle="accent")
 
 
 def build_search_page(cfg: dict, items: list) -> str:
@@ -1193,6 +1481,152 @@ def build_search_page(cfg: dict, items: list) -> str:
 <div class="spage-count" id="spage-count"></div>
 <div class="spage-list" id="spage-list" data-up="../"></div>"""
     return page_shell(cfg, f"全站搜索 · {cfg['title']}", body, depth=1, path="/search/")
+
+
+# ── 每周速递（/weekly/）：内容源 content/weekly/*.md，布局与主站 zbhgis.com
+#    博客同源（列表 v3-col/kicker/label/line，文章三栏 side/main/toc + prevnext）；
+#    md 经 scripts/render_md.py（标准库迷你渲染器）转 HTML ──
+WEEKLY_SRC = ROOT / "content" / "weekly"
+WK_AUTHOR = "zbhgis 浩瀚地学"
+WK_ICO_USER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>'
+WK_ICO_DOC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>'
+WK_ICO_CLOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
+WK_ICO_LEFT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5m0 0l6-6m-6 6l6 6"/></svg>'
+WK_ICO_RIGHT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m0 0l-6-6m6 6l-6 6"/></svg>'
+
+
+def _month_label(date: str) -> str:
+    """2026-04-06 → 2026年4月（无日期返回空串）。"""
+    m = re.match(r"(\d{4})-(\d{1,2})", date or "")
+    return f"{m.group(1)}年{int(m.group(2))}月" if m else ""
+
+
+def build_weekly(cfg: dict) -> list[str]:
+    """构建 /weekly/ 列表页与各文章页；返回（供 sitemap 的）URL 路径列表。"""
+    if not WEEKLY_SRC.is_dir():
+        return []
+    try:
+        from render_md import parse_md
+    except ImportError:
+        print("· 每周速递：缺 scripts/render_md.py，跳过")
+        return []
+
+    posts = []
+    for md in sorted(WEEKLY_SRC.glob("*.md")):
+        text = md.read_text(encoding="utf-8")
+        meta, doc, toc, plain = parse_md(text)
+        title = (str(meta.get("title") or md.stem)).strip()
+        m = re.search(r"精选(\d+)", title)
+        slug = f"weekly-{m.group(1) if m else md.stem[:8]}"
+        # 正文首个 `# ` 标题与 front matter title 重复：剥离（TOC 同步剔除 doc-1）
+        doc = re.sub(r'<h2 id="doc-1" class="md-h1">.*?</h2>\n*', "", doc, count=1)
+        toc = [t for t in toc if t[1] != "doc-1"]
+        date = str(meta.get("date") or "")[:10]
+        words = len(plain)
+        reading = max(1, -(-words // 200))          # ceil(words/200)，主站同口径
+        n_papers = len([1 for lv, _, txt in toc if lv == 1])
+        journals = list(dict.fromkeys(
+            (j.strip() for j in re.findall(r"(?m)^期刊：(.+)$", text) if j.strip())))
+        summ = f"本期收录 {n_papers} 篇 · " + " · ".join(journals[:3])
+        if len(journals) > 3:
+            summ += " 等"
+        first_img = re.search(r'<p class="wk-img"><img src="([^"]+)"', doc)
+        posts.append({
+            "slug": slug, "title": title, "date": date,
+            "month": _month_label(date), "cat": (meta.get("categoryTags") or ["文献速递"])[0],
+            "subs": meta.get("subCategoryTags") or [],
+            "doc": doc, "toc": toc, "words": words, "reading": reading,
+            "summary": summ, "og_image": first_img.group(1) if first_img else "",
+        })
+    if not posts:
+        return []
+    posts.sort(key=lambda p: p["date"], reverse=True)   # 新→旧；i-1 更新（上一篇）
+
+    def side_nav(cur: str) -> str:
+        rows = "".join(
+            f'<a class="wk-side-link" data-active="{str(q["slug"] == cur).lower()}" '
+            f'href="../{q["slug"]}/">{esc(q["title"])}</a>' for q in posts)
+        return (f'<aside class="wk-side"><div class="wk-side-in"><nav class="wk-side-nav">'
+                f'<div class="wk-side-hd">文章导航</div>{rows}</nav></div></aside>')
+
+    def pn_cell(pn: dict | None, to_next: bool) -> str:
+        if not pn:
+            return '<span class="wk-pn-empty" aria-hidden="true"></span>'
+        cls = "wk-pn wk-pn-to-next" if to_next else "wk-pn"
+        ico, lbl = ((WK_ICO_RIGHT, "下一篇") if to_next else (WK_ICO_LEFT, "上一篇"))
+        return (f'<a class="{cls}" href="../{pn["slug"]}/"><span class="wk-pn-dir">'
+                f'{lbl}{ico}'
+                f'</span><span class="wk-pn-ttl">{esc(pn["title"])}</span></a>')
+
+    # 文章页：三栏骨架
+    for i, p in enumerate(posts):
+        tags = [f'<span class="wk-tag wk-tag-accent">{esc(p["cat"])}</span>']
+        if p["month"]:
+            tags.append(f'<span class="wk-tag">{esc(p["month"])}</span>')
+        for st in p["subs"]:
+            tags.append(f'<span class="wk-tag">{esc(st)}</span>')
+        prev_p = posts[i - 1] if i > 0 else None
+        next_p = posts[i + 1] if i + 1 < len(posts) else None
+        toc_rows = "".join(
+            f'<a class="wk-toc-link" data-lv="{lv}" href="#{hid}">{esc(txt)}</a>'
+            for lv, hid, txt in p["toc"])
+        body = f"""<div class="wk-shell">
+{side_nav(p["slug"])}
+<main class="wk-main"><article>
+<h1 class="wk-deco wk-h1">{esc(p["title"])}</h1>
+<div class="wk-tagsrow">{'<span class="dot">·</span>'.join(tags)}</div>
+<div class="wk-meta"><span>{WK_ICO_USER}{WK_AUTHOR}</span><span>{WK_ICO_DOC}{p["words"]} 字</span><span>{WK_ICO_CLOCK}约 {p["reading"]} 分钟</span>{rstyle_toggle("plain")}</div>
+<div class="wk-dates"><span>创建于 <time datetime="{p["date"]}">{p["date"]}</time></span></div>
+<div class="wk-content">{p["doc"]}</div>
+<nav class="wk-prevnext" aria-label="文章导航">{pn_cell(prev_p, False)}{pn_cell(next_p, True)}</nav>
+</article></main>
+<aside class="wk-toc"><div class="wk-toc-in"><h4 class="wk-side-hd">此页内容</h4><nav>{toc_rows}</nav></div></aside>
+</div>"""
+        d = SITE / "weekly" / p["slug"]
+        d.mkdir(parents=True, exist_ok=True)
+        html_txt = page_shell(cfg, p["title"], body, depth=2,
+                              description=p["summary"], path=f"/weekly/{p['slug']}/",
+                              og_type="article", og_image=p["og_image"], bare=True,
+                              rstyle="plain")
+        (d / "index.html").write_text(html_txt, encoding="utf-8")
+
+    # 列表页：页头 + QuickNav 月份锚点 + 按月分组条目
+    groups: dict[str, dict] = {}
+    for p in posts:                       # posts 已按日期倒序，组天然新→旧
+        key = p["date"][:7].replace("-", "") if p["date"] else "0000"
+        groups.setdefault(key, {"label": p["month"] or "未知月份", "items": []})
+        groups[key]["items"].append(p)
+    chips = "".join(
+        f'<a class="wk-btn" href="#m-{key}">{esc(g["label"])} <span class="n">{len(g["items"])}</span></a>'
+        for key, g in groups.items())
+    sections = ""
+    for key, g in groups.items():
+        rows = ""
+        for p in g["items"]:
+            rows += (f'<a class="wk-line" href="{p["slug"]}/"><span class="wk-line-in">'
+                     f'<span class="wk-line-main"><h3 class="wk-line-ttl">{esc(p["title"])}</h3>'
+                     f'<p class="wk-line-sum">{esc(p["summary"])}</p></span>'
+                     f'<span class="wk-line-side"><span class="wk-line-tags">'
+                     f'<span class="wk-tag wk-tag-accent">{esc(p["cat"])}</span>'
+                     f'<span class="wk-tag">{esc(p["month"])}</span></span>'
+                     f'<span class="wk-line-date">{p["date"]}</span></span></span></a>')
+        sections += (f'<section class="wk-group" id="m-{key}">'
+                     f'<div class="wk-label"><span>{esc(g["label"])}</span>'
+                     f'<span class="wk-label-right">{len(g["items"])} 篇</span></div>{rows}</section>')
+    n_week = len(posts)
+    body = f"""<div class="wk-col">
+<div class="wk-head"><div><p class="wk-kicker">{esc(cfg['title'].upper())}</p><h1 class="wk-deco">每周速递</h1></div></div>
+<p class="wk-lede">Nature / Science / Cell 系列大尺度生物多样性研究每周精选，共 {n_week} 期；点击条目阅读本期文献速递全文。</p>
+<div class="wk-quicknav">{chips}</div>
+<div class="wk-groups">{sections}</div>
+</div>"""
+    (SITE / "weekly").mkdir(parents=True, exist_ok=True)
+    (SITE / "weekly" / "index.html").write_text(
+        page_shell(cfg, f"每周速递 · {cfg['title']}", body, depth=1,
+                   description=f"Nature / Science / Cell 系列大尺度生物多样性研究每周精选，共 {n_week} 期。",
+                   path="/weekly/", bare=True), encoding="utf-8")
+    print(f"· 每周速递：列表页 + {n_week} 篇文章页 → weekly/")
+    return ["/weekly/"] + [f"/weekly/{p['slug']}/" for p in posts]
 
 
 def main() -> int:
@@ -1216,7 +1650,8 @@ def main() -> int:
     if SITE.exists():
         trash = ROOT / "site_trash"
         for d in SITE.iterdir():
-            if d.is_dir() and d.name not in ("assets", "search") and (d / "index.html").exists():
+            if (d.is_dir() and d.name not in ("assets", "search", "weekly")
+                    and (d / "index.html").exists()):
                 trash.mkdir(parents=True, exist_ok=True)
                 dest = trash / (d.name + "-" + str(int(time.time())))
                 print(f"· 过期详情页 {d.name} → site_trash/（不删除）")
@@ -1229,6 +1664,20 @@ def main() -> int:
     for f in (ROOT / "assets_src").glob("*"):
         if f.is_file():
             shutil.copyfile(f, SITE / "assets" / f.name)
+
+    # 封面图整体随构建拷入站点（源文件在 assets_src/covers/，随 git 入库）。
+    # 镜像式同步：管理端删过的封面不残留在构建产物里
+    src_covers = ROOT / "assets_src" / "covers"
+    if src_covers.is_dir():
+        dst_covers = SITE / "assets" / "covers"
+        shutil.copytree(src_covers, dst_covers, dirs_exist_ok=True)
+        src_names = {f.name for f in src_covers.iterdir() if f.is_file()}
+        for f in dst_covers.iterdir():
+            if f.is_file() and f.name not in src_names:
+                f.unlink()
+        n_cov = len([f for f in dst_covers.iterdir() if f.is_file()])
+        n_used = len([p for p in items if p.get("cover")])
+        print(f"· 封面图 {n_cov} 张（{n_used} 篇文献引用）→ assets/covers/")
 
     (SITE / "assets" / "style.css").write_text(CSS, encoding="utf-8")
     inline = {
@@ -1258,6 +1707,8 @@ def main() -> int:
         "ct": p.get("cited_by") or 0,
         "doi": p.get("doi") or "",
         "ab": abstract_disp(p),
+        # cv = 封面图（可选），URL 构建期定死并带 ?v= 防缓存
+        "cv": (f"assets/{p['cover']}?v={BUILD_VER}" if p.get("cover") else ""),
         "se": haystack(p),
     } for p in items]
     (SITE / "assets" / "papers-data.js").write_text(
@@ -1265,12 +1716,13 @@ def main() -> int:
         encoding="utf-8")
 
     # robots.txt + sitemap.xml：配置了 site_url 才生成（部署完整性 / 搜索引擎收录）
+    weekly_urls = build_weekly(cfg)          # 每周速递：列表页 + 各文章页
     base = (cfg.get("site_url") or "").rstrip("/")
     if base:
         robots_lines = ["User-agent: *", "Allow: /", "Sitemap: " + base + "/sitemap.xml"]
         (SITE / "robots.txt").write_text("\n".join(robots_lines) + "\n", encoding="utf-8")
         today = time.strftime("%Y-%m-%d")
-        urls = ["/", "/search/"] + ["/" + p["id"] + "/" for p in items]
+        urls = ["/", "/search/"] + ["/" + p["id"] + "/" for p in items] + weekly_urls
         sm = ['<?xml version="1.0" encoding="UTF-8"?>',
               '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
         for u in urls:

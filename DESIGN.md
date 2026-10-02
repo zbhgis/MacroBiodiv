@@ -36,14 +36,39 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 
 - 正文：`ui-sans-serif / PingFang SC / Microsoft YaHei`；数据字段：`ui-monospace`
 - 首页容器 1180px；**桌面端右内边距 74px** 给右侧悬浮队列让位（≤640px 队列转横排）
-- 断点：1000px（卡片 3→2 列）、640px（2→1 列、队列横排）
+- 断点：1100px（首页瀑布流卡片 4→3 列）、760px（3→2 列）、640px（队列横排）
 
 ### 2.3 右侧悬浮按钮队列
 
 42px 正圆 · `--card` 实底 · 发丝描边 · hover 变 accent 并 scale(1.06)。
-顺序固定：**返回主站**（zbhgis.com，跨站回链）/ 全站搜索 / 返回 Home / GitHub / 明暗主题 / 回到顶部
-—— 在主站 rail 同款同序的基础上，于最上方增加「返回主站」。
-（曾试验过顶部导航栏方案，体验后决定回退：子站内容单一，rail 方案更克制。）
+顺序固定：全站搜索 / 返回 Home / GitHub / 明暗主题 / 回到顶部（与主站 rail 同款同序；
+2026-10 应用户要求移除最初顶部的「返回主站」跨站回链 —— 主站入口改由菜单栏「更多▾」承担）
+（历史：早期曾因「子站内容单一」回退过顶部导航栏，只留 rail；2026-10 应用户要求重新
+引入顶部菜单栏（见 2.4），两者共存分工 —— 菜单栏管全站导航与预留入口，rail 管工具动作。）
+
+### 2.4 顶部菜单栏（`.mnav`，2026-10 新增）
+
+移植主站 zbhgis.com 的 header，同源数值：**sticky 吸顶**（z-50）· 发丝底边（`--line`）·
+90% 不透明底 `--header-bg` + `backdrop-filter: blur(12px)` 毛玻璃；内栏 1080px 居中、高 56px。
+
+- 左：站点名 brand（**26px 圆形 logo 图（favicon 同源）+ 站名**，17px semibold，间距 10px、
+  图带 `--line` 细描边 —— zbhgis.com 头像 + 站名的同款规格，hover 变 accent）
+- 右：导航组 `.mnav-links`（**与主站 v3-nav 同源**：15px、`6px 10px` 内边距、前置 **14px
+  stroke 图标**、hover 变 text 且下划线 scaleX 0→1、`data-active=true` → accent 常亮）。
+  现有项：**每周速递（纸飞机 → `/weekly/`，按 `path` 构建期标 `data-active` + aria-current）/
+  全站统计（柱状图，预留入口暂不跳转）/ 更多▾**。
+  「更多」= 主站 v3-more 同款：触发钮为 button（text + 11px caret），hover 或
+  focus-visible 展开 `.mnav-dd`（display 直切无动画、caret 旋转 180°；面板 `--bg` 实底 +
+  描边 + 主站同款投影 `0 10px 28px rgba(0,0,0,.16)`，项 14px / `8px 11px` / 15px faint
+  图标：zbhgis 地球 · GeoSciPlot 图片样式（方框+圆点+山形，与主站「更多」菜单同款 SVG），
+  target=_blank）
+- ≤640px：桌面菜单隐藏，转主站同款 **details/summary 原生汉堡**（30px 方形 `.mnav-icon`，
+  hover/open 变 accent + accent-soft 底；面板复用 `.mnav-dd`，含三项 + 分隔线 + 两外链）
+  （历史：最初中间为「首页 / 全站搜索」+ 右一枚占位 icon 按钮；2026-10 改右侧三项导航组，
+  随后整栏与主站 zbhgis.com 精确对齐并加图标）
+- 新增 token：`--header-bg`（暗 `#0d1117e6` / 亮 `#ffffffe6`）、`--accent-soft`
+  （暗 `#58a6ff1a` / 亮 `#0969da1a`）
+- 窄屏（≤640px）：内栏 padding 收 16px，桌面菜单转 details 汉堡（见上）
 
 ## 3. 页面设计
 
@@ -51,22 +76,35 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 
 - Header：logo + 大标题 → gh-note（数据存于 GitHub）→ lede → meta-row（N 篇 · 标签 · 期刊 · 年份）
 - 筛选维度三行 chips：**标签 / 期刊 / 时间区间**（时间 = online 发表日期）+ 排序（发表 新→旧【默认】、旧→新、被引 多→少）
-- 文献卡片（`.card`）：顶行 = 期刊徽章 + 文章类型徽章 + 年份；主标题（**中文优先**，悬停显示另一语言原题）；作者（mono，>3 人 et al.）；摘要节选 2 行（中文优先，200 字截断）；底行 = 标签 + 被引
-- 网格 3/2/1 列等宽（文献无图，不用瀑布流）；**首屏 30 张由 Python 静态输出**（爬虫/AI 引擎友好），翻页与筛选由 JS 重渲染，两者输出必须完全一致（构建期 `sort_items` 与 JS `cmp` 同序）
+- 文献卡片（`.card`，GeoSciPlot 瀑布流同源语言）：**封面通栏顶图**（自然宽高比不裁切，
+  底色作加载占位；无封面时输出期刊缩写占位块 `.c-ph`，版式不塌）；说明区 `.c-cap` =
+  徽章行（文章类型 + 期刊）+ 主标题（**中文优先**，悬停显示另一语言原题，3 行截断）
+- 瀑布流 **CSS multi-columns**：4 列、列距 18px，≤1100px 3 列、≤760px 2 列（列距 12px）；
+  `break-inside:avoid` 防卡片跨列截断；hover 仅边框变 accent（无阴影，克制工程感）；
+  **首屏 30 张由 Python 静态输出**（爬虫/AI 引擎友好），翻页与筛选由 JS 重渲染，两者输出必须完全一致（构建期 `sort_items` 与 JS `cmp` 同序；封面字段 `cv` 构建期写死带 `?v=`，静态与 JS 渲染同源）
 - 分页 20/30/50；页码窗口随视口收窄；筛选/排序状态可记 localStorage（`mbd-per/mbd-sort2/mbd-filters`）；URL 参数 `?q=&tag=&journal=&from=&to=` 可分享
 
-### 3.2 详情页 `/{id}/`（公众号推文式分节阅读）
+### 3.2 详情页 `/{id}/`（公众号推文式分节阅读，2026-10 对齐「浩瀚地学」文献精选排版）
+
+排版语言移植自公众号「浩瀚地学」文献精选推文（`mp.weixin.qq.com` 实测规格），
+色值仍走本站 token：**正文窄栏 677px 居中**（`.pbody`）· 标题块**居中** + accent **通栏底线**
+· 节标题 = accent **5px 左竖线** + 18px 加粗（无底线）· 信息区为**「字段名：值」同行字段行**
+· 摘要 15px/1.8 **左对齐** · 图表图片撑栏无圆角带**淡蓝光晕**（rgba(133,161,201,.5) 0 0 5px）
 
 ```
-徽章行（期刊 · 年份 · 类型 · 被引 · OA）
-大标题（中文优先）→ 另一语言原题（副行）→ 作者（mono）
-01 信息   信息卡网格（小标签在上、值在下，auto-fill 230px）
-          期刊/类型/发表（标注 online）/卷期页/出版商/被引/收录/被浏览/DOI
-          关键词（仅手动填写时显示）· 标签 —— 通栏 pills，可跳转
-02 摘要   中文摘要为主阅读区（16px / 2.05 行距 / 两端对齐）
+返回全部（左上，窄栏外）
+┄ 窄栏 677px ┄
+标题块 .p-head（居中，底部 accent 通栏线）
+  徽章行（期刊 · 年份 · 类型 · 被引 · OA · 行尾渲染样式切换圆点①②）
+  大标题（中文优先）→ 另一语言原题（副行）→ 作者
+1. 信息   字段行（字段名：值 同行）：DOI / 期刊（+缩写）/ 类型 / 发表（online 标注）
+          / 卷期页 / 出版商 / 被引 / 收录 / 被浏览 / 关键词 / 标签（可跳转 pills）
+          —— DOI、类型、卷期页、出版商、关键词有值才输出该行
+2. 摘要   中文摘要为主阅读区（15px / 1.8 行高 / 左对齐）
           英文原文摘要收合折叠；无中文时英文直接作为主阅读区
           备注（accent 左边线强调块）
-03 引用   GB/T 7714 引用条（mono 卡片）+ 「复制引用」「复制 BibTeX」
+3. 图表   封面图（可选字段，仅在有图时出现，编号顺延；图片撑栏 + 淡蓝光晕）
+3/4. 引用 GB/T 7714 引用条（mono 卡片）+ 「复制引用」「复制 BibTeX」
           （data-copy 通用复制机制）+ BibTeX 折叠查看
 · END ·
 上一篇 / 下一篇（等宽卡片，中文标题 + 期刊·年份）
@@ -75,9 +113,10 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 ### 3.2.1 分享与收录（SEO）
 
 - 页面输出 Open Graph 标签（og:title/description/type/url/site_name）：详情页 `og:type=article`，
-  配置 `site_url` 后自动生成，聊天工具分享出卡片
-- 详情页内嵌 Schema.org **ScholarlyArticle JSON-LD**（标题/作者/期刊/出版商/日期/DOI/关键词），
-  搜索引擎可直接理解文献结构
+  配置 `site_url` 后自动生成，聊天工具分享出卡片；**详情页有封面时附 `og:image`（绝对 URL）**，
+  分享卡片带封面
+- 详情页内嵌 Schema.org **ScholarlyArticle JSON-LD**（标题/作者/期刊/出版商/日期/DOI/关键词/
+  **封面 image**），搜索引擎可直接理解文献结构
 - 构建时生成 **robots.txt + sitemap.xml**（全站 URL + lastmod）与 **atom.xml**（最新 20 篇订阅源，
   中文摘要优先），同样依赖 `site_url` 配置
 
@@ -87,22 +126,74 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 - 检索域（`se`，构建期算好）：id / DOI / 标题(中英) / 作者 / 期刊 / 年月 / 收录日 / 备注 / 出版商 / 类型 / 关键词(手动) / 标签 / **摘要全文(中英)**
 - 结果行：主标题（中文优先，命中高亮）+ 元信息行（作者·期刊·年份·DOI·英文原题，可高亮）；`?q=` 可分享
 
-### 3.4 管理后台 `scripts/admin_ui.html`（127.0.0.1:5201）
+### 3.4 每周速递 `/weekly/`（2026-10 新增，布局移植 mystation 博客）
+
+内容源 `content/weekly/*.md`（14 期周报，front matter：title/date/categoryTags/subCategoryTags，
+正文 `# 文献N` → `## 1.信息/2.摘要/3.图表`，图片为 jsdelivr CDN 外链）。md 经
+`scripts/render_md.py`（**标准库迷你渲染器**：标题降级映射 `h2.md-h1`/`h3.md-h2` 带 anchor、
+粗/斜体、独立图片行 → `.wk-img` 懒加载、裸 DOI URL 自动链接；先转义再套内联标记，未知语法纯文本兜底）。
+
+- 口径：slug = `weekly-{期号}`（标题正则 `精选(\d+)`）；字数 = 去标记字符数；阅读时长 =
+  `ceil(字数/200)` 分钟（主站 config 同口径）；摘要 = 「本期收录 N 篇 · 期刊去重」
+- **列表页**：`wk-col` 760px → 页头（`wk-kicker` mono 大写 + `wk-deco` 大标题 + lede）→
+  `wk-quicknav` 月份锚点 chip（`wk-btn` 带计数）→ 按月倒序分组：`wk-label`（月份 + N 篇）→
+  `wk-line` 条目（标题 hover 变 accent + 摘要两行截断 + 右侧 tags（分类 accent + 月份）+ 日期 mono）
+- **文章页**：三栏 `wk-shell`（max-1400）—— 左 `wk-side` 250px「文章导航」（sticky、
+  <1024px 隐藏、全部 14 篇 `wk-side-link`，当前篇构建期写死 `data-active`）；中 `wk-main`
+  760px（`wk-deco` 大标题 → tags 行 → meta 行（作者/字数/时长，12.5px 图标行）→ 日期行 →
+  `wk-content` 正文 → `wk-prevnext` 上一篇/下一篇双栏卡 + 虚线空位）；右 `wk-toc` 180px
+  「此页内容」（<1280px 隐藏、`wk-toc-link` data-lv 层级缩进 + 导轨竖线、静态锚点无 scrollspy）
+- **正文排版 `wk-content`**（blog-content 同源）：`h2.md-h1` 24px border-b、`h3.md-h2` 20px、
+  p 16px/1.75、`strong #85a4ff`（主站同源硬编码）、img 圆角+描边、blockquote 左线斜体
+- CSS `wk-*` 全部移植自 `mystation/frontend/app/globals.css` 的 v3-*/blog-content，token 换名：
+  `--text-primary→--text`、`--text-secondary/muted→--dim`、`--text-faint→--faint`、
+  `--hairline→--line`、`--hairline-strong/--border→--line2`、`accent-soft-fade→transparent`
+- **静态裁剪**（零 JS）：ViewToggle/RSS、分组分页 Pager/查看更多、侧栏手风琴、TOC scrollspy
+  与移动端抽屉不做；`page_shell(bare=True)` 让正文绕开 `.wrap`（全宽三栏自管容器）
+- **渲染样式切换**（2026-10 新增，与 §3.2 文献详情页共用）：meta 行尾两枚小圆点
+  （透明斜杠圈 = plain 普通样式：系统色标题无装饰，本页默认；蓝色实心圈 = accent
+  强调样式：标题变 `--accent` + 5px 左竖线、去 md-h1 底线，即文献详情的公众号式）。
+  偏好存 localStorage `mbd-rstyle`，**两页共享** —— 任一页切换，另一页下次打开即跟随；
+  `<head>` 内联脚本渲染前置位防闪烁，点击后 `location.reload()` 整页重渲染。
+  CSS 键：`html[data-rstyle=…]` 作用域覆盖（`.sec-h` ↔ `.wk-content .md-h1/.md-h2`）
+- sitemap 追加 `/weekly/` 与各文章页；og:type=article + 正文首图 og:image
+
+### 3.5 管理后台 `scripts/admin_ui.html`（127.0.0.1:5201）
 
 沿用站点 token 与 GeoSciPlot 的 mono 工程风，按本站功能重新组织：
 
 - **品牌头**：favicon 圆角图标 + 标题（与站点 logo 同源）
 - **分节标题**：h2 带 accent 竖标（延续详情页 .sec-h 语言）
-- **添加文献**：DOI 输入区（虚线框，粘贴/导入 .txt）→ 抓取结果卡片
+- **添加文献**：DOI 输入区（虚线框，粘贴 / 导入 .txt，**同时识别粘贴 / 拖入的图片**）
+  → **封面待配区**（DOI 框下的缩略图条，抓取成功后按顺序自动配给新文献 —— GeoSciPlot
+  「标准导入」同款配对；点缩略图移除）→ 抓取结果卡片（右列首位为封面区块）
   → 发布区（成组卡片 .pubbox，含提交信息与推送/同步开关）→ 任务日志（实时步骤）
+- **封面图交互**：每篇卡片的封面区块支持拖拽 / Ctrl+V / 点选三种上传路径（共享 file input
+  经 `coverPick` 定位目标，无目标则进待配区）；上传立即经 `POST /api/cover` 落盘
+  （服务端**魔数嗅探**真实格式，PNG/JPEG/WebP/GIF、≤8MB、id 白名单防路径穿越），
+  存 `assets_src/covers/{id}.{ext}`；预览走 `GET /api/cover/{id}`；
+  「移除（不入库）」与删除文献都会连带删封面文件；文献管理编辑表单同样有封面区块，
+  行列表有缩略图；发布 / 更新 / 重新抓取时服务端按 id **探测**封面文件写 `cover` 字段
+  （不信任客户端路径，文件在才是真相；换格式上传自动清旧格式文件）
 - **抓取结果卡片**：左列 = 与站点卡片同一徽章语言（期刊徽章 + 体裁 chip + 日期顶行、
   英文标题粗体、中文标题副行、作者/卷期/被引/OA/id、**翻译状态徽章**
   「✓ 初译+审校 / ◑ 仅初译 / ✗ 失败」，悬停看原因，摘要 4 行截断）；
   右列 = 可编辑手动字段（中文标题 / 文章类型（datalist）/ 关键词 / 标签 / 中文摘要 / 备注）
 - **文献管理**：行卡片同一徽章语言；标题中文优先 + 英文副行；
   操作：编辑 / 重新抓取 / 重新翻译 / 删除；筛选：搜索 + 标签 chips + 期刊下拉 + 日期区间
-- **通用组件**：页内确认弹窗（替代原生 confirm）、toast、任务日志步骤条（…/✓/✗）、
-  同批重复 DOI 客户端即时标出
+- **每周速递**（2026-10 新增）：上传周报 md（点选 / 拖入，可多选）→ 三步自动流水线：
+  ① md 落盘 `content/weekly/`（周报页随构建自动收录）；② 解析「# 文献N」小节
+  （`render_md.parse_weekly_papers`，见 §3.4），新 DOI 走 Crossref+OpenAlex 抓取入库，
+  **周报自带中文直接预填**（标题行首个 CJK 起为中文段 → title_zh；摘要节 → abstract_zh；
+  「文献N」注记体裁 → article_type，不走大模型，空缺事后用「翻译缺中文的」回补）；
+  ③ 图表图按序下载为封面（魔数校验），**图表为无 / 下载失败 → 站点 logo 兜底**
+  （`assets_src/logo.png` 复制为 `covers/{id}.png`）。上传前先 `/api/weekly-parse`
+  同步预解析出确认弹窗（新 N 篇 / 跳过 N 篇 / 封面策略 / 期号冲突警告），确认后进
+  后台任务（构建 + 推送 / 同步沿用发布区开关）。期次列表显示每篇 DOI 的收录状态
+  （● 已入库 · ○ 待生成 · × 无 DOI）；同名文件重传 = 覆盖更新该期（库内 DOI 自动跳过）；
+  「删除此期」只删周报页，已生成卡片需到文献管理单独删
+- **通用组件**：页内确认弹窗（替代原生 confirm，支持取消回调）、toast、任务日志步骤条
+  （…/✓/✗，三个标签页各有独立日志区）、同批重复 DOI 客户端即时标出
 - 明暗主题跟随系统（prefers-color-scheme）；只监听 127.0.0.1 免登录
 
 ## 4. 数据模型 `meta/papers.json`
@@ -127,6 +218,9 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
     // ── 手动字段（永不被自动流程覆盖）──
     "keywords": ["sea ice", ...],    // 按文章原文填写（API 拿不到作者关键词）
     "tags": ["样点分布图"], "note": "",
+    "cover": "covers/{id}.png",      // 封面图（可选），相对 assets/ 的路径；
+                                     // 服务端按 assets_src/covers/ 实际文件探测得出，
+                                     // 上传/移除即落盘，发布/更新/重抓时自动增删此字段
     // ── 统计 ──
     "added": "2026-09-19"
   }]
@@ -135,6 +229,23 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 
 字段优先级规则：**手动 > LLM > 自动回落**。GeoSciPlot 的 titles.csv 副本被有意去掉，
 papers.json 单一数据源避免双写不同步。
+
+#### 封面图管线（GeoSciPlot 图片上传的同源移植）
+
+```
+粘贴/拖拽/点选图片 → base64 → POST /api/cover → 魔数校验 → assets_src/covers/{id}.{ext}
+                                                                    │（随 git 入库）
+发布/更新时 detect_cover(id) ←──── 同 id 一一对应 ────┘
+        ↓ 写 papers.json 的 cover 字段
+build_site.py：整体拷到 site/assets/covers/（镜像式，删除不残留）
+        ↓
+卡片自然比例通栏顶图（无图占位块） · 详情页大图 · og:image · JSON-LD image
+```
+
+- 一篇文献至多一张封面（文章封面 / 图形摘要语义），重传即覆盖；id 由 DOI 派生，
+  封面与文献的关联天然稳定，无需额外索引
+- 不做压缩/转码：零第三方依赖约束下不引 Pillow，原图原样入库（8MB 上限兜底），
+  体积优化依赖上传前自行处理
 
 ## 5. DOI 抓取管线（fetch_doi.py）
 
@@ -146,6 +257,10 @@ papers.json 单一数据源避免双写不同步。
    以 online 为准；无 online 记录时回落并以 `published_online` 标记如实呈现）
 4. **关键词**：作者关键词 API 层不可得，OpenAlex keywords 属内容推断已**停用**，
    关键词由管理端按原文手动填写
+5. **HTML 实体反转义**：部分出版社的 deposit 元数据自带 HTML 实体（如期刊名
+   「Nature Ecology &amp; Evolution」），`_finalize` 对全部字符串字段统一
+   `html.unescape`（摘要此前已在 `_clean_abstract` 处理），避免站点 `esc()`
+   二次转义出现「&amp;amp;」；BibTeX 输出（`_bib_escape`）也随之拿到干净的 `&`
 
 ## 6. LLM 中文化（llm.py）
 
@@ -165,7 +280,8 @@ papers.json 单一数据源避免双写不同步。
 
 ## 7. 部署
 
-- 数据与索引随 GitHub 仓 `zbhgis/MacroBiodiv`；站点无图，生产包只有 HTML/JS
+- 数据与索引随 GitHub 仓 `zbhgis/MacroBiodiv`；封面图存 `assets_src/covers/` 同样入库，
+  构建时拷入 `site/assets/covers/`，生产包为 HTML/JS + 封面图片
 - nginx：`deploy/nginx-macrobiodiv.conf`（webroot /var/www/macrobiodiv，/api/ 反代主站
   FastAPI 做浏览统计；安全响应头 nosniff / SAMEORIGIN / Referrer-Policy；
   /assets/ 因带 ?v= 版本号放行 30d 长缓存）；DNS / 证书步骤见 `deploy/部署操作手册.md`
@@ -177,8 +293,12 @@ papers.json 单一数据源避免双写不同步。
 | 决策 | 原因 |
 |---|---|
 | 纯标准库 + 静态站，无框架 | 与 GeoSciPlot 同构，零运维，服务器只跑 nginx |
-| 文献卡片用等宽 grid 而非瀑布流 | 文献无图，信息密度一致，瀑布流无意义 |
+| 首页卡片瀑布流（CSS multi-columns，2026-10 由等宽 grid 改入） | 封面升级为卡片常规要素（封面+标题+类型+期刊），自然比例错落成瀑布流，与 GeoSciPlot 保持同源；无封面用期刊缩写占位块兜底版式 |
+| 封面存 assets_src/covers + 探测式写库 | site/ 是构建产物不入库；papers.json 的 cover 字段由服务端按磁盘文件探测，杜绝客户端伪造路径与状态漂移 |
+| 封面不做压缩/转码 | 零第三方依赖（不引 Pillow）；8MB 上限兜底，质量可控交给上传者 |
 | 首屏静态输出 + JS 重渲染双轨 | 爬虫/AI 引擎可见 + 交互灵活；两者排序逻辑必须一致 |
+| 菜单栏 active 构建期静态判定 | `path` 在生成时已知，无需 JS 参与；静态首屏与 JS 渲染天然一致 |
+| 菜单栏右端只放一枚占位按钮 | 用户要求预留（功能未定）；样式取主站 `.v3-nav-icon` 语言，之后挂功能只动 `page_shell` 一处 |
 | 详情页中文标题/摘要优先 | 站点受众为中文读者；英文原题保留（副行/折叠/悬停）保证溯源 |
 | 不抓出版社页面 | Cloudflare 反爬不可靠；代价是作者关键词、出版社精确栏目名需手动补 |
 | 去掉 titles.csv | 条目少结构稳，papers.json 单源比双写可靠 |
@@ -193,4 +313,7 @@ papers.json 单一数据源避免双写不同步。
 - 样式常量集中在 `scripts/build_site.py` 的 `CSS`/`JS` 字符串；与 GeoSciPlot 共享的部分
   （token、fab 队列、分页条、搜索页版式）修改前先比对原站，保持同源语言
 - 资源引用统一带 `?v=构建时间戳` 防缓存；改 CSS/JS 后必须重新 build_site.py
-- logo/图标：`scripts/gen_logo.py` 生成（纯几何，4x 超采样），改参数重跑即可
+- logo/图标：优先用户源图 —— `assets_src/logo_source.png` 存在时，`gen_logo.py`
+  由它派生 `logo.png`（居中裁方、保持原分辨率）与 `favicon.png`（64），重跑不会覆盖
+  用户 logo；源图不存在时回落纯几何绘制（4x 超采样）。站点 header 的 `.logo` 出
+  `border-radius:12px` 圆角贴纸观感（admin 品牌头 10px 同语言）

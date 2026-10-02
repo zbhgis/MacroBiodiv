@@ -231,8 +231,20 @@ def fetch_paper(doi: str) -> dict:
     return _finalize(rec)
 
 
+def _unescape_deep(v):
+    """上游元数据偶带 HTML 实体（部分出版社 deposit 的期刊名如
+    「Nature Ecology &amp; Evolution」），入库前统一反转义 —— 否则站点
+    esc() 再转义一次，页面会出现「&amp;amp;」。"""
+    if isinstance(v, str):
+        return _html.unescape(v) if "&" in v else v
+    if isinstance(v, list):
+        return [_unescape_deep(x) for x in v]
+    return v
+
+
 def _finalize(rec: dict) -> dict:
     """补默认字段，保证记录形状一致（papers.json 里手动字段由管理端另加）。"""
+    rec = {k: _unescape_deep(v) for k, v in rec.items()}
     rec.setdefault("keywords", [])
     rec.setdefault("cited_by", 0)
     rec.setdefault("oa", False)

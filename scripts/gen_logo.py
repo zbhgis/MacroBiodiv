@@ -163,8 +163,32 @@ def save(img: Image.Image, path: Path, out_size: int) -> None:
     img.resize((out_size, out_size), Image.LANCZOS).save(path)
 
 
+def derive_from_source() -> bool:
+    """用户提供的 logo 源图（assets_src/logo_source.png）→ 派生正式产物。
+
+    · logo.png：居中裁成正方形，保持原始分辨率（展示位 ≤58px，无需放大）
+    · favicon.png：64×64 LANCZOS 缩小
+    存在该源图时跳过几何绘制 —— 重跑本脚本不会把用户 logo 覆盖回去。
+    """
+    src_path = OUT / "logo_source.png"
+    if not src_path.exists():
+        return False
+    src = Image.open(src_path).convert("RGBA")
+    w, h = src.size
+    side = min(w, h)
+    left = (w - side) // 2
+    top = (h - side) // 2
+    square = src.crop((left, top, left + side, top + side))
+    square.save(OUT / "logo.png")
+    square.resize((64, 64), Image.LANCZOS).save(OUT / "favicon.png")
+    print(f"已由 assets_src/logo_source.png 派生 logo.png（{side}×{side}）+ favicon.png（64）")
+    return True
+
+
 def main() -> int:
     OUT.mkdir(exist_ok=True)
+    if derive_from_source():
+        return 0
     # 预览（512）
     for name, fn in (("preview_a", variant_a), ("preview_b", variant_b), ("preview_c", variant_c)):
         save(fn(2048), OUT / f"{name}.png", 512)
