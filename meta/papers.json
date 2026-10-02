@@ -1,42 +1,7 @@
 {
   "generated": "2026-10-02",
-  "count": 10,
+  "count": 9,
   "items": [
-    {
-      "doi": "10.1038/s41893-026-01835-6",
-      "title": "Sea-level-driven land conversion amplified by coastal agriculture",
-      "subtitle": "",
-      "authors": [
-        "Grace D. Molino",
-        "Yaping Chen",
-        "Grace C. Levins",
-        "Matthew L. Kirwan"
-      ],
-      "journal": "Nature Sustainability",
-      "journal_short": "Nat Sustain",
-      "publisher": "Springer Science and Business Media LLC",
-      "type": "journal-article",
-      "year": "2026",
-      "published": "2026-05-18",
-      "published_online": true,
-      "volume": "9",
-      "issue": "8",
-      "pages": "1151-1159",
-      "abstract": "Sea-level rise (SLR) and saltwater intrusion are driving large-scale ecosystem retreat along economically valuable coasts. However, it remains unclear how human interventions influence climate-driven processes, especially in rural areas. Sea-level-driven land use change is typically modelled as a binary response, where human-dominated uplands convert to wetlands instantaneously or else are protected indefinitely. Here we use 38 years of satellite observations across the mid-Atlantic SLR hotspot to show that marsh encroachment is nearly twice as fast, and 1.4–6.8 times more frequent, on agricultural land than forestland. Field measurements indicate that local interventions have slowed the loss of agricultural land on private property to rates far lower than SLR; however, our results suggest that, at the regional scale, agriculture accelerates the impacts of saltwater intrusion. These results imply a unique scale-dependent impact of humans on coastal management and extend our understanding of humans as principal agents of change, even in rural landscapes. As sea levels rise, coastal ecosystems and economies are threatened by saltwater intrusion and wetland encroachment. These effects are accelerated by coastal agriculture, highlighting the importance of local management interventions.",
-      "issn": "2398-9629",
-      "url": "https://www.nature.com/articles/s41893-026-01835-6",
-      "source": "crossref+openalex",
-      "cited_by": 0,
-      "oa": true,
-      "id": "0e19af43bd",
-      "added": "2026-09-19",
-      "title_zh": "海平面上升驱动的陆地转化被沿海农业放大",
-      "note": "",
-      "tags": [],
-      "abstract_zh": "海平面上升（SLR）和盐水入侵正驱动经济价值较高的沿海地区发生大规模生态系统退缩。然而，人类干预如何影响气候驱动的过程仍不清楚，尤其是在农村地区。海平面上升驱动的土地利用变化通常被建模为二元响应，即人类主导的高地要么瞬间转化为湿地，要么被无限期保护。本研究利用大西洋中部海平面上升热点区域38年的卫星观测数据，表明农业用地上沼泽入侵的速度几乎是林地的两倍，频率为林地的1.4–6.8倍。实地测量表明，地方干预措施已将私人土地上农业用地的流失速度降至远低于海平面上升速率的水平；然而，我们的结果表明，在区域尺度上，农业加速了盐水入侵的影响。这些结果表明人类对沿海管理具有独特的尺度依赖性影响，并拓展了我们对人类作为主要变化驱动者的认识，即使在农村景观中也是如此。随着海平面上升，沿海生态系统和经济受到盐水入侵和湿地入侵的威胁。沿海农业加速了这些效应，凸显了地方管理干预措施的重要性。",
-      "article_type": "Research Article",
-      "cover": "covers/0e19af43bd.png"
-    },
     {
       "doi": "10.1038/s41467-021-24264-9",
       "title": "Orbital- and millennial-scale Antarctic Circumpolar Current variability in Drake Passage over the past 140,000 years",
