@@ -1,6 +1,6 @@
 {
   "generated": "2026-10-02",
-  "count": 9,
+  "count": 8,
   "items": [
     {
       "doi": "10.1038/s41467-021-24264-9",
@@ -48,43 +48,6 @@
       "abstract_zh": "南极绕极环流（ACC）通过促进深层水上升和新水团的形成，在全球海洋环流中发挥着关键作用。在地质时间尺度上，除末次冰期外，ACC的变化约束不足。基于沉积物粒度与地球化学特征，我们重建了过去140,000年（即一个完整的冰期-间冰期旋回）现代极锋附近德雷克海峡中部ACC强度的变化。我们发现ACC流速存在显著的冰期-间冰期变化，冰期环流减弱，间冰期环流增强。在这些轨道尺度变化之上叠加了高振幅的千年尺度波动，ACC强度极大值与基于硅藻的南极冬季海冰极小值相关，尤其在盛冰期条件下。我们推断ACC与南半球千年尺度气候振荡密切相关，并通过南极海冰范围变化得到放大。这些强烈的ACC变化通过“冷水通道”调节了太平洋-大西洋水交换，并可能影响了大西洋经向翻转环流和海洋碳储存。",
       "article_type": "Research Article",
       "cover": "covers/931483853c.png"
-    },
-    {
-      "doi": "10.1126/science.ado5008",
-      "title": "Atmospheric blocking slows ocean-driven melting of Greenland’s largest glacier tongue",
-      "subtitle": "",
-      "authors": [
-        "Rebecca Adam McPherson",
-        "Claudia Wekerle",
-        "Torsten Kanzow",
-        "Monica Ionita",
-        "Finn Ole Heukamp",
-        "Ole Zeising",
-        "Angelika Humbert"
-      ],
-      "journal": "Science",
-      "journal_short": "Science",
-      "publisher": "American Association for the Advancement of Science (AAAS)",
-      "type": "journal-article",
-      "year": "2024",
-      "published": "2024-09-20",
-      "published_online": false,
-      "volume": "385",
-      "issue": "6715",
-      "pages": "1360-1366",
-      "abstract": "Mass loss from the Greenland ice sheet has contributed to global sea-level rise over the past 20 years. Yet direct observations from the 79 North Glacier (79NG) calving front reveal decreasing Atlantic Intermediate Water (AIW) temperatures below the ice tongue from 2018 to 2021, leading to reduced ocean heat transport. This is linked to a concurrent decrease in basal melt and thinning rates at the grounding line. The origin of this AIW cooling is traced to a slowdown of the large-scale ocean circulation in the Nordic Seas, driven by European atmospheric blocking that strengthens cold air advection from the central Arctic through the Fram Strait. Blocking has driven major ocean cooling events over the last 50 years and will remain crucial in affecting Northeast Greenland’s glaciers.",
-      "issn": "0036-8075",
-      "url": "https://www.science.org/doi/10.1126/science.ado5008",
-      "source": "crossref+openalex",
-      "cited_by": 9,
-      "oa": false,
-      "id": "548b53c99e",
-      "added": "2026-09-19",
-      "title_zh": "大气阻塞减缓格陵兰最大冰川舌的海洋驱动融化",
-      "note": "",
-      "tags": [],
-      "abstract_zh": "过去20年间，格陵兰冰盖的质量损失对全球海平面上升做出了贡献。然而，来自79北冰川（79NG）崩解前缘的直接观测显示，2018至2021年间冰舌下方的大西洋中层水（AIW）温度呈下降趋势，导致海洋热输送减少。这与接地线处底部融化和变薄速率的同时下降相关联。这一AIW降温的根源可追溯至北欧海域大规模海洋环流的减缓，该减缓由欧洲大气阻塞驱动，后者增强了冷空气经弗拉姆海峡从中北极地区的平流。过去50年间，大气阻塞已驱动了多次重大海洋降温事件，并将继续对格陵兰东北部冰川产生关键影响。",
-      "article_type": "Research Article"
     },
     {
       "doi": "10.1038/s41561-024-01496-0",
