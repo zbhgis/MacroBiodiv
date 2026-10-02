@@ -1,6 +1,6 @@
 {
   "generated": "2026-10-02",
-  "count": 8,
+  "count": 7,
   "items": [
     {
       "doi": "10.1038/s41467-021-24264-9",
@@ -295,48 +295,6 @@
       "tags": [],
       "added": "2026-10-02",
       "cover": "covers/cb9c280cc0.png"
-    },
-    {
-      "doi": "10.1038/s41564-026-02314-6",
-      "title": "Unbinned contigs expand known diversity in the global microbiome",
-      "subtitle": "",
-      "authors": [
-        "Vishnu Prasoodanan PK",
-        "Oleksandr M. Maistrenko",
-        "Anthony Fullam",
-        "Daniel R. Mende",
-        "Ece Kartal",
-        "Luis Pedro Coelho",
-        "Anja Spang",
-        "Peer Bork",
-        "Thomas S. B. Schmidt"
-      ],
-      "journal": "Nature Microbiology",
-      "journal_short": "Nat Microbiol",
-      "publisher": "Springer Science and Business Media LLC",
-      "type": "journal-article",
-      "year": "2026",
-      "published": "2026-04-03",
-      "published_online": true,
-      "volume": "11",
-      "issue": "5",
-      "pages": "1437-1449",
-      "abstract": "The ongoing census of microbial life is hampered by disparate sampling across Earth’s habitats, challenges in isolating uncultivated organisms, limited resolution in taxonomic marker gene amplicons and incomplete recovery of metagenome-assembled genomes. Here we quantify discoverable Bacterial and Archaeal diversity in a comprehensive, curated cross-habitat dataset of 92,187 publicly available metagenomes. Clustering 502 million sequences of 130 marker genes, we predict ~705,000 Bacterial and ~27,000 Archaeal species-level clades, the vast majority of which were hidden among unbinned contigs. We estimate that ten and 145 previously undescribed Archaeal and Bacterial phyla, respectively, are discoverable in this dataset. We identify soils and aquatic environments as hotspots of discoverable lineages, but predict that undescribed taxa remain abundant across all habitats. Finally, we show that prokaryotic diversity appears to arise within common evolutionary patterns, as clade size distributions follow power laws, consistently across the Tree of Life.",
-      "issn": "2058-5276",
-      "url": "https://www.nature.com/articles/s41564-026-02314-6",
-      "source": "crossref+openalex",
-      "cited_by": 2,
-      "oa": true,
-      "oa_type": "article",
-      "keywords": [],
-      "id": "809b57c332",
-      "title_zh": "未分组的重叠群扩展了全球微生物组的已知多样性",
-      "abstract_zh": "由于地球不同生境的采样差异、分离未培养微生物的挑战、分类标记基因扩增子的分辨率有限以及宏基因组组装基因组的不完整，目前对微生物生命的普查工作进展缓慢。本文利用一个包含92,187个公开宏基因组的综合性、经整理的跨生境数据集，量化了可发现的细菌和古菌多样性。通过对130个标记基因的5.02亿条序列进行聚类分析，我们预测了约70.5万个细菌物种级分支和约2.7万个古菌物种级分支，其中绝大多数隐藏在未分箱的重叠群中。我们估计，该数据集中分别有10个和145个此前未被描述的古菌门和细菌门可供发现。我们发现土壤和水生环境是可发现谱系的热点区域，但预测未描述的分类单元在所有生境中仍然丰富。最后，我们证明原核生物的多样性似乎是在共同的进化模式中产生的，因为进化枝大小分布遵循幂律，这在生命之树上是一致的。",
-      "article_type": "",
-      "note": "",
-      "tags": [],
-      "added": "2026-10-02",
-      "cover": "covers/809b57c332.png"
     }
   ]
 }
