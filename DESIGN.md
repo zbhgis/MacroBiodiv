@@ -56,7 +56,7 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 - 右：导航组 `.mnav-links`（**与主站 v3-nav 同源**：15px、`6px 10px` 内边距、前置 **14px
   stroke 图标**、hover 变 text 且下划线 scaleX 0→1、`data-active=true` → accent 常亮）。
   现有项：**每周速递（纸飞机 → `/weekly/`，按 `path` 构建期标 `data-active` + aria-current）/
-  全站统计（柱状图，预留入口暂不跳转）/ 更多▾**。
+  全站统计（柱状图 → `/stats/`，同款 active 检测）/ 更多▾**。
   「更多」= 主站 v3-more 同款：触发钮为 button（text + 11px caret），hover 或
   focus-visible 展开 `.mnav-dd`（display 直切无动画、caret 旋转 180°；面板 `--bg` 实底 +
   描边 + 主站同款投影 `0 10px 28px rgba(0,0,0,.16)`，项 14px / `8px 11px` / 15px faint
@@ -116,6 +116,27 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 上一篇 / 下一篇（等宽卡片，中文标题 + 期刊·年份）
 ```
 
+- **图片灯箱**（2026-10 新增，拷自 mystation `frontend/lib/image-lightbox.ts` 删类型转纯 JS，
+  零依赖）：源文件 `assets_src/image-lightbox.js` 随 assets 拷贝循环自动入
+  `site/assets/`，详情页（挂 `.pbody`）与周报文章页（挂 `.wk-content`）经
+  `page_shell` 的 `extra_assets` 注入后按容器自动挂载 —— 首页 / 搜索 / 周报列表不加载；
+  点击图片放大、同容器多图切换（箭头 / 方向键 / 触摸滑动）、滚轮以光标为锚点缩放、
+  双击 / 双指捏合、拖拽平移、Esc / 点空白关闭、相邻图预加载、背景滚动锁定（带滚动条补偿）；
+  链接内图片默认不劫持（`data-lightbox="on"` 强制），`data-no-lightbox` 排除，
+  `data-lightbox-src` 指定灯箱内加载的高清版；样式运行时自动注入、类名 `lbx-` 前缀，
+  不污染站点样式（配色可经 `--lbx-backdrop / --lbx-accent / --lbx-fg` 覆盖）
+- **文章 TOC**（2026-10 新增，拷自 mystation：数据层 `md-shared.ts` 的 slugify /
+  extractTOC + 组件 BlogTOC 改写为原生 JS → `assets_src/article-toc.js`，样式类
+  v3-side-hd / v3-side-link / v3-toc-link / v3-noscrollbar / toc-fab 拷入 style.css，
+  CSS 变量已映射本站 token）：详情页节标题原本无 id —— JS 用 slugify+去重现补
+  （`1-信息` 这类锚点）；当前小节高亮走 IntersectionObserver（rootMargin
+  `-80px 0px -66% 0px`，标题进入视口上部 1/3 点亮），点击平滑滚动 + pushState 更新 hash。
+  分端行为：周报文章页桌面端沿用服务端渲染的 `.wk-toc` 侧栏（组件只做增强，active 态
+  同步点亮），<1280px 出 FAB（≤640px 抬到 bottom:62px 避让底部横排 .fab 工具排）+
+  全高右抽屉；文献详情页 ≥1280px 出 fixed 右侧栏（right:70px 避让竖排 .fab），
+  <1280px 同款 FAB + 抽屉；配套给 `.sec-h` 补 `scroll-margin-top:80px`
+  （修锚点跳转被吸顶导航遮挡，也让高亮观察带能命中）。仅这两种文章页注入
+
 ### 3.2.1 分享与收录（SEO）
 
 - 页面输出 Open Graph 标签（og:title/description/type/url/site_name）：详情页 `og:type=article`，
@@ -139,6 +160,22 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   命中片段（`wkSnip` 在正文自身内定位首个命中词、前后各取 50/90 字符、`<mark>` 高亮、
   2 行截断），置于「每周速递」分组标题下
 - 结果行：主标题（中文优先，命中高亮）+ 元信息行（作者·期刊·年份·DOI·英文原题，可高亮）；`?q=` 可分享
+
+### 3.3.1 全站统计 `/stats/`（2026-10 新增）
+
+- 数据层 `build_stats_data` → `site/assets/stats-data.js`（window.MBD_STATS）：只带统计所需的
+  **英文原文与分面字段**（t 英文原题 / ab 英文摘要 / kw 关键词 / au 作者全名 / j 期刊 /
+  at 体裁 / y 年份）—— 中文翻译字段与每周速递一律不进数据；`<`→`\u003c` 防 script 截断；
+  仅 /stats/ 页经 `extra_assets` 注入（stats-data.js + stats.js）
+- **筛选 → 实时重算**（简化版即席查询：全站数据打底，不做 URL 分享与下钻）：
+  期刊下拉 / 类型下拉 / 年份区间（两个 number 输入）/ 重置；选项来自全量数据；
+  过滤 → 聚合 → 条形图重渲染，全部客户端完成
+- 六个图表卡（纯 CSS 条形，宽度 = 占该图最大值比例；两栏 grid，≤860px 单栏）：
+  年度发文分布（按年升序）/ 期刊 Top 10 / 文章类型 / 关键词 Top 15（整个短语计数）/
+  作者 Top 10（英文全名精确计数，缩写名同名异写不合并）/ 标题·摘要高频词 Top 15
+  （小写化 → `[^a-z]+` 切词 → 停用词表剪除 → 长度 ≥3；停用词 = 功能词 + 少量学术填充词）
+- 总览行：命中 N 篇 · 期刊数 · 年份跨度 · 去重关键词数；命中 0 时隐藏图表网格并出空态；
+  导航「全站统计」占位链接改为真实 `/stats/`（`is_stats` 按 path 标 active），sitemap 收录
 
 ### 3.4 每周速递 `/weekly/`（2026-10 新增，布局移植 mystation 博客）
 

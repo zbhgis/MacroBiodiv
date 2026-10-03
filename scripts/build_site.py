@@ -12,6 +12,10 @@
     site/assets/papers.js          分页/筛选/排序 + 统计打点 + BibTeX 复制
     site/assets/papers-data.js     全量文献元数据（首页网格与搜索页共用）
     site/assets/weekly-data.js     每周速递各期全文（仅 /search/ 页注入，供周报内容检索）
+    site/assets/image-lightbox.js  零依赖图片灯箱（详情页与周报文章页注入，源 assets_src/）
+    site/assets/article-toc.js     文章目录（桌面侧栏高亮 + 移动端抽屉，同上两种页面注入）
+    site/assets/stats-data.js      全站统计数据（英文原文与分面字段，仅 /statistics/ 页注入）
+    site/assets/stats.js           全站统计客户端聚合（筛选 → 图表重算，仅 /statistics/ 页注入）
 
 设计要点（样式与交互框架照搬 GeoSciPlot，把图片瀑布流换成文献信息卡片）：
   · 顶部菜单栏（.mnav）：sticky 毛玻璃，移植主站 zbhgis.com 的 header；全部页面由
@@ -309,7 +313,7 @@ footer.site{margin-top:56px;padding:24px 0 64px;border-top:1px solid var(--line)
 .p-cover img{display:block;width:100%;height:auto}
 /* 节标题：accent 5px 左竖线 + 18px 加粗（公众号同源：无底线、无背景） */
 .sec{margin-top:32px}
-.sec-h{display:flex;align-items:center;margin:0 0 14px;padding:2px 0 2px 11px;border-left:5px solid var(--rs,var(--accent))}
+.sec-h{display:flex;align-items:center;margin:0 0 14px;padding:2px 0 2px 11px;border-left:5px solid var(--rs,var(--accent));scroll-margin-top:80px}
 .sec-h .tx{font-size:18px;font-weight:700;letter-spacing:0;color:var(--rs,var(--accent))}
 /* ── 渲染颜色切换（文献详情 ↔ 周报文章，两页共用同一份用户偏好）：
    plain（周报默认）＝系统色标题、无装饰；accent（文献详情默认）/green/purple/orange
@@ -494,6 +498,67 @@ mark{background:color-mix(in srgb,var(--accent) 24%,transparent);color:inherit;b
 .wk-toc-link[data-lv="3"]:hover::before,.wk-toc-link[data-lv="4"]:hover::before{background:var(--line2)}
 @media (min-width:1024px){.wk-side{display:block}.wk-main{padding:40px 32px}}
 @media (min-width:1280px){.wk-toc{display:block}.wk-main{padding-left:40px;padding-right:24px}}
+/* ── 文章 TOC 组件（article-toc.js 配套样式；拷自 mystation，类名 v3- 前缀保留，
+   CSS 变量已映射本站 token：--background→--bg · --hairline→--line ·
+   --hairline-strong→--line2 · --text-muted→--dim · --text-primary→--text ·
+   --text-faint→--faint）── */
+.v3-side-hd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:6px}
+.v3-side-link{display:block;font-size:13px;line-height:1.5;padding:6px 8px;border-left:1px solid transparent;color:var(--dim);transition:color .16s,border-color .16s}
+.v3-side-link:hover{color:var(--text);border-left-color:var(--line2)}
+.v3-side-link[data-active="true"]{color:var(--accent);border-left-color:var(--accent)}
+/* 目录层级：缩进阶跃 + 左侧导轨竖线（h2 起），层级越深字号/字色递减 —— 主站同源 */
+.v3-toc-link{position:relative;padding-left:8px;transition:color .16s,border-color .16s,padding-left .16s}
+.v3-toc-link[data-lv="1"]{padding-left:8px;font-size:13px;color:var(--dim)}
+.v3-toc-link[data-lv="2"]{padding-left:20px;font-size:13px}
+.v3-toc-link[data-lv="3"]{padding-left:30px;font-size:12.5px;color:var(--faint)}
+.v3-toc-link[data-lv="4"]{padding-left:42px;font-size:12px;color:var(--faint)}
+.v3-toc-link[data-lv="3"]::before,.v3-toc-link[data-lv="4"]::before{content:"";position:absolute;top:5px;bottom:5px;width:1px;background:var(--line)}
+.v3-toc-link[data-lv="3"]::before{left:26px}
+.v3-toc-link[data-lv="4"]::before{left:36px}
+.v3-toc-link[data-lv="3"]:hover::before,.v3-toc-link[data-lv="4"]:hover::before{background:var(--line2)}
+.v3-toc-link[data-active="true"]::before{background:var(--accent)}
+.v3-toc-link[data-lv="3"][data-active="true"],.v3-toc-link[data-lv="4"][data-active="true"]{color:var(--accent)}
+.v3-noscrollbar{scrollbar-width:none;-ms-overflow-style:none}
+.v3-noscrollbar::-webkit-scrollbar{width:0;height:0;display:none}
+/* 周报既有侧栏链接的 active 态（组件同步点亮） */
+.wk-toc-link[data-active="true"]{color:var(--accent);border-left-color:var(--accent)}
+.wk-toc-link[data-lv="3"][data-active="true"]::before,.wk-toc-link[data-lv="4"][data-active="true"]::before{background:var(--accent)}
+/* FAB + 全高抽屉：<1280px 显示（桌面侧栏 / 周报 aside 的档位） */
+.toc-fab{display:none;position:fixed;right:16px;bottom:16px;z-index:40}
+.toc-fab button{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line2);border-radius:50%;background:var(--card);color:var(--dim);cursor:pointer;transition:color .16s,border-color .16s}
+.toc-fab button:hover{color:var(--accent);border-color:var(--accent)}
+.toc-drawer{position:fixed;inset:0;z-index:60}
+.toc-drawer .toc-mask{position:absolute;inset:0;background:rgba(0,0,0,.6)}
+.toc-drawer .toc-panel{position:absolute;right:0;top:0;height:100%;width:288px;max-width:86vw;border-left:1px solid var(--line);background:var(--bg);padding:24px;overflow-y:auto}
+.toc-panel-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.toc-panel-hd .v3-side-hd{flex:1;margin:0}
+.toc-close{border:0;background:transparent;color:var(--faint);cursor:pointer;padding:4px;display:flex}
+.toc-close:hover{color:var(--text)}
+.toc-nav{display:flex;flex-direction:column;gap:4px}
+@media (max-width:1279px){.toc-fab{display:flex}}
+@media (max-width:640px){.toc-fab{bottom:62px}}   /* 避让底部横排 .fab 工具排（mystation 同款抬升） */
+/* 详情页桌面侧栏：fixed 右栏，右移 70px 避让竖排 .fab 工具排（右 16–58px） */
+.p-toc{display:none;position:fixed;right:70px;top:80px;width:180px;max-height:calc(100vh - 104px);overflow-y:auto;padding-bottom:24px}
+@media (min-width:1280px){.p-toc{display:block}}
+/* ── 全站统计页（/statistics/，客户端聚合 + 纯 CSS 条形图）── */
+.st-filter{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:20px 0 4px}
+.st-filter select,.st-filter input{width:auto;padding:7px 10px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px}
+.st-year{display:inline-flex;align-items:center;gap:6px}
+.st-dash{color:var(--faint)}
+.st-count{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;color:var(--faint)}
+.st-overview{margin:10px 0 0;font-size:13px;color:var(--dim)}
+.st-empty{margin:26px 0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:var(--faint)}
+.st-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+@media (max-width:860px){.st-grid{grid-template-columns:1fr}}
+.st-card{border:1px solid var(--line);border-radius:8px;background:var(--card);padding:14px 16px 16px}
+.st-card h3{margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;font-weight:500;letter-spacing:.06em;color:var(--dim)}
+.st-bars{display:flex;flex-direction:column;gap:7px;margin-top:12px}
+.st-row{display:grid;grid-template-columns:minmax(84px,190px) 1fr 34px;gap:8px;align-items:center}
+.st-k{font-size:12.5px;color:var(--dim);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st-bar{position:relative;height:14px}
+.st-bar i{position:absolute;left:0;top:2px;bottom:2px;min-width:2px;background:var(--accent);opacity:.8;border-radius:2px}
+.st-n{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;color:var(--faint);text-align:right}
+.st-none{margin:4px 0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;color:var(--faint)}
 .wk-main{flex:1;min-width:0;max-width:760px;width:100%;margin:0 auto;padding:40px 20px}
 .wk-h1{margin:0 0 20px}
 .wk-tagsrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 20px}
@@ -1076,11 +1141,13 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
             og_rows.append(f'<meta property="og:image" content="{esc(og_image)}">')
         og = "\n".join(og_rows)
     # ── 顶部菜单栏：全部页面共用，样式对齐主站 zbhgis.com（v3-nav 同源）。
-    #    左站点名 / 右导航组：每周速递（/weekly/，按 path 标 active）· 全站统计（预留）
+    #    左站点名 / 右导航组：每周速递（/weekly/）· 全站统计（/statistics/，按 path 标 active）
     #    · 更多▾ 下拉（hover / focus-visible 展开，纯 CSS；zbhgis 与 GeoSciPlot 外链）。
     #    菜单项与下拉项均带主站同款 14/15px stroke 图标；≤640px 转 details 汉堡 ──
     is_weekly = path.startswith("/weekly")
+    is_stats = path.startswith("/statistics")
     cur_w = ' aria-current="page"' if is_weekly else ''
+    cur_s = ' aria-current="page"' if is_stats else ''
     ico_send = ('<svg class="mnav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg>')
     ico_chart = ('<svg class="mnav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 20V10M12 20V4M6 20v-4"/></svg>')
     ico_globe = ('<svg class="mnav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>')
@@ -1091,7 +1158,7 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
 <a class="mnav-brand" href="/"><img src="{up}assets/favicon.png?v={BUILD_VER}" alt="" width="26" height="26">{esc(cfg['title'])}</a>
 <ul class="mnav-links">
 <li><a class="mnav-link" data-active="{str(is_weekly).lower()}" href="/weekly/"{cur_w}>{ico_send}每周速递</a></li>
-<li><a class="mnav-link" href="#" title="建设中（预留）">{ico_chart}全站统计</a></li>
+<li><a class="mnav-link" data-active="{str(is_stats).lower()}" href="/statistics/"{cur_s}>{ico_chart}全站统计</a></li>
 <li class="mnav-more"><button type="button" class="mnav-link mnav-more-trigger" aria-haspopup="true" title="更多站点">更多<svg class="mnav-more-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
 <ul class="mnav-dd">
 <li><a href="https://zbhgis.com" rel="noopener" target="_blank">{ico_globe}zbhgis</a></li>
@@ -1102,7 +1169,7 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
 <summary class="mnav-icon" title="菜单" aria-label="打开菜单"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
 <ul class="mnav-dd">
 <li><a href="/weekly/"{cur_w}>{ico_send}每周速递</a></li>
-<li><a href="#" title="建设中（预留）">{ico_chart}全站统计</a></li>
+<li><a href="/statistics/">{ico_chart}全站统计</a></li>
 <li class="mnav-dd-sep"></li>
 <li><a href="https://zbhgis.com" rel="noopener" target="_blank">{ico_globe}zbhgis</a></li>
 <li><a href="https://geosciplot.zbhgis.com" rel="noopener" target="_blank">{ico_geosci}GeoSciPlot</a></li>
@@ -1536,7 +1603,8 @@ def build_detail(cfg: dict, items: list, idx: int) -> str:
     return page_shell(cfg, f"{p.get('title')} · {cfg['title']}", body, depth=1,
                       gh_url=f"https://github.com/{cfg.get('owner') or 'OWNER'}/{cfg['repo']}",
                       description=desc, path=f"/{p['id']}/", og_type="article",
-                      og_image=og_image, rstyle="accent")
+                      og_image=og_image, rstyle="accent",
+                      extra_assets=["image-lightbox.js", "article-toc.js"])
 
 
 def build_search_page(cfg: dict, items: list) -> str:
@@ -1556,6 +1624,60 @@ def build_search_page(cfg: dict, items: list) -> str:
 <div class="spage-list" id="spage-list" data-up="../"></div>"""
     return page_shell(cfg, f"全站搜索 · {cfg['title']}", body, depth=1, path="/search/",
                       extra_assets=["weekly-data.js"])
+
+
+def build_stats_data(items: list) -> None:
+    """全站统计数据 → site/assets/stats-data.js（仅 /statistics/ 页注入）。
+    只带统计所需的英文原文与分面字段 —— 中文翻译字段与每周速递一律不进这份数据。"""
+    data = [{
+        "t": p.get("title") or "",             # 英文原题
+        "ab": p.get("abstract") or "",         # 英文摘要
+        "kw": p.get("keywords") or [],         # OpenAlex 英文词表
+        "au": p.get("authors") or [],          # 英文作者全名
+        "j": p.get("journal") or "",
+        "at": display_type(p),                 # 文章体裁（article_type 优先）
+        "y": p.get("year") or "",
+    } for p in items]
+    # "<" 转义防摘要正文里出现 </script> 提前截断内嵌 script
+    (SITE / "assets" / "stats-data.js").write_text(
+        "window.MBD_STATS = "
+        + json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
+        + ";\n", encoding="utf-8")
+
+
+def build_stats_page(cfg: dict, items: list) -> str:
+    """全站统计页：数据来自 stats-data.js（仅本页注入），客户端聚合渲染。
+    筛选（期刊 / 类型 / 年份区间）→ 图表实时重算；统计基于英文原文，不含每周速递。"""
+    body = f"""<header class="site">
+  <p class="kicker">{esc(cfg['title'].upper())} · STATS</p>
+  <h1 class="spage-title">全站统计</h1>
+  <p class="lede">全部 {len(items)} 篇文献的 年度分布 / 期刊 / 类型 / 关键词 / 高频词统计，
+  基于英文原文（不含每周速递）；下方筛选后图表实时重算。</p>
+</header>
+
+<div class="st-filter">
+  <select id="st-journal" aria-label="按期刊筛选"><option value="*">期刊 全部</option></select>
+  <select id="st-type" aria-label="按类型筛选"><option value="*">类型 全部</option></select>
+  <span class="st-year">
+    <input type="number" id="st-from" placeholder="年份起" min="1800" max="2100" aria-label="年份起">
+    <span class="st-dash">–</span>
+    <input type="number" id="st-to" placeholder="年份止" min="1800" max="2100" aria-label="年份止">
+  </span>
+  <button id="st-reset" type="button">重置</button>
+  <span class="st-count" id="st-count"></span>
+</div>
+<p class="st-overview" id="st-overview"></p>
+<p class="st-empty" id="st-empty" hidden>当前筛选条件下没有文献</p>
+<div class="st-grid" id="st-grid">
+  <section class="st-card"><h3>年度发文分布</h3><div class="st-bars" id="st-years"></div></section>
+  <section class="st-card"><h3>期刊 Top 10</h3><div class="st-bars" id="st-journals"></div></section>
+  <section class="st-card"><h3>文章类型</h3><div class="st-bars" id="st-types"></div></section>
+  <section class="st-card"><h3>关键词 Top 15</h3><div class="st-bars" id="st-kw"></div></section>
+  <section class="st-card"><h3>作者 Top 10</h3><div class="st-bars" id="st-au"></div></section>
+  <section class="st-card"><h3>标题 / 摘要高频词 Top 15</h3><div class="st-bars" id="st-words"></div></section>
+</div>"""
+    return page_shell(cfg, f"全站统计 · {cfg['title']}", body, depth=1, path="/statistics/",
+                      extra_assets=["stats-data.js", "stats.js"])
 
 
 # ── 每周速递（/weekly/）：内容源 content/weekly/*.md，布局与主站 zbhgis.com
@@ -1678,7 +1800,8 @@ def build_weekly(cfg: dict) -> list[str]:
         html_txt = page_shell(cfg, p["title"], body, depth=2,
                               description=p["summary"], path=f"/weekly/{p['slug']}/",
                               og_type="article", og_image=p["og_image"], bare=True,
-                              rstyle="plain")
+                              rstyle="plain",
+                              extra_assets=["image-lightbox.js", "article-toc.js"])
         (d / "index.html").write_text(html_txt, encoding="utf-8")
 
     # 列表页：页头 + QuickNav 月份锚点 + 按月分组条目
@@ -1825,7 +1948,7 @@ def main() -> int:
         robots_lines = ["User-agent: *", "Allow: /", "Sitemap: " + base + "/sitemap.xml"]
         (SITE / "robots.txt").write_text("\n".join(robots_lines) + "\n", encoding="utf-8")
         today = time.strftime("%Y-%m-%d")
-        urls = ["/", "/search/"] + ["/" + p["id"] + "/" for p in items] + weekly_urls
+        urls = ["/", "/search/", "/statistics/"] + ["/" + p["id"] + "/" for p in items] + weekly_urls
         sm = ['<?xml version="1.0" encoding="UTF-8"?>',
               '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
         for u in urls:
@@ -1864,6 +1987,10 @@ def main() -> int:
     search_dir = SITE / "search"
     search_dir.mkdir(parents=True, exist_ok=True)
     (search_dir / "index.html").write_text(build_search_page(cfg, items), encoding="utf-8")
+    stats_dir = SITE / "statistics"
+    stats_dir.mkdir(parents=True, exist_ok=True)
+    (stats_dir / "index.html").write_text(build_stats_page(cfg, items), encoding="utf-8")
+    build_stats_data(items)
     for i, p in enumerate(items):
         d = SITE / p["id"]
         d.mkdir(parents=True, exist_ok=True)
