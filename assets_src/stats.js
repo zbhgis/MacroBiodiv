@@ -62,7 +62,7 @@
   }
 
   const wordRe = /[^a-z]+/;
-  function wordFreq(list) {
+  function wordFreq(list, topN) {
     const c = {};
     list.forEach((d) => {
       ((d.t || "") + " " + (d.ab || "")).toLowerCase().split(wordRe).forEach((w) => {
@@ -71,7 +71,7 @@
       });
     });
     return Object.keys(c).map((k) => ({ k, n: c[k] }))
-      .sort((a, b) => b.n - a.n || a.k.localeCompare(b.k)).slice(0, 15);
+      .sort((a, b) => b.n - a.n || a.k.localeCompare(b.k)).slice(0, topN || 15);
   }
 
   /* ── 渲染：纯 CSS 条形（宽度 = 占该图最大值的比例） ── */
@@ -87,6 +87,24 @@
       return `<div class="st-row"><span class="st-k" title="${esc(r.k)}">${esc(r.k)}</span>`
         + `<span class="st-bar"><i style="width:${w}%"></i></span>`
         + `<span class="st-n">${r.n}</span></div>`;
+    }).join("");
+  }
+
+  /* ── 词云：字号 ∝ 频次（lo–hi 线性映射），透明度随频次衰减；不定位不旋转，流式换行 ── */
+  function renderCloud(box, rows) {
+    box.innerHTML = "";
+    if (!rows.length) {
+      box.innerHTML = '<p class="st-none">无数据</p>';
+      return;
+    }
+    const max = Math.max(...rows.map((r) => r.n));
+    const min = Math.min(...rows.map((r) => r.n));
+    const lo = 12, hi = 34;
+    const mid = Math.round((lo + hi) / 2);
+    box.innerHTML = rows.map((r) => {
+      const size = max === min ? mid : Math.round(hi - ((max - r.n) / (max - min)) * (hi - lo));
+      const op = (0.55 + 0.45 * (r.n / max)).toFixed(2);
+      return `<span class="st-w" style="font-size:${size}px;opacity:${op}" title="${esc(r.k)} × ${r.n}">${esc(r.k)}</span>`;
     }).join("");
   }
 
@@ -109,6 +127,38 @@
     renderBars(el("st-kw"), countBy(list, (d) => d.kw, 15));
     renderBars(el("st-au"), countBy(list, (d) => d.au, 10));
     renderBars(el("st-words"), wordFreq(list));
+    renderCloud(el("st-kwc"), countBy(list, (d) => d.kw, 30));
+    renderCloud(el("st-wc"), wordFreq(list, 30));
+  }
+
+  /* ── 被浏览排行 Top 5：全量口径，不随筛选重算；只统计文献卡片页（排除 /weekly/），
+     浏览数相同按随机排序（每次访问都可能不同），只展示前 5 ── */
+  const rankBox = el("st-rank");
+  const API = (window.MBD && window.MBD.api) || "";
+  const LOCAL = location.hostname.match(/^(localhost|127\.0\.0\.1|)$/);
+  if (rankBox && !LOCAL && API) {
+    fetch(API + "/api/v1/stats/views?prefix=/macrobiodiv/")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!d || !d.items) throw 0;
+        const rows = d.items
+          .filter((x) => /^\/macrobiodiv\/[^/]+\/$/.test(x.path))    // 两段以上 = 周报等，排除
+          .map((x) => {
+            const id = x.path.replace(/^\/macrobiodiv\//, "").replace(/\/$/, "");
+            const meta = DATA.find((m) => m.id === id);
+            return { id, n: x.views || 0, t: (meta && meta.t) || id, rnd: Math.random() };
+          })
+          .sort((a, b) => b.n - a.n || a.rnd - b.rnd)                // 浏览数降序；同数随机
+          .slice(0, 5);
+        if (!rows.length) { rankBox.innerHTML = '<p class="st-none">暂无浏览数据</p>'; return; }
+        rankBox.innerHTML = rows.map((r, i) =>
+          `<div class="st-rank"><span class="rk">${i + 1}</span>`
+          + `<a href="../${r.id}/" title="${esc(r.t)}">${esc(r.t)}</a>`
+          + `<span class="n">${r.n} 次</span></div>`).join("");
+      })
+      .catch(() => { rankBox.innerHTML = '<p class="st-none">浏览数据获取失败（统计服务不可达）</p>'; });
+  } else if (rankBox) {
+    rankBox.innerHTML = '<p class="st-none">本地预览无浏览统计（部署后按访客实际浏览计入）</p>';
   }
 
   /* ── 筛选事件 ── */

@@ -37,7 +37,6 @@ import subprocess
 import sys
 import threading
 import time
-import urllib.request
 import uuid
 import webbrowser
 from datetime import date
@@ -64,7 +63,7 @@ MAX_BODY = 20 * 1024 * 1024
 # 客户端传来的路径，文件在才是真相。
 COVERS = ROOT / "assets_src" / "covers"
 COVER_EXTS = ("png", "jpg", "jpeg", "webp", "gif")
-COVER_MAX = 8 * 1024 * 1024
+COVER_MAX = 20 * 1024 * 1024          # 周报图表原图常超 10MB，上限放宽到 20MB
 COVER_MIME = {"png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg",
               "webp": "image/webp", "gif": "image/gif"}
 # 手动字段：自动抓取不会覆盖；abstract_zh 由大模型初填，之后视同手动字段（可在界面修改，
@@ -439,10 +438,11 @@ def do_update(updates: list) -> dict:
             if upd:
                 apply_manual(it, upd)
                 # 封面以磁盘文件为准：编辑中上传/移除过封面，这里同步增删字段
+                # （cover 为外链 URL 时不适用 —— 外链不落盘，保留原值）
                 cov = detect_cover(it.get("id"))
                 if cov:
                     it["cover"] = cov
-                else:
+                elif not str(it.get("cover") or "").startswith(("http://", "https://")):
                     it.pop("cover", None)
                 n += 1
         save_papers(papers)
@@ -472,8 +472,8 @@ def do_refresh(ids: list) -> dict:
                 cov = detect_cover(record["id"])
                 if cov:
                     record["cover"] = cov
-                else:
-                    record.pop("cover", None)
+                elif not str(record.get("cover") or "").startswith(("http://", "https://")):
+                    record.pop("cover", None)   # 外链封面不落盘，本地探测不到也不清除
                 papers["items"][idx] = record
                 ok_n += 1
                 log.append({"step": f"刷新 {it.get('id')}", "ok": True,
@@ -767,69 +767,22 @@ def weekly_slug(title: str, stem: str) -> str:
     return f"weekly-{m.group(1) if m else (stem or '')[:8]}"
 
 
-def fetch_remote_image(url: str, timeout: int = 30) -> bytes:
-    """下载周报里的图表图。jsdelivr 在国内时常整段抽风（连不上 / 403 / 断流），
-    单源失败就让封面落到 logo 兜底太亏 —— 按官方镜像 → GitHub 源站顺序自动换源
-    重试，全部失败才抛最后一个错误（weekly_cover 再走 logo 兜底）。"""
-    candidates = [url]
-    # 实际外链形如 gh/{user}/{repo}@{branch}/{path}（如 zbhgis/BlogImg@main/blog/x.png），
-    # 注意 @ 前是「用户/仓库」两段
-    m = re.match(r"https://cdn\.jsdelivr\.net/gh/([^/@\s]+)/([^/@\s]+)(?:@([^/\s]+))?/(.+)$", url)
-    if m:                                   # GitHub 仓库图：补齐镜像与源站
-        user, repo, br, path = m.groups()
-        spec = f"{user}/{repo}" + (f"@{br}" if br else "")
-        candidates += [
-            f"https://fastly.jsdelivr.net/gh/{spec}/{path}",
-            f"https://gcore.jsdelivr.net/gh/{spec}/{path}",
-        ]
-        if br:                              # raw 源站必须带分支/标签
-            candidates.append(f"https://raw.githubusercontent.com/{user}/{repo}/{br}/{path}")
-    err = ""
-    for i, u in enumerate(candidates):
-        try:
-            req = urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0 MacroBiodivAdmin/1.0"})
-            with urllib.request.urlopen(req, timeout=timeout) as r:
-                data = r.read(COVER_MAX + 1)
-            if len(data) > COVER_MAX:
-                raise ValueError(f"图片超过 {COVER_MAX // (1024 * 1024)}MB 上限")
-            return data
-        except Exception as e:
-            err = f"{u} → {type(e).__name__}: {e}"
-            if i < len(candidates) - 1:
-                time.sleep(0.5)             # 换源前稍歇，避免对同域连环撞
-    raise RuntimeError(err)
-
-
-def _is_logo_cover(fid: str) -> bool:
-    """封面是否为「logo 兜底」（字节与站点 logo 相同的 png）—— 真图下载失败时的
-    落盘标记；周报重新上传同 DOI 时据此自动补下真图，避免一次失败永远 logo。"""
-    f = COVERS / f"{fid}.png"
-    return LOGO_SRC.exists() and f.exists() and f.read_bytes() == LOGO_SRC.read_bytes()
-
-
-def weekly_cover(fid: str, images: list, log: list, label: str) -> None:
-    """周报文献的封面落盘：图表图按序尝试下载，无图 / 全失败 → 站点 logo 兜底。"""
-    err = ""
-    for u in images:
-        try:
-            ok, val = save_cover_bytes(fid, fetch_remote_image(u))
-        except Exception as e:
-            err = str(e) or repr(e)
-            continue
-        if ok:
-            log.append({"step": f"封面 {label}", "ok": True, "out": f"图表图 → {val}"})
-            return
-        err = val
-    if images:
-        log.append({"step": f"封面 {label}", "ok": False,
-                    "out": f"图表图下载失败（{err or '格式不支持'}）→ 用 logo 兜底"})
-    else:
-        log.append({"step": f"封面 {label}", "ok": True, "out": "图表为无 → 用站点 logo 兜底"})
+def weekly_cover(fid: str, log: list, label: str) -> None:
+    """图表为无：复制站点 logo 作封面兜底（assets_src/logo.png → covers/{fid}.png）。
+    有图表时封面直接走外链直显（cover 字段存完整 URL），不再下载落盘。"""
     if LOGO_SRC.exists():
         COVERS.mkdir(parents=True, exist_ok=True)
         (COVERS / f"{fid}.png").write_bytes(LOGO_SRC.read_bytes())
+        log.append({"step": f"封面 {label}", "ok": True, "out": "图表为无 → 用站点 logo 兜底"})
     else:
         log.append({"step": f"封面 {label}", "ok": False, "out": "assets_src/logo.png 不存在，该篇无封面"})
+
+
+def _is_logo_cover(fid: str) -> bool:
+    """封面是否为「logo 兜底」（字节与站点 logo 相同的 png）—— 图表为无时的落盘标记；
+    周报重新上传同 DOI 时若解析到图表图，会把封面升级为外链直显。"""
+    f = COVERS / f"{fid}.png"
+    return LOGO_SRC.exists() and f.exists() and f.read_bytes() == LOGO_SRC.read_bytes()
 
 
 def weekly_issues() -> dict:
@@ -948,15 +901,15 @@ def do_weekly_import(name: str, content: str, log: list) -> dict:
                 failed += 1
                 continue
             if doi.lower() in by_doi:
-                # 已在库也要看一眼封面：上次导入时真图下载失败会落 logo 兜底，
-                # 这次重传同一期且解析到图 → 自动补下真图覆盖（日志标「补封面」）
+                # 已在库也要看一眼封面：上次导入图表为无会落 logo 兜底，这次重传
+                # 同一期且解析到图表 → 封面升级为外链直显（日志标「补封面」）
                 ex = by_doi[doi.lower()]
-                if p["images"] and _is_logo_cover(str(ex.get("id") or "")):
-                    weekly_cover(ex["id"], p["images"], log, f"{label} 补封面")
-                    cov = detect_cover(ex["id"])
-                    if cov:
-                        ex["cover"] = cov
-                        dirty = True
+                cur = str(ex.get("cover") or "")
+                if p["images"] and (not cur or _is_logo_cover(str(ex.get("id") or ""))):
+                    ex["cover"] = p["images"][0]
+                    dirty = True
+                    log.append({"step": f"{label} 补封面", "ok": True,
+                                "out": f"封面 ← 外链（{p['images'][0].rsplit('/', 1)[-1]}）"})
                 log.append({"step": label, "ok": True, "out": f"DOI 已在文献库，跳过（{doi}）"})
                 skipped += 1
                 continue
@@ -977,10 +930,16 @@ def do_weekly_import(name: str, content: str, log: list) -> dict:
             record["note"] = ""
             record["tags"] = []
             record.setdefault("added", today())
-            weekly_cover(record["id"], p["images"], log, label)
-            cov = detect_cover(record["id"])
-            if cov:
-                record["cover"] = cov
+            if p["images"]:
+                # 封面走外链直显：不下载不落盘，前端 __imgFallback 多源降级兜底
+                record["cover"] = p["images"][0]
+                log.append({"step": label, "ok": True,
+                            "out": f"封面 ← 外链（{p['images'][0].rsplit('/', 1)[-1]}）"})
+            else:
+                weekly_cover(record["id"], log, label)      # 图表为无 → logo 兜底
+                cov = detect_cover(record["id"])
+                if cov:
+                    record["cover"] = cov
             by_doi[doi.lower()] = record
             added += 1
             log.append({"step": label, "ok": True,

@@ -35,13 +35,21 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 ### 2.2 字体与布局
 
 - 正文：`ui-sans-serif / PingFang SC / Microsoft YaHei`；数据字段：`ui-monospace`
+- **字号体系**（2026-10 新增，4 档变量 + h2，全部 font-size 只允许用变量，禁止散落 px）：
+  `--fs-xs:13px`（辅助小字：角标/徽章/页脚）· `--fs-sm:14px`（控件：按钮/输入框/chips）·
+  `--fs-md:15px`（正文次级：列表/元信息）· `--fs-base:17px`（正文基准 body）·
+  `--fs-h2:22px`（页面级标题）；**放大档** `html[data-fs=lg]` 只覆盖变量（14.5/16/17/19/24），
+  布局零改动。**菜单栏 .mnav 与大标题 clamp 为固定框架，保持 px 不参与调节**；
+  FAB「A」按钮切换（标准/放大两档），偏好存 localStorage `mbd-fs`，head 内联脚本
+  渲染前置位防闪烁；原 10–12.5px 的 mono 微字号就近并入 xs 档（视觉整体 +2px 左右）
 - 首页容器 1180px；**桌面端右内边距 74px** 给右侧悬浮队列让位（≤640px 队列转横排）
 - 断点：1100px（首页瀑布流卡片 4→3 列）、760px（3→2 列）、640px（队列横排）
 
 ### 2.3 右侧悬浮按钮队列
 
 42px 正圆 · `--card` 实底 · 发丝描边 · hover 变 accent 并 scale(1.06)。
-顺序固定：全站搜索 / 返回 Home / GitHub / 明暗主题 / 回到顶部（与主站 rail 同款同序；
+顺序固定：全站搜索 / 返回 Home / GitHub / 明暗主题 / **字号 A**（标准/放大两档，
+`html[data-fs=lg]` 覆盖字号变量，偏好存 `mbd-fs`）/ 回到顶部（与主站 rail 同款同序；
 2026-10 应用户要求移除最初顶部的「返回主站」跨站回链 —— 主站入口改由菜单栏「更多▾」承担）
 （历史：早期曾因「子站内容单一」回退过顶部导航栏，只留 rail；2026-10 应用户要求重新
 引入顶部菜单栏（见 2.4），两者共存分工 —— 菜单栏管全站导航与预留入口，rail 管工具动作。）
@@ -100,7 +108,8 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 ┄ 窄栏 677px ┄
 标题块 .p-head（居中，底部强调色通栏线 —— 颜色随渲染样式切换，见 §3.4）
   徽章行（期刊 · 年份 · 类型 · 行尾渲染颜色切换圆点×5）
-  大标题（中文优先）→ 另一语言原题（副行）→ 作者
+  大标题（中文优先）→ 另一语言原题（副行）→ 作者（**最多两行**，papers.js 检测溢出后
+          折叠为「展开全部 N 位作者 / 收起作者」；两行内或无 JS 完整展示）
 1. 信息   字段行（字段名：值 同行）：DOI / 期刊（+缩写）/ 类型 / 发表（online 标注）
           / 卷期页 / 收录 / 被浏览 / 关键词 / 标签（可跳转 pills）
           —— DOI、类型、卷期页、关键词有值才输出该行
@@ -174,6 +183,15 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   年度发文分布（按年升序）/ 期刊 Top 10 / 文章类型 / 关键词 Top 15（整个短语计数）/
   作者 Top 10（英文全名精确计数，缩写名同名异写不合并）/ 标题·摘要高频词 Top 15
   （小写化 → `[^a-z]+` 切词 → 停用词表剪除 → 长度 ≥3；停用词 = 功能词 + 少量学术填充词）
+- **两张词云卡**（2026-10 新增，随筛选实时重算）：关键词词云 / 标题·摘要高频词词云
+  （Top 30，`wordFreq(list, 30)`）；字号 ∝ 频次（12–34px 线性映射），透明度随频次衰减
+  （0.55–1），flex 流式换行不定位不旋转（避免重叠）；悬停 title 显示「词 × 次数」并高亮
+- **被浏览排行 Top 5**（2026-10 新增）：独立卡置于筛选区上方，**全量口径不随筛选重算**；
+  数据来自统计服务 `/api/v1/stats/views?prefix=/macrobiodiv/`（与详情页浏览量同源），
+  正则 `/^\/macrobiodiv\/[^/]+\/$/` 只留文献卡片页（**每周速递两段路径被排除**）；
+  排序 = 浏览数降序、**同数随机**（每条目挂 `Math.random()` 键）；只展示前 5，
+  词目链接进详情页；`stats-data.js` 为此新增 `id` 字段（path → 文献映射）；
+  localhost / 无统计服务时显示「本地预览无浏览统计」提示，不发起请求
 - 总览行：命中 N 篇 · 期刊数 · 年份跨度 · 去重关键词数；命中 0 时隐藏图表网格并出空态；
   导航「全站统计」占位链接改为真实 `/statistics/`（`is_stats` 按 path 标 active），sitemap 收录
 
@@ -215,6 +233,11 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   周报加粗字（原主站同源硬编码 #85a4ff）一并跟随；导航/页脚/切换圆点不受影响
   （切换按钮的四枚彩色圆点用字面色值固定，蓝点不随页面换色）。
   CSS 键：`html[data-rstyle=…]` 定义 `--rs` + 作用域覆盖（`.sec-h` ↔ `.wk-content .md-h1/.md-h2`）
+- **图片外链策略**（2026-10 定）：文章页图片保持 jsdelivr gh 直链外显（懒加载），不做
+  构建期本地化 / 不入库 —— 几千张的量级入库会把 git 仓库撑到 GB 级；可靠性由**前端多源
+  自动降级**保证：`page_shell` head 注入全局 `__imgFallback` + 捕获阶段 error 监听，
+  gh/用户/仓库@分支/路径 两段式解析，失败按 cdn → fastly → gcore → raw.githubusercontent
+  逐源切换（`data-orig-src` 记原始 URL、`data-src-try` 记游标）；非 jsdelivr 图不处理
 - sitemap 追加 `/weekly/` 与各文章页；og:type=article + 正文首图 og:image
 
 ### 3.5 管理后台 `scripts/admin_ui.html`（127.0.0.1:5201）
@@ -229,7 +252,7 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   → 发布区（成组卡片 .pubbox，含提交信息与推送/同步开关）→ 任务日志（实时步骤）
 - **封面图交互**：每篇卡片的封面区块支持拖拽 / Ctrl+V / 点选三种上传路径（共享 file input
   经 `coverPick` 定位目标，无目标则进待配区）；上传立即经 `POST /api/cover` 落盘
-  （服务端**魔数嗅探**真实格式，PNG/JPEG/WebP/GIF、≤8MB、id 白名单防路径穿越），
+  （服务端**魔数嗅探**真实格式，PNG/JPEG/WebP/GIF、≤20MB、id 白名单防路径穿越），
   存 `assets_src/covers/{id}.{ext}`；预览走 `GET /api/cover/{id}`；
   「移除（不入库）」与删除文献都会连带删封面文件；文献管理编辑表单同样有封面区块，
   行列表有缩略图；发布 / 更新 / 重新抓取时服务端按 id **探测**封面文件写 `cover` 字段
@@ -257,11 +280,11 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   （`render_md.parse_weekly_papers`，见 §3.4），新 DOI 走 Crossref+OpenAlex 抓取入库，
   **周报自带中文直接预填**（标题行首个 CJK 起为中文段 → title_zh；摘要节 → abstract_zh；
   「文献N」注记体裁 → article_type，不走大模型，空缺事后用「翻译缺中文的」回补）；
-  ③ 图表图按序下载为封面（魔数校验）；**下载走多源自动重试**（jsdelivr 国内时常整段
-  抽风：cdn.jsdelivr.net → fastly → gcore → raw.githubusercontent.com 逐源尝试），
-  **图表为无 / 全部源失败 → 站点 logo 兜底**（`assets_src/logo.png` 复制为 `covers/{id}.png`，
-  字节与 logo 相同即「兜底标记」—— 同期重传时对已入库条目自动补下真图覆盖，避免一次
-  失败永远 logo）。上传前先 `/api/weekly-parse`
+  ③ 封面：图表图**外链直显**（2026-10 由「下载落盘」改为 cover 字段存完整 jsdelivr URL，
+  不下载不入库 —— 可靠性靠前端 `__imgFallback` 多源降级：cdn → fastly → gcore →
+  raw.githubusercontent；**图表为无 → 站点 logo 兜底**，`assets_src/logo.png` 复制为
+  `covers/{id}.png`，字节与 logo 相同即「兜底标记」—— 同期重传时若解析到图表图，
+  已入库条目的封面自动升级为外链）。上传前先 `/api/weekly-parse`
   同步预解析出确认弹窗（新 N 篇 / 跳过 N 篇 / 封面策略 / 期号冲突警告），确认后进
   后台任务（构建 + 推送 / 同步沿用发布区开关）。期次列表显示每篇 DOI 的收录状态
   （● 已入库 · ○ 待生成 · × 无 DOI）；同名文件重传 = 覆盖更新该期（库内 DOI 自动跳过）；
@@ -301,9 +324,13 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
                                      // Crossref subject 兜底），可手动修改；
                                      // 重新抓取只回填空缺、不覆盖已填值
     "tags": ["样点分布图"], "note": "",
-    "cover": "covers/{id}.png",      // 封面图（可选），相对 assets/ 的路径；
-                                     // 服务端按 assets_src/covers/ 实际文件探测得出，
-                                     // 上传/移除即落盘，发布/更新/重抓时自动增删此字段
+    "cover": "covers/{id}.png",      // 封面图（可选），两种取值：
+                                     // ① 本地：相对 assets/ 的路径（上传/周报 logo 兜底），
+                                     //    服务端按 assets_src/covers/ 实际文件探测得出，
+                                     //    上传/移除即落盘，发布/更新/重抓时自动增删此字段
+                                     // ② 外链：完整 http(s) URL（周报图表图直显，
+                                     //    不落盘；探测不到本地文件也不会被清除，
+                                     //    前端 __imgFallback 提供多源降级）
     // ── 统计 ──
     "added": "2026-09-19"
   }]
@@ -327,7 +354,8 @@ build_site.py：整体拷到 site/assets/covers/（镜像式，删除不残留�
 
 - 一篇文献至多一张封面（文章封面 / 图形摘要语义），重传即覆盖；id 由 DOI 派生，
   封面与文献的关联天然稳定，无需额外索引
-- 不做压缩/转码：零第三方依赖约束下不引 Pillow，原图原样入库（8MB 上限兜底），
+- 不做压缩/转码：零第三方依赖约束下不引 Pillow，原图原样入库（20MB 上限兜底，
+  周报图表原图常超 10MB），
   体积优化依赖上传前自行处理
 
 ## 5. DOI 抓取管线（fetch_doi.py）
@@ -378,9 +406,10 @@ build_site.py：整体拷到 site/assets/covers/（镜像式，删除不残留�
 |---|---|
 | 纯标准库 + 静态站，无框架 | 与 GeoSciPlot 同构，零运维，服务器只跑 nginx |
 | 首页卡片瀑布流（CSS multi-columns，2026-10 由等宽 grid 改入） | 封面升级为卡片常规要素（封面+标题+类型+期刊），自然比例错落成瀑布流，与 GeoSciPlot 保持同源；无封面用期刊缩写占位块兜底版式 |
-| 封面存 assets_src/covers + 探测式写库 | site/ 是构建产物不入库；papers.json 的 cover 字段由服务端按磁盘文件探测，杜绝客户端伪造路径与状态漂移 |
-| 封面不做压缩/转码 | 零第三方依赖（不引 Pillow）；8MB 上限兜底，质量可控交给上传者 |
+| 封面存 assets_src/covers + 探测式写库；周报图表封面走外链（2026-10） | site/ 是构建产物不入库；本地封面由服务端按磁盘文件探测，杜绝客户端伪造路径与状态漂移；周报图表图量大会撑爆仓库 → cover 存 jsdelivr URL 外链直显（探测保 URL 不清除），前端多源降级 |
+| 封面不做压缩/转码 | 零第三方依赖（不引 Pillow）；20MB 上限兜底（周报图表原图大），质量可控交给上传者 |
 | 首屏静态输出 + JS 重渲染双轨 | 爬虫/AI 引擎可见 + 交互灵活；两者排序逻辑必须一致 |
+| 文章图片外链直显 + 前端多源降级（2026-10 定） | 几千张规模：入库/本地化会把仓库或部署包撑到 GB 级；外链零存储负担，可靠性靠 cdn → fastly → gcore → raw 逐源自动切换 |
 | 菜单栏 active 构建期静态判定 | `path` 在生成时已知，无需 JS 参与；静态首屏与 JS 渲染天然一致 |
 | 菜单栏右端只放一枚占位按钮 | 用户要求预留（功能未定）；样式取主站 `.v3-nav-icon` 语言，之后挂功能只动 `page_shell` 一处 |
 | 详情页中文标题/摘要优先 | 站点受众为中文读者；英文原题保留（副行/折叠/悬停）保证溯源 |

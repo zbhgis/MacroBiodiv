@@ -180,7 +180,7 @@ details pre{margin:8px 0 0;padding:10px;border:1px solid var(--line);border-radi
         <button id="btnCover">添加封面图</button>
         <input id="doiFile" type="file" accept=".txt,.csv,.ris,.bib,text/plain">
         <input id="coverFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
-        <span class="note" style="flex:1">抓取来自 Crossref + OpenAlex；图片（PNG/JPEG/WebP/GIF，≤8MB）可粘贴 / 拖拽 / 点选，作为文章封面</span>
+        <span class="note" style="flex:1">抓取来自 Crossref + OpenAlex；图片（PNG/JPEG/WebP/GIF，≤20MB）可粘贴 / 拖拽 / 点选，作为文章封面</span>
       </div>
     </div>
     <div id="coverStaging"></div>
@@ -267,7 +267,7 @@ details pre{margin:8px 0 0;padding:10px;border:1px solid var(--line);border-radi
   <p class="note">
     · 粘贴的 DOI 会立即抓取元数据，并调用本地大模型做<b>中文翻译（初译 + 审校，两重处理）</b>；只有点「发布」后才写入 <b>meta/papers.json</b>、生成站点并提交。<br>
     · <b>封面图</b>：图片可直接粘贴 / 拖进 DOI 输入框（进「待配区」，抓取后按顺序自动配给新文献），
-      或在每篇卡片的封面区块单独上传；服务端校验真实格式（PNG/JPEG/WebP/GIF，≤8MB）后存
+      或在每篇卡片的封面区块单独上传；服务端校验真实格式（PNG/JPEG/WebP/GIF，≤20MB）后存
       assets_src/covers/{id}.{ext}，发布时按 id 探测写入 papers.json，前台展示在卡片顶图与详情页。<br>
     · 大模型配置走环境变量 LLM_API_KEY / LLM_BASE_URL / LLM_MODEL_NAME（OpenAI 兼容接口）。
       限流预案：429 指数退避并遵守 Retry-After → 重试耗尽进入 60s 断路冷却（期间直接跳过不撞 API）→
@@ -383,7 +383,7 @@ function api(path, body) {
    统一经 /api/cover 上传落盘（服务端魔数校验后存 assets_src/covers/{id}.{ext}） */
 var stagedCovers = [];      // 待配区：[{name, data}]（data = dataURL）
 var coverPick = null;       // 共享 file input 的当前目标：{holder, box, onChange}
-var COVER_MAX_MB = 8;
+var COVER_MAX_MB = 20;
 
 function coverStrip() {
   var box = document.getElementById("coverStaging");
@@ -742,7 +742,7 @@ function buildItemNode(rec) {
 
   // 封面区块（右列首位）：拖拽 / 粘贴 / 点选更换；发布时服务端按 id 探测文件
   var covWrap = el("div", "full");
-  covWrap.appendChild(el("label", "", "封面图 cover（可选，文章封面 / 图形摘要，≤8MB）"));
+  covWrap.appendChild(el("label", "", "封面图 cover（可选，文章封面 / 图形摘要，≤20MB）"));
   var covBox = el("div", "covbox");
   covWrap.appendChild(covBox);
   right.appendChild(covWrap);
