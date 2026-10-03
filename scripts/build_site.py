@@ -557,37 +557,90 @@ mark{background:color-mix(in srgb,var(--accent) 24%,transparent);color:inherit;b
 /* 详情页桌面侧栏：fixed 右栏，右移 70px 避让竖排 .fab 工具排（右 16–58px） */
 .p-toc{display:none;position:fixed;right:70px;top:80px;width:180px;max-height:calc(100vh - 104px);overflow-y:auto;padding-bottom:24px}
 @media (min-width:1280px){.p-toc{display:block}}
-/* ── 全站统计页（/statistics/，客户端聚合 + 纯 CSS 条形图）── */
-.st-filter{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:20px 0 4px}
+/* ── 全站统计页（/statistics/）：访客向数据面板 —— hero 总览 tile + 热读榜 +
+   SVG 环形图/收录动态面积图 + 条形图 + 词云 tab。筛选（期刊/类型/年份）联动重算
+   图表；热读榜与 hero 浏览数来自统计服务，为全量口径不随筛选重算 ── */
+.st-hero{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:22px 0 0}
+@media (max-width:860px){.st-hero{grid-template-columns:1fr 1fr}}
+.st-tile{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:10px;background:var(--card);padding:15px 18px 13px}
+.st-tile:before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--tc,var(--accent))}
+.st-tile b{display:block;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:30px;font-weight:600;line-height:1.25;letter-spacing:-.02em;color:var(--text);font-variant-numeric:tabular-nums}
+.st-tile span{display:block;margin-top:3px;font-size:var(--fs-xs);color:var(--dim)}
+.st-tc1{--tc:#58a6ff}.st-tc2{--tc:#3fb950}.st-tc3{--tc:#a371f7}.st-tc4{--tc:#f0883e}
+html[data-theme=light] .st-tc1{--tc:#0969da}html[data-theme=light] .st-tc2{--tc:#1a7f37}
+html[data-theme=light] .st-tc3{--tc:#8250df}html[data-theme=light] .st-tc4{--tc:#bc4c00}
+/* 热读文献 Top 5：行内淡色底条 = 浏览量占比（--w），No.1 实心章 / 2·3 描边章 */
+.st-hot{margin:14px 0 0}
+.st-card h3{display:flex;align-items:baseline;gap:8px;margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);font-weight:500;letter-spacing:.06em;color:var(--dim)}
+.st-card h3 em{margin-left:auto;font-style:normal;font-weight:400;letter-spacing:0;color:var(--faint)}
+.st-ranks{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.st-rank{position:relative;display:flex;align-items:center;gap:12px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);overflow:hidden;transition:border-color .16s}
+.st-rank:hover{border-color:var(--line2)}
+.st-rank:before{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--w,0%);background:linear-gradient(90deg,var(--accent-soft),transparent)}
+.st-rank>*{position:relative}
+.st-rank .rk{flex:none;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line2);border-radius:7px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--dim);background:var(--card)}
+.st-rank.pod .rk{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.st-rank.top .rk{border-color:var(--accent);background:var(--accent);color:var(--bg)}
+.st-rank .tt{flex:1;min-width:0}
+.st-rank .tt a{display:block;color:var(--text);font-size:var(--fs-sm);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:color .16s}
+.st-rank .tt a:hover{color:var(--accent)}
+.st-rank .tt small{display:block;margin-top:1px;font-size:var(--fs-xs);color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st-rank .n{flex:none;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--dim);font-variant-numeric:tabular-nums}
+.st-filter{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:16px 0 4px}
 .st-filter select,.st-filter input{width:auto;padding:7px 10px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs)}
 .st-year{display:inline-flex;align-items:center;gap:6px}
 .st-dash{color:var(--faint)}
 .st-count{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--faint)}
-.st-overview{margin:10px 0 0;font-size:var(--fs-xs);color:var(--dim)}
 .st-empty{margin:26px 0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--faint)}
 .st-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
 @media (max-width:860px){.st-grid{grid-template-columns:1fr}}
 .st-card{border:1px solid var(--line);border-radius:8px;background:var(--card);padding:14px 16px 16px}
-.st-card h3{margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);font-weight:500;letter-spacing:.06em;color:var(--dim)}
-.st-bars{display:flex;flex-direction:column;gap:7px;margin-top:12px}
-.st-row{display:grid;grid-template-columns:minmax(84px,190px) 1fr 34px;gap:8px;align-items:center}
-.st-k{font-size:var(--fs-xs);color:var(--dim);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.st-bar{position:relative;height:14px}
-.st-bar i{position:absolute;left:0;top:2px;bottom:2px;min-width:2px;background:var(--accent);opacity:.8;border-radius:2px}
-.st-n{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--faint);text-align:right}
+.st-wide{grid-column:1/-1}
 .st-none{margin:4px 0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--faint)}
-/* 被浏览排行卡（Top 5）：独立于筛选网格 —— 浏览数是全量口径，不随筛选重算 */
-.st-rankcard{margin:18px 0 0}
-.st-ranks{display:flex;flex-direction:column;gap:8px;margin-top:12px}
-.st-rank{display:flex;align-items:baseline;gap:10px;font-size:var(--fs-xs);min-width:0}
-.st-rank .rk{flex:none;min-width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line2);border-radius:4px;color:var(--dim);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs)}
-.st-rank a{flex:1;min-width:0;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:color .16s}
-.st-rank a:hover{color:var(--accent)}
-.st-rank .n{flex:none;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--faint);font-variant-numeric:tabular-nums}
+/* 条形图：细轨 + 进场生长动画（每次重渲染触发；reduced-motion 关闭） */
+.st-bars{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.st-row{display:grid;grid-template-columns:minmax(84px,190px) 1fr 34px;gap:10px;align-items:center}
+.st-k{font-size:var(--fs-xs);color:var(--dim);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st-bar{position:relative;height:16px;border-radius:4px;background:var(--bg);overflow:hidden}
+.st-bar i{position:absolute;left:0;top:0;bottom:0;min-width:3px;background:var(--accent);opacity:.8;border-radius:4px;transform-origin:left;animation:stgrow .55s cubic-bezier(.25,.8,.35,1) both}
+@keyframes stgrow{from{transform:scaleX(.02)}}
+@media (prefers-reduced-motion:reduce){.st-bar i{animation:none}}
+.st-n{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--faint);text-align:right}
+/* 环形图（文章类型构成）：stroke-dasharray 段 + 中心合计 + 图例联动高亮 */
+.st-donut{display:flex;align-items:center;gap:20px;margin-top:12px;flex-wrap:wrap}
+.st-donut svg{flex:none;width:158px;height:158px}
+.st-donut .seg{fill:none;stroke-width:3.6;transition:opacity .15s,stroke-width .15s;cursor:default}
+.st-donut .seg.big{stroke-width:5}
+.st-donut .seg.off{opacity:.22}
+.st-donut .don-v{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:5.4px;font-weight:600;fill:var(--text)}
+.st-donut .don-k{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:2.6px;fill:var(--faint);letter-spacing:.04em}
+.st-legend{flex:1;min-width:170px;display:flex;flex-direction:column;gap:5px}
+.st-lg{display:flex;align-items:center;gap:8px;padding:3px 8px;border-radius:6px;font-size:var(--fs-xs);color:var(--dim);cursor:default;transition:background .12s}
+.st-lg i{flex:none;width:10px;height:10px;border-radius:3px;background:var(--lc,var(--accent))}
+.st-lg span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st-lg b{margin-left:auto;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-weight:500;color:var(--text);font-variant-numeric:tabular-nums}
+.st-lg em{font-style:normal;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--faint);min-width:34px;text-align:right;font-variant-numeric:tabular-nums}
+.st-lg.hl{background:var(--accent-soft)}
+/* 收录动态面积图：JS 按容器实测像素构建 SVG，hover 显示「日期 · 累计 N 篇」 */
+.st-growth{position:relative;margin-top:10px}
+.st-growth svg{display:block;width:100%;height:auto}
+.st-growth .gl{stroke:var(--line);stroke-width:1}
+.st-growth .gt{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:10.5px;fill:var(--faint)}
+.st-growth .dotc{fill:var(--card);stroke:var(--accent);stroke-width:2}
+.st-growth .hit{fill:transparent;cursor:default}
+.st-gtip{position:absolute;left:0;top:0;pointer-events:none;background:var(--bg);border:1px solid var(--line2);border-radius:6px;padding:4px 9px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--dim);white-space:nowrap;transform:translate(-50%,calc(-100% - 9px));opacity:0;transition:opacity .12s;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:2}
+.st-gtip b{color:var(--text);font-weight:500}
+/* 词云 tab：一张卡两个来源（关键词 / 标题·摘要高频词） */
+.st-tabs{margin-left:auto;display:inline-flex;gap:4px}
+.st-tab{padding:2px 10px;border:1px solid var(--line2);border-radius:99px;background:none;color:var(--dim);font-family:inherit;font-size:var(--fs-xs);cursor:pointer;transition:color .16s,border-color .16s,background-color .16s}
+.st-tab:hover{color:var(--text)}
+.st-tab.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
 /* 词云：字号 ∝ 频次，flex 换行自然流式排布（不定位，避免重叠） */
-.st-cloud{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline;min-height:60px;margin-top:12px}
+.st-cloud{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline;min-height:90px;margin-top:12px}
 .st-cloud .st-w{line-height:1.4;cursor:default;transition:color .16s,opacity .16s}
 .st-cloud .st-w:hover{color:var(--accent);opacity:1!important}
+.st-cta{margin:26px 0 0;font-size:var(--fs-sm);color:var(--dim)}
+.st-cta a{color:var(--accent)}
 /* 字号切换按钮（FAB 内）：A 字标，放大档点亮 */
 .tbtn-fs{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:16px;font-weight:600}
 .tbtn-fs.on{color:var(--accent);border-color:var(--accent)}
@@ -1745,14 +1798,14 @@ def build_stats_data(items: list) -> None:
     """全站统计数据 → site/assets/stats-data.js（仅 /statistics/ 页注入）。
     只带统计所需的英文原文与分面字段 —— 中文翻译字段与每周速递一律不进这份数据。"""
     data = [{
-        "id": p.get("id") or "",               # 路径 → 文献 映射（被浏览排行用）
+        "id": p.get("id") or "",               # 路径 → 文献 映射（热读榜用）
         "t": p.get("title") or "",             # 英文原题
         "ab": p.get("abstract") or "",         # 英文摘要
         "kw": p.get("keywords") or [],         # OpenAlex 英文词表
-        "au": p.get("authors") or [],          # 英文作者全名
         "j": p.get("journal") or "",
         "at": display_type(p),                 # 文章体裁（article_type 优先）
         "y": p.get("year") or "",
+        "ad": p.get("added") or "",            # 入库日期（收录动态面积图）
     } for p in items]
     # "<" 转义防摘要正文里出现 </script> 提前截断内嵌 script
     (SITE / "assets" / "stats-data.js").write_text(
@@ -1762,16 +1815,24 @@ def build_stats_data(items: list) -> None:
 
 
 def build_stats_page(cfg: dict, items: list) -> str:
-    """全站统计页：数据来自 stats-data.js（仅本页注入），客户端聚合渲染。
-    筛选（期刊 / 类型 / 年份区间）→ 图表实时重算；统计基于英文原文，不含每周速递。"""
+    """全站统计页（访客向数据面板）：hero 总览 + 热读榜 + SVG 环形图/收录动态
+    面积图 + 条形图 + 词云 tab；数据来自 stats-data.js（仅本页注入）。
+    筛选（期刊 / 类型 / 年份区间）→ 图表实时重算；热读榜与 hero 浏览数为全量口径。"""
     body = f"""<header class="site">
   <p class="kicker">{esc(cfg['title'].upper())} · STATS</p>
   <h1 class="spage-title">全站统计</h1>
-  <p class="lede">全部 {len(items)} 篇文献的 年度分布 / 期刊 / 类型 / 关键词 / 高频词统计，
-  基于英文原文（不含每周速递）；下方筛选后图表实时重算。</p>
+  <p class="lede">这个文献库的一瞥——收录了多少文献、来自哪些期刊、大家都在读什么。
+  热读榜按访客浏览量实时计入（不含每周速递）。</p>
 </header>
 
-<section class="st-card st-rankcard"><h3>被浏览排行 Top 5（不含每周速递）</h3>
+<section class="st-hero" aria-label="收录总览">
+  <div class="st-tile st-tc1"><b id="stv-papers">0</b><span>收录文献 · 篇</span></div>
+  <div class="st-tile st-tc2"><b id="stv-journals">0</b><span>来源期刊 · 种</span></div>
+  <div class="st-tile st-tc3"><b id="stv-kw">0</b><span>研究关键词 · 个</span></div>
+  <div class="st-tile st-tc4"><b id="stv-views">…</b><span>文献被浏览 · 次</span></div>
+</section>
+
+<section class="st-card st-hot"><h3>热读文献<em>Top 5 · 按访客浏览量 · 全量口径</em></h3>
 <div class="st-ranks" id="st-rank"><p class="st-none">加载中…</p></div></section>
 
 <div class="st-filter">
@@ -1785,18 +1846,22 @@ def build_stats_page(cfg: dict, items: list) -> str:
   <button id="st-reset" type="button">重置</button>
   <span class="st-count" id="st-count"></span>
 </div>
-<p class="st-overview" id="st-overview"></p>
 <p class="st-empty" id="st-empty" hidden>当前筛选条件下没有文献</p>
 <div class="st-grid" id="st-grid">
-  <section class="st-card"><h3>年度发文分布</h3><div class="st-bars" id="st-years"></div></section>
+  <section class="st-card st-wide"><h3>收录动态<em>按入库日期 · 累计</em></h3>
+    <div class="st-growth" id="st-growth"></div></section>
+  <section class="st-card"><h3>文章类型构成</h3><div class="st-donut" id="st-types"></div></section>
   <section class="st-card"><h3>期刊 Top 10</h3><div class="st-bars" id="st-journals"></div></section>
-  <section class="st-card"><h3>文章类型</h3><div class="st-bars" id="st-types"></div></section>
-  <section class="st-card"><h3>关键词 Top 15</h3><div class="st-bars" id="st-kw"></div></section>
-  <section class="st-card"><h3>作者 Top 10</h3><div class="st-bars" id="st-au"></div></section>
-  <section class="st-card"><h3>标题 / 摘要高频词 Top 15</h3><div class="st-bars" id="st-words"></div></section>
-  <section class="st-card"><h3>关键词词云</h3><div class="st-cloud" id="st-kwc"></div></section>
-  <section class="st-card"><h3>标题 / 摘要高频词词云</h3><div class="st-cloud" id="st-wc"></div></section>
-</div>"""
+  <section class="st-card st-wide"><h3>研究热词
+    <span class="st-tabs" role="tablist">
+      <button type="button" class="st-tab on" data-tab="kwc">关键词</button>
+      <button type="button" class="st-tab" data-tab="wc">标题 · 摘要</button>
+    </span></h3>
+    <div class="st-cloud" id="st-kwc"></div>
+    <div class="st-cloud" id="st-wc" hidden></div>
+  </section>
+</div>
+<p class="st-cta">想找某篇文献？<a href="../search/">去全站搜索</a>，或回<a href="../">文献库首页</a>按标签与期刊浏览。</p>"""
     return page_shell(cfg, f"全站统计 · {cfg['title']}", body, depth=1, path="/statistics/",
                       extra_assets=["stats-data.js", "stats.js"])
 
