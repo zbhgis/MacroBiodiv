@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-02",
+  "generated": "2026-10-03",
   "count": 2,
   "items": [
     {
@@ -30,7 +30,6 @@
       "url": "https://www.nature.com/articles/s41561-024-01496-0",
       "source": "crossref+openalex",
       "cited_by": 23,
-      "oa": true,
       "id": "b25def1491",
       "added": "2026-09-19",
       "title_zh": "固体地球对中生代海洋缺氧事件的驱动",
@@ -38,7 +37,19 @@
       "tags": [],
       "abstract_zh": "海洋缺氧事件是海洋中地质学上急剧发生的极端缺氧阶段，这些事件扰乱了海洋生态系统并引发了演化更替。这些事件通常持续约150万年，在中生代（约1.83亿至8500万年前）频繁发生，该时期与大陆裂解和广泛的大火成岩省火山活动相关。一种假说认为，缺氧事件是由火山碳脱气所塑造的温室世界地表化学风化增强所致。本文结合板块重建、构造-地球化学分析和全球生物地球化学建模对该假说进行了检验。我们表明，大陆裂解和初始海底扩张期间基性岩性的风化增强可以合理地驱动一系列缺氧事件。风化脉冲共同导致大量营养元素磷释放到海洋中，刺激了生物初级生产力。这反过来增强了有机碳埋藏，并引起了广泛的海水脱氧，其规模足以驱动反复发生的缺氧。该模型通过展示与气候变暖相关的强烈风化期间充分量化的玄武岩磷释放来源，补充了以火山脱气为中心的触发这些事件的假说。本研究凸显了大陆重组期间固体地球与生物圈之间的紧密耦合。",
       "article_type": "Research Article",
-      "cover": "covers/b25def1491.png"
+      "cover": "covers/b25def1491.png",
+      "keywords": [
+        "oceanic anoxic events",
+        "Mesozoic",
+        "chemical weathering",
+        "continental breakup",
+        "phosphorus release",
+        "ocean deoxygenation",
+        "organic carbon burial",
+        "primary production",
+        "basalt weathering",
+        "plate tectonics"
+      ]
     },
     {
       "doi": "10.1038/s41559-026-03025-1",
@@ -70,9 +81,16 @@
       "url": "https://www.nature.com/articles/s41559-026-03025-1",
       "source": "crossref+openalex",
       "cited_by": 7,
-      "oa": true,
       "oa_type": "article",
-      "keywords": [],
+      "keywords": [
+        "time-calibrated phylogeny",
+        "biodiversity hotspots",
+        "central China",
+        "Pleistocene speciation",
+        "phylogenetic endemism",
+        "conservation prioritization",
+        "vegetation loss"
+      ],
       "id": "b671d6b8bc",
       "title_zh": "中国维管植物的全面年代系统发育揭示了一个隐藏的全球生物多样性热点地区",
       "abstract_zh": "识别新特有种和古特有种中心对于确定全球保护优先事项至关重要，然而，数据缺失阻碍了在生物多样性极其丰富的地区进行优先排序。我们利用包含16585种中国本土维管植物的年代测定系统发育树，揭示了中国现存植物区的时空动态。在时间上，大多数属起源于渐新世-中新世，而更新世是物种形成的关键时期，将植物区系的构建与更新世的气候波动联系起来。在空间上，系统发育和分类学上的特有种中心不匹配，凸显了互补的保护优先事项。我们在中国识别出三个主要的分类学特有种中心，其中位于东亚亚热带常绿阔叶林生态区的华中地区，是一个关键且被忽视的保护空白区域。该地区拥有超过14431种维管植物，其中包括至少2024种特有种，但其原生植被已遭受严重破坏。因此，我们倡导将其指定为全球生物多样性热点地区。我们的多维度评估挑战了忽视进化历史的现有框架，并强调了华中地区在全球保护中的重要性。",

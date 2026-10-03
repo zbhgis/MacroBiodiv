@@ -11,6 +11,7 @@
     site/assets/style.css          样式
     site/assets/papers.js          分页/筛选/排序 + 统计打点 + BibTeX 复制
     site/assets/papers-data.js     全量文献元数据（首页网格与搜索页共用）
+    site/assets/weekly-data.js     每周速递各期全文（仅 /search/ 页注入，供周报内容检索）
 
 设计要点（样式与交互框架照搬 GeoSciPlot，把图片瀑布流换成文献信息卡片）：
   · 顶部菜单栏（.mnav）：sticky 毛玻璃，移植主站 zbhgis.com 的 header；全部页面由
@@ -20,7 +21,8 @@
     「字段名：值」字段行、摘要 15px/1.8 左对齐、图表图片淡蓝光晕
   · 首屏卡片由 Python 直接输出静态 HTML（对爬虫/AI 引擎友好），翻页与筛选改由 JS 渲染
   · 筛选维度：标签 / 期刊 / 发表日期区间（按论文发表时间，不是收录时间）
-  · 排序：发表 新→旧（默认）/ 旧→新 / 被引 多→少
+  · 排序：发表 新→旧（默认）/ 旧→新 / 随机（每次点「随机」重新洗牌；
+    站点数据不再携带被引数，被引仅供管理端使用）
   · 文献 id = DOI（小写）sha1 前 10 位，详情页目录与 id 一致
   · 封面图（可选字段 cover）：源文件 assets_src/covers/{id}.{ext}（admin.py 上传落盘），
     构建时整体拷到 site/assets/covers/；卡片出 16:9 通栏顶图，详情页作者行下出大图，
@@ -55,7 +57,7 @@ BUILD_VER = str(int(time.time()))
 DEFAULT_CFG = {
     "title": "MacroBiodiv",
     "subtitle": "宏观生物多样性文献库",
-    "lede": "收集宏观生态与生物多样性领域公开发表的文献基本信息，可搜索、可筛选、可溯源。",
+    "lede": "收集宏观生态与生物多样性领域公开发表的文献基本信息。",
     "repo": "MacroBiodiv",
     "branch": "main",
     "owner": "zbhgis",
@@ -219,7 +221,7 @@ header.site{padding:72px 0 0}
 :root[data-theme=light] .tbtn .ic-sun{display:inline}:root[data-theme=light] .tbtn .ic-moon{display:none}
 :root[data-theme=dark] .tbtn .ic-sun{display:none}:root[data-theme=dark] .tbtn .ic-moon{display:inline}
 .kicker{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0}
-h1{display:flex;align-items:center;gap:18px;font-size:clamp(44px,6.5vw,68px);line-height:1.08;letter-spacing:-.03em;margin:24px 0 0;font-weight:700}
+h1{display:flex;align-items:center;gap:18px;flex-wrap:wrap;font-size:clamp(44px,6.5vw,68px);line-height:1.08;letter-spacing:-.03em;margin:24px 0 0;font-weight:700}
 h1 img.logo{height:clamp(44px,5.4vw,58px);width:auto;flex:none;border-radius:12px}
 .lede{font-size:16px;color:var(--dim);max-width:52ch;margin:20px 0 0}
 .gh-note{display:inline-flex;align-items:center;gap:9px;margin:18px 0 0;padding:9px 16px;border:1px solid var(--accent);border-left-width:3px;border-radius:6px;background:var(--card);font-size:13.5px;color:var(--text)}
@@ -298,7 +300,7 @@ footer.site{margin-top:56px;padding:24px 0 64px;border-top:1px solid var(--line)
 .p-top{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin:26px 0 0}
 .p-top .c-j{font-size:11.5px}
 .p-top .p-type,.p-top .p-ct{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;color:var(--faint)}
-.p-head{padding-bottom:16px;border-bottom:1px solid var(--accent);text-align:center}
+.p-head{padding-bottom:16px;border-bottom:1px solid var(--rs,var(--accent));text-align:center}
 .p-title{font-size:clamp(22px,3.2vw,30px);line-height:1.5;letter-spacing:-.01em;margin:14px 0 0;font-weight:700}
 .alt-title{font-size:14px;color:var(--dim);margin:8px 0 0;line-height:1.7}
 .p-auth{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:var(--dim);margin:12px 0 0;line-height:1.9;word-break:break-word}
@@ -307,23 +309,46 @@ footer.site{margin-top:56px;padding:24px 0 64px;border-top:1px solid var(--line)
 .p-cover img{display:block;width:100%;height:auto}
 /* 节标题：accent 5px 左竖线 + 18px 加粗（公众号同源：无底线、无背景） */
 .sec{margin-top:32px}
-.sec-h{display:flex;align-items:center;margin:0 0 14px;padding:2px 0 2px 11px;border-left:5px solid var(--accent)}
-.sec-h .tx{font-size:18px;font-weight:700;letter-spacing:0;color:var(--accent)}
-/* ── 渲染样式切换（文献详情 ↔ 周报文章，两页共用同一份用户偏好）：
-   plain（周报默认）＝系统色标题、无装饰；accent（文献详情默认）＝强调蓝 + 左竖线。
-   头部内联脚本先读 localStorage 再渲染，按钮点击写偏好并刷新 ── */
-html[data-rstyle=plain] .sec-h{border-left-color:transparent}
+.sec-h{display:flex;align-items:center;margin:0 0 14px;padding:2px 0 2px 11px;border-left:5px solid var(--rs,var(--accent))}
+.sec-h .tx{font-size:18px;font-weight:700;letter-spacing:0;color:var(--rs,var(--accent))}
+/* ── 渲染颜色切换（文献详情 ↔ 周报文章，两页共用同一份用户偏好）：
+   plain（周报默认）＝系统色标题、无装饰；accent（文献详情默认）/green/purple/orange
+   ＝强调色渲染：--rs 按 data-rstyle 定义，节标题竖线与文字、详情页标题底线、备注线、
+   周报彩色标题全部取 --rs；亮色主题下换深一档色值保证对比度 ── */
+html[data-rstyle=accent]{--rs:var(--accent)}
+html[data-rstyle=green]{--rs:#3fb950}
+html[data-rstyle=purple]{--rs:#a371f7}
+html[data-rstyle=orange]{--rs:#f0883e}
+html[data-theme=light][data-rstyle=green]{--rs:#1a7f37}
+html[data-theme=light][data-rstyle=purple]{--rs:#8250df}
+html[data-theme=light][data-rstyle=orange]{--rs:#bc4c00}
+html[data-rstyle=plain] .sec-h{border-left:none;padding-left:0}
 html[data-rstyle=plain] .sec-h .tx{color:var(--text)}
-html[data-rstyle=accent] .wk-content h2.md-h1,
-html[data-rstyle=accent] .wk-content h3.md-h2{padding:2px 0 2px 11px;border-bottom:none;border-left:5px solid var(--accent);color:var(--accent)}
+html[data-rstyle]:not([data-rstyle=plain]) .wk-content h2.md-h1,
+html[data-rstyle]:not([data-rstyle=plain]) .wk-content h3.md-h2{padding:2px 0 2px 11px;border-bottom:none;border-left:5px solid var(--rs,var(--accent));color:var(--rs,var(--accent))}
+/* 强调色渲染：正文作用域内所有用 accent 的文字相关元素（内容链接 / DOI 链接 /
+   悬停反馈 / 期刊徽章 / 关键词胶囊 / 周报分类 chip / strong）一并跟随渲染颜色
+   —— 直接重映射作用域内的 --accent，规则无需逐条改；plain 保持站点原色 */
+html[data-rstyle]:not([data-rstyle=plain]) .pbody,
+html[data-rstyle]:not([data-rstyle=plain]) .wk-main,
+html[data-rstyle]:not([data-rstyle=plain]) .back{--accent:var(--rs)}
+html[data-rstyle]:not([data-rstyle=plain]) .wk-content strong{color:var(--rs)}
 .rstyle{display:inline-flex;align-items:center;gap:6px;margin-left:auto}
 .rst-btn{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:none;background:none;border-radius:50%;cursor:pointer}
 .rst-btn:hover{background:none}
 .rst-dot{position:relative;display:block;width:15px;height:15px;border-radius:50%;transition:opacity .16s,box-shadow .16s}
 .rst-dot-plain{border:1.5px solid var(--dim)}
 .rst-dot-plain:before{content:"";position:absolute;left:1.5px;right:1.5px;top:50%;height:1.5px;margin-top:-1px;background:var(--dim);transform:rotate(-45deg)}
-.rst-dot-accent{background:var(--accent);border:1.5px solid var(--accent)}
-.rst-btn[aria-pressed=true] .rst-dot{box-shadow:0 0 0 2px var(--bg),0 0 0 3.5px var(--accent)}
+.rst-dot-accent{background:#58a6ff;border:1.5px solid #58a6ff}
+html[data-theme=light] .rst-dot-accent{background:#0969da;border-color:#0969da}
+.rst-dot-green{background:#3fb950;border:1.5px solid #3fb950}
+.rst-dot-purple{background:#a371f7;border:1.5px solid #a371f7}
+.rst-dot-orange{background:#f0883e;border:1.5px solid #f0883e}
+html[data-theme=light] .rst-dot-green{background:#1a7f37;border-color:#1a7f37}
+html[data-theme=light] .rst-dot-purple{background:#8250df;border-color:#8250df}
+html[data-theme=light] .rst-dot-orange{background:#bc4c00;border-color:#bc4c00}
+.rst-btn[aria-pressed=true] .rst-dot{box-shadow:0 0 0 2px var(--bg),0 0 0 3.5px var(--rs,var(--accent))}
+.rst-btn[aria-pressed=true] .rst-dot-plain{box-shadow:0 0 0 2px var(--bg),0 0 0 3.5px var(--dim)}
 .rst-btn[aria-pressed=false] .rst-dot{opacity:.4}
 .p-top{position:relative}
 .p-top .rstyle{position:absolute;right:0;top:50%;transform:translateY(-50%);margin-left:0}
@@ -345,7 +370,7 @@ html[data-rstyle=accent] .wk-content h3.md-h2{padding:2px 0 2px 11px;border-bott
 .abs-alt summary{cursor:pointer;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:var(--faint);transition:color .16s}
 .abs-alt summary:hover{color:var(--accent)}
 .abs-alt p{margin:10px 0 0;font-size:13px;line-height:1.8;color:var(--dim);text-align:justify}
-.abs-note{margin:16px 0 0;padding:10px 13px;border-left:2px solid var(--accent);background:var(--card);border-radius:0 6px 6px 0;font-size:13px;line-height:1.8;color:var(--dim)}
+.abs-note{margin:16px 0 0;padding:10px 13px;border-left:2px solid var(--rs,var(--accent));background:var(--card);border-radius:0 6px 6px 0;font-size:13px;line-height:1.8;color:var(--dim)}
 /* 引用条（GB/T 7714）+ 复制按钮 */
 .cite-line{padding:13px 15px;border:1px solid var(--line);border-radius:6px;background:var(--card);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.85;color:var(--dim);word-break:break-word;margin:0 0 12px}
 .a-end{margin:46px 0 0;text-align:center;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;letter-spacing:.4em;color:var(--faint);user-select:none}
@@ -401,6 +426,9 @@ html[data-rstyle=accent] .wk-content h3.md-h2{padding:2px 0 2px 11px;border-bott
 .sres:hover .sres-id{color:var(--accent)}
 .sres-meta{display:block;margin-top:3px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sres-meta .sres-sep{font-style:normal;color:var(--faint);margin:0 6px}
+/* 周报结果：分组标题 + 正文命中片段（可多行，弱化色） */
+.spage-grouphd{margin:22px 0 2px;padding:7px 6px;border-top:1px solid var(--line);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;letter-spacing:.08em;color:var(--faint)}
+.sres-snip{margin-top:5px;font-size:12.5px;line-height:1.7;color:var(--dim);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 mark{background:color-mix(in srgb,var(--accent) 24%,transparent);color:inherit;border-radius:2px;padding:0 1px}
 .spage-hint,.spage-empty{padding:26px 6px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:var(--faint)}
 @media (max-width:640px){
@@ -482,7 +510,7 @@ mark{background:color-mix(in srgb,var(--accent) 24%,transparent);color:inherit;b
 .wk-content p{margin:0 0 16px;line-height:1.75}
 .wk-content strong{color:#85a4ff}
 .wk-content em{font-style:italic}
-.wk-content a{color:var(--accent)}
+.wk-content a{color:var(--accent);overflow-wrap:anywhere}
 .wk-content a:hover{text-decoration:underline}
 .wk-content .wk-img{margin:24px 0}
 .wk-content .wk-img img{display:block;max-width:100%;height:auto;border:1px solid var(--line2);border-radius:8px}
@@ -591,14 +619,21 @@ JS = """\
     });
   });
 
-  /* ── 全站搜索独立页（/search/）：静态站没有检索后端，直接在 papers-data.js
-     的全量元数据上做客户端匹配（标题 / 作者 / DOI / 期刊 / 关键词 / 标签，
-     多词空格分隔 = 同时命中）。放在网格逻辑之前 —— 搜索页没有 #grid 会提前 return ── */
+  /* ── 全站搜索独立页（/search/）：静态站没有检索后端，直接在 papers-data.js 的
+     文献元数据 + weekly-data.js 的周报全文上做客户端匹配（文献：标题/作者/DOI/期刊/
+     关键词/标签/摘要；周报：期标题/日期/摘要行/正文全文。多词空格分隔 = 同时命中）。
+     放在网格逻辑之前 —— 搜索页没有 #grid 会提前 return ── */
   var spageQ = document.getElementById("spage-q");
   if (spageQ) {
     var sList = document.getElementById("spage-list");
     var sCount = document.getElementById("spage-count");
     var sUp = sList ? (sList.getAttribute("data-up") || "") : "";
+    /* 周报数据（仅搜索页注入 weekly-data.js）：u 路径 / t 标题 / d 日期 /
+       s 摘要行 / w 字数 / x 正文全文（构建期已截 30000 字符） */
+    var WK = window.MBD_WK || [];
+    WK.forEach(function (w) {
+      w.se = (w.t + " " + (w.d || "") + " " + (w.s || "") + " " + (w.x || "")).toLowerCase();
+    });
 
     function escHtml(s) {
       return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
@@ -613,34 +648,64 @@ JS = """\
       });
       return out;
     }
+    /* 周报正文命中片段：在正文自身内找首个命中词，前后各取若干字符，省略号收边
+       （注意不能在标题+日期+正文拼接串里找 —— 那样的下标对纯正文切片是错位的） */
+    function wkSnip(w, tokens) {
+      var text = w.x || "", low = text.toLowerCase();
+      var pos = -1;
+      for (var i = 0; i < tokens.length && pos < 0; i++) pos = low.indexOf(tokens[i]);
+      if (pos < 0) return escHtml(text.slice(0, 120)) + (text.length > 120 ? "…" : "");
+      var start = Math.max(0, pos - 50), end = Math.min(text.length, pos + 90);
+      return (start > 0 ? "…" : "") + hl(text.slice(start, end), tokens) + (end < text.length ? "…" : "");
+    }
+    function paperRow(it, tokens) {
+      var meta = [];
+      if (it.a) meta.push(hl(it.a, tokens));
+      if (it.j) meta.push(hl(it.j, tokens));
+      if (it.y) meta.push(escHtml(it.y));
+      if (it.doi) meta.push(hl(it.doi, tokens));
+      // 主标题已是中文优先；此时把英文原题放进元信息行（可高亮），英文关键词搜索不失上下文
+      if (it.tz && it.t === it.tz && it.te) meta.push(hl(it.te, tokens));
+      return '<a class="sres" href="' + sUp + escHtml(it.id) + '/">'
+        + '<span class="sres-body"><span class="sres-id">' + hl(it.t, tokens) + '</span>'
+        + '<span class="sres-meta">' + meta.join('<i class="sres-sep">·</i>') + '</span></span></a>';
+    }
+    function wkRow(w, tokens) {
+      var meta = [];
+      if (w.d) meta.push(escHtml(w.d));
+      if (w.s) meta.push(hl(w.s, tokens));
+      if (w.w) meta.push(escHtml(w.w + " 字"));
+      return '<a class="sres" href="' + sUp + escHtml(w.u) + '">'
+        + '<span class="sres-body"><span class="sres-id">' + hl(w.t, tokens) + '</span>'
+        + '<span class="sres-meta">' + meta.join('<i class="sres-sep">·</i>') + '</span>'
+        + '<span class="sres-snip">' + wkSnip(w, tokens) + '</span></span></a>';
+    }
     function renderSearch(raw) {
       var tokens = raw.trim().toLowerCase().split(/\\s+/).filter(Boolean);
       if (!tokens.length) {
         sCount.textContent = "";
-        sList.innerHTML = '<p class="spage-hint">输入 标题 / 作者 / DOI / 期刊 / 关键词 / 摘要关键词 开始检索；多个词用空格分隔（需同时命中）</p>';
+        sList.innerHTML = '<p class="spage-hint">输入 标题 / 作者 / DOI / 期刊 / 关键词 / 摘要 / 周报内容 开始检索；多个词用空格分隔（需同时命中）</p>';
         return;
       }
       var hits = ITEMS.filter(function (it) {
         var hay = (it.se || "").toLowerCase();
         return tokens.every(function (t) { return hay.indexOf(t) > -1; });
       });
-      sCount.textContent = "找到 " + hits.length + " / " + ITEMS.length + " 篇";
-      if (!hits.length) {
-        sList.innerHTML = '<p class="spage-empty">未找到与 “' + escHtml(raw) + '” 相关的文献</p>';
+      var wkHits = WK.filter(function (w) {
+        return tokens.every(function (t) { return w.se.indexOf(t) > -1; });
+      });
+      sCount.textContent = "找到 " + hits.length + " / " + ITEMS.length + " 篇文献 · "
+        + wkHits.length + " / " + WK.length + " 期周报";
+      if (!hits.length && !wkHits.length) {
+        sList.innerHTML = '<p class="spage-empty">未找到与 “' + escHtml(raw) + '” 相关的文献或周报</p>';
         return;
       }
-      sList.innerHTML = hits.map(function (it) {
-        var meta = [];
-        if (it.a) meta.push(hl(it.a, tokens));
-        if (it.j) meta.push(hl(it.j, tokens));
-        if (it.y) meta.push(escHtml(it.y));
-        if (it.doi) meta.push(hl(it.doi, tokens));
-        // 主标题已是中文优先；此时把英文原题放进元信息行（可高亮），英文关键词搜索不失上下文
-        if (it.tz && it.t === it.tz && it.te) meta.push(hl(it.te, tokens));
-        return '<a class="sres" href="' + sUp + escHtml(it.id) + '/">'
-          + '<span class="sres-body"><span class="sres-id">' + hl(it.t, tokens) + '</span>'
-          + '<span class="sres-meta">' + meta.join('<i class="sres-sep">·</i>') + '</span></span></a>';
-      }).join("");
+      var html = hits.map(function (it) { return paperRow(it, tokens); }).join("");
+      if (wkHits.length) {
+        html += '<div class="spage-grouphd">每周速递</div>'
+          + wkHits.map(function (w) { return wkRow(w, tokens); }).join("");
+      }
+      sList.innerHTML = html;
     }
     // ?q= 预填：与主站 /search?q= 行为一致，结果可分享
     var sq = "";
@@ -666,6 +731,7 @@ JS = """\
     if ([20, 30, 50].indexOf(savedPer) > -1) state.per = savedPer;   // 仅接受合法档位，旧值自动回默认 30
     if (localStorage.getItem("mbd-sort2")) { state.sort = localStorage.getItem("mbd-sort2"); }
   } catch (e) {}
+  reshuffle();       // 初始随机键：每次访问页面「随机」排序都是新顺序
   var q = document.getElementById("q");
   var empty = document.getElementById("empty");
   var count = document.getElementById("count");
@@ -723,15 +789,15 @@ JS = """\
   }
   function cmp(a, b) {
     var dir = state.sort === "pub_asc" ? 1 : -1;
-    if (state.sort === "cited") {
-      var dc = ((b.ct || 0) - (a.ct || 0));
-      if (dc) return dc;
-    }
     var aa = a.pd || "", ab = b.pd || "";
     if (aa !== ab) return (aa < ab ? -1 : 1) * dir;
     // 同日期内按 id 排：与 build_site.py 的静态首屏顺序保持一致
     return (a.id || "").localeCompare(b.id || "");
   }
+  /* 随机排序：每条目挂一个随机键做稳定排序 —— 翻页 / 筛选时不重排，
+     点「随机」按钮或重新访问页面才重新洗牌 */
+  function reshuffle() { ITEMS.forEach(function (it) { it._rk = Math.random(); }); }
+  function cmpRand(a, b) { return (a._rk || 0) - (b._rk || 0); }
   function el(tag, cls, txt) {
     var e = document.createElement(tag);
     if (cls) e.className = cls;
@@ -766,7 +832,8 @@ JS = """\
   }
   function perSize(list) { return state.per > 0 ? state.per : (list.length || 1); }
   function render() {
-    var list = ITEMS.filter(pass).sort(cmp);
+    var list = ITEMS.filter(pass);
+    list.sort(state.sort === "rand" ? cmpRand : cmp);
     var per = perSize(list);
     var pages = Math.max(1, Math.ceil(list.length / per));
     if (state.page > pages) state.page = pages;
@@ -820,12 +887,13 @@ JS = """\
   if (qBtn) qBtn.addEventListener("click", runSearch);
   var sortseg = document.getElementById("sortseg");
   if (sortseg) {
-    if (["pub", "pub_asc", "cited"].indexOf(state.sort) === -1) state.sort = "pub";
+    if (["pub", "pub_asc", "rand"].indexOf(state.sort) === -1) state.sort = "pub";
     var sortBtns = sortseg.querySelectorAll("button");
     sortBtns.forEach(function (b) {
       b.setAttribute("aria-pressed", String(b.getAttribute("data-sort") === state.sort));
       b.addEventListener("click", function () {
         state.sort = b.getAttribute("data-sort");
+        if (state.sort === "rand") reshuffle();   // 每次点「随机」都重新洗牌
         try { localStorage.setItem("mbd-sort2", state.sort); } catch (e) {}
         sortBtns.forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
         resetPage();
@@ -898,7 +966,7 @@ JS = """\
     });
   }
 
-  /* 支持带参数的链接（标签跳转 / 分享筛选结果）：/?tag=海冰&journal=Nature&sort=cited */
+  /* 支持带参数的链接（标签跳转 / 分享筛选结果）：/?tag=海冰&journal=Nature&sort=rand */
   var applied = false;
   try {
     var params = new URLSearchParams(location.search);
@@ -907,7 +975,7 @@ JS = """\
       if (!v) return;
       if (k === "sort") {
         // 排序可分享，但仅本次生效 —— 分享链接不应永久改写接收者的排序偏好
-        if (["pub", "pub_asc", "cited"].indexOf(v) === -1) return;
+        if (["pub", "pub_asc", "rand"].indexOf(v) === -1) return;
         applied = true;
         state.sort = v;
         if (sortseg) {
@@ -986,7 +1054,8 @@ JS = """\
 
 def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "",
                description: str = "", path: str = "", og_type: str = "website",
-               og_image: str = "", bare: bool = False, rstyle: str = "") -> str:
+               og_image: str = "", bare: bool = False, rstyle: str = "",
+               extra_assets: list[str] | None = None) -> str:
     up = "../" * depth          # depth=2（weekly 文章页）需要 ../../，此前按布尔少了一级
     gh = gh_url or "https://github.com/{}/{}".format(
         cfg.get("owner") or "OWNER", cfg["repo"])
@@ -1079,6 +1148,7 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
 <body>
 {nav}
 {inner}
+{"".join(f'<script src="{up}assets/{a}?v={BUILD_VER}"></script>' for a in (extra_assets or []))}
 <script src="{up}assets/papers-data.js?v={BUILD_VER}"></script>
 <script src="{up}assets/papers.js?v={BUILD_VER}"></script>
 </body>
@@ -1106,16 +1176,24 @@ def display_title(p: dict) -> str:
     return (p.get("title_zh") or "").strip() or (p.get("title") or "").strip()
 
 
+RSTYLE_DOTS = (
+    ("plain", "普通样式：系统色，标题无装饰", "rst-dot-plain"),
+    ("accent", "强调样式：蓝色渲染", "rst-dot-accent"),
+    ("green", "强调样式：绿色渲染", "rst-dot-green"),
+    ("purple", "强调样式：淡紫渲染", "rst-dot-purple"),
+    ("orange", "强调样式：橘色渲染", "rst-dot-orange"),
+)
+
+
 def rstyle_toggle(default: str) -> str:
-    """渲染样式切换按钮（两枚小圆点）：透明斜杠圈=plain（系统色无装饰），
-    蓝色实心圈=accent（强调蓝 + 标题左竖线）。点击写 localStorage 并刷新；
+    """渲染颜色切换按钮（五枚小圆点）：透明斜杠圈=plain（系统色无装饰），
+    蓝/绿/淡紫/橘实心圈=对应强调色。点击写 localStorage 并刷新；
     aria-pressed 由服务端按页面默认渲染，papers.js 按用户实际偏好修正。"""
-    return (f'<span class="rstyle" role="group" aria-label="渲染样式切换">'
-            f'<button type="button" class="rst-btn" data-rs="plain" title="普通样式：系统色，标题无装饰"'
-            f' aria-pressed="{str(default == "plain").lower()}"><i class="rst-dot rst-dot-plain"></i></button>'
-            f'<button type="button" class="rst-btn" data-rs="accent" title="强调样式：蓝色，标题带左侧装饰线"'
-            f' aria-pressed="{str(default == "accent").lower()}"><i class="rst-dot rst-dot-accent"></i></button>'
-            f'</span>')
+    btns = "".join(
+        f'<button type="button" class="rst-btn" data-rs="{v}" title="{t}"'
+        f' aria-pressed="{str(default == v).lower()}"><i class="rst-dot {c}"></i></button>'
+        for v, t, c in RSTYLE_DOTS)
+    return (f'<span class="rstyle" role="group" aria-label="渲染颜色切换">{btns}</span>')
 
 
 def alt_title(p: dict) -> str:
@@ -1235,7 +1313,7 @@ def build_index(cfg: dict, items: list) -> str:
                 '<path d="M6 3l5 5-5 5"/></svg>')
     body = f"""<header class="site">
   <h1><img class="logo" src="assets/logo.png?v={BUILD_VER}" alt="MacroBiodiv logo">{esc(cfg['title'])}</h1>
-  <a class="gh-note" href="https://github.com/{esc(cfg.get('owner') or 'OWNER')}/{esc(cfg['repo'])}" rel="noopener" target="_blank" title="在 GitHub 查看数据与索引">{ghsvg}<span>文献数据与索引存储于 <b>GitHub</b>（点此查看仓库）</span></a>
+  <a class="gh-note" href="https://github.com/{esc(cfg.get('owner') or 'OWNER')}/{esc(cfg['repo'])}" rel="noopener" target="_blank" title="在 GitHub 查看数据与索引">{ghsvg}<span>文献数据存储于 <b>GitHub</b>，访问需具备 <b>GitHub</b> 访问能力（点此查看仓库）</span></a>
   <p class="lede">{esc(cfg['lede'])}</p>
   <div class="meta-row"><span id="count">共 {len(items)} 篇</span> · {len(tag_counter)} 个标签 · {len(journal_counter)} 本期刊 · {len(years)} 个年份 · 点击卡片查看详情</div>
 </header>
@@ -1261,7 +1339,7 @@ def build_index(cfg: dict, items: list) -> str:
   + ' <span class="sorter" id="sortseg" role="group" aria-label="排序" style="vertical-align:middle">'
   + '<button type="button" data-sort="pub" aria-pressed="true" title="发表日期 新→旧"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.5v8M4.8 7.3 8 10.5l3.2-3.2M3 13.5h10"/></svg><span>新到旧</span></button>'
   + '<button type="button" data-sort="pub_asc" aria-pressed="false" title="发表日期 旧→新"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13.5v-8M4.8 8.7 8 5.5l3.2 3.2M3 2.5h10"/></svg><span>旧到新</span></button>'
-  + '<button type="button" data-sort="cited" aria-pressed="false" title="被引次数 多→少"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3.5h10M5 8h6M7 12.5h2"/></svg><span>被引</span></button>'
+  + '<button type="button" data-sort="rand" aria-pressed="false" title="随机顺序（每次点击重新洗牌）"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4.5h2.4l6.2 7h2.4M2.5 11.5h2.4l2-2.3M9.6 6.8l1.5-2.3h2.4M12.3 2.9l2.2 1.6-2.2 1.6M12.3 9.9l2.2 1.6-2.2 1.6"/></svg><span>随机</span></button>'
   + '</span>')}
 </div>
 
@@ -1330,7 +1408,6 @@ def build_detail(cfg: dict, items: list, idx: int) -> str:
     doi = (p.get("doi") or "").strip()
     doi_html = f'<a href="https://doi.org/{esc(doi)}" rel="noopener" target="_blank">{esc(doi)}</a>' if doi else "—"
     vp = _volume_pages(p)
-    cited = p.get("cited_by") or 0
 
     # 标签 / 关键词做成可跳转：标签回首页并套用该标签筛选，关键词走全站搜索
     tags = p.get("tags") or []
@@ -1365,9 +1442,6 @@ def build_detail(cfg: dict, items: list, idx: int) -> str:
     info.append(frow("发表", date_dd))
     if vp:
         info.append(frow("卷期页", esc(vp)))
-    if p.get("publisher"):
-        info.append(frow("出版商", esc(p["publisher"])))
-    info.append(frow("被引", f"{cited}（OpenAlex）" if cited else "—"))
     info.append(frow("收录", esc(p.get("added") or "—")))
     info.append(frow("被浏览", '<span id="views">…</span>'))
     if kws_html:
@@ -1402,12 +1476,10 @@ def build_detail(cfg: dict, items: list, idx: int) -> str:
                + "".join(abs_blocks) + "</section>") if abs_blocks else ""
 
     # ── 顶部徽章行 ──
-    cited_html = f'<span class="p-ct">被引 {cited}</span>' if cited else ""
-    oa_html = '<span class="p-ct" style="color:var(--accent)">OA</span>' if p.get("oa") else ""
     top_row = (f'<div class="p-top"><span class="c-j" title="{esc(p.get("journal") or "")}">{esc(journal_badge(p) or "—")}</span>'
                f'<span class="c-y">{esc(p.get("year") or "")}</span>'
                + (f'<span class="p-ct">{esc(ty)}</span>' if ty else "")
-               + cited_html + oa_html + rstyle_toggle("accent") + '</div>')
+               + rstyle_toggle("accent") + '</div>')
 
     # ── 标题：中文优先（与卡片一致），另一语言作副行 ──
     alt = alt_title(p)
@@ -1469,18 +1541,21 @@ def build_detail(cfg: dict, items: list, idx: int) -> str:
 
 def build_search_page(cfg: dict, items: list) -> str:
     """全站搜索独立页：版式对齐主站 zbhgis.com 的 /search。
-    结果行由 papers.js 在客户端渲染（数据来自 papers-data.js）；
-    文献没有缩略图，结果行 = 标题 + 作者/期刊/年份/DOI。"""
+    结果行由 papers.js 在客户端渲染（文献来自 papers-data.js，
+    每周速递各期全文来自 weekly-data.js，两组分别展示）；文献没有缩略图，
+    结果行 = 标题 + 作者/期刊/年份/DOI，周报结果行 = 标题 + 日期/摘要 + 命中片段。"""
     body = f"""<header class="site">
   <p class="kicker">{esc(cfg['title'].upper())} · SEARCH</p>
   <h1 class="spage-title">全站搜索</h1>
-  <p class="lede">检索全部 {len(items)} 篇文献的 标题 / 作者 / DOI / 期刊 / 关键词 / 摘要全文 / 标签；多个词用空格分隔（需同时命中）。</p>
+  <p class="lede">检索全部 {len(items)} 篇文献（标题 / 作者 / DOI / 期刊 / 关键词 / 摘要全文 / 标签）
+  与每周速递各期正文；多个词用空格分隔（需同时命中）。</p>
 </header>
 
 <input id="spage-q" class="spage-q" type="search" placeholder="输入关键词搜索全站内容…" autocomplete="off" autofocus>
 <div class="spage-count" id="spage-count"></div>
 <div class="spage-list" id="spage-list" data-up="../"></div>"""
-    return page_shell(cfg, f"全站搜索 · {cfg['title']}", body, depth=1, path="/search/")
+    return page_shell(cfg, f"全站搜索 · {cfg['title']}", body, depth=1, path="/search/",
+                      extra_assets=["weekly-data.js"])
 
 
 # ── 每周速递（/weekly/）：内容源 content/weekly/*.md，布局与主站 zbhgis.com
@@ -1537,10 +1612,26 @@ def build_weekly(cfg: dict) -> list[str]:
             "subs": meta.get("subCategoryTags") or [],
             "doc": doc, "toc": toc, "words": words, "reading": reading,
             "summary": summ, "og_image": first_img.group(1) if first_img else "",
+            "plain": plain,
         })
     if not posts:
         return []
     posts.sort(key=lambda p: p["date"], reverse=True)   # 新→旧；i-1 更新（上一篇）
+
+    # 周报搜索数据（/search/ 页客户端检索用）：全文存 plain（截 30000 字符防无限增长）；
+    # "<" 转义防正文里出现 </script> 提前截断内嵌 script
+    wk_data = [{
+        "u": f"weekly/{p['slug']}/",
+        "t": p["title"],
+        "d": p["date"],
+        "s": p["summary"],
+        "w": p["words"],
+        "x": p["plain"][:30000],
+    } for p in posts]
+    (SITE / "assets" / "weekly-data.js").write_text(
+        "window.MBD_WK = "
+        + json.dumps(wk_data, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
+        + ";\n", encoding="utf-8")
 
     def side_nav(cur: str) -> str:
         rows = "".join(
@@ -1624,7 +1715,20 @@ def build_weekly(cfg: dict) -> list[str]:
     (SITE / "weekly" / "index.html").write_text(
         page_shell(cfg, f"每周速递 · {cfg['title']}", body, depth=1,
                    description=f"Nature / Science / Cell 系列大尺度生物多样性研究每周精选，共 {n_week} 期。",
-                   path="/weekly/", bare=True), encoding="utf-8")
+                   path="/weekly/", bare=True, rstyle="plain"), encoding="utf-8")
+    # 过期的周报页目录（期次被删后的残留）→ 改名移入 site_trash/，绝不原地删除
+    #（与上面过期详情页同一模式：shutil.rmtree 会触发沙箱批量删除保护，纯改名无此问题）
+    trash = ROOT / "site_trash"
+    live = {p["slug"] for p in posts}
+    for d in (SITE / "weekly").iterdir():
+        if d.is_dir() and d.name not in live:
+            trash.mkdir(parents=True, exist_ok=True)
+            dest = trash / (d.name + "-" + str(int(time.time())))
+            print(f"· 过期周报页 {d.name} → site_trash/（不删除）")
+            try:
+                d.rename(dest)
+            except OSError:
+                pass
     print(f"· 每周速递：列表页 + {n_week} 篇文章页 → weekly/")
     return ["/weekly/"] + [f"/weekly/{p['slug']}/" for p in posts]
 
@@ -1704,7 +1808,6 @@ def main() -> int:
         "ad": p.get("added") or "",
         "tg": p.get("tags") or [],
         "sub": " · ".join(p.get("tags") or []),
-        "ct": p.get("cited_by") or 0,
         "doi": p.get("doi") or "",
         "ab": abstract_disp(p),
         # cv = 封面图（可选），URL 构建期定死并带 ?v= 防缓存

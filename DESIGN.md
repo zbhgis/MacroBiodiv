@@ -74,8 +74,12 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 
 ### 3.1 首页 `/`
 
-- Header：logo + 大标题 → gh-note（数据存于 GitHub）→ lede → meta-row（N 篇 · 标签 · 期刊 · 年份）
-- 筛选维度三行 chips：**标签 / 期刊 / 时间区间**（时间 = online 发表日期）+ 排序（发表 新→旧【默认】、旧→新、被引 多→少）
+- Header：logo + 大标题 → gh-note（「文献数据存储于 GitHub，访问需具备 GitHub 访问能力
+  （点此查看仓库）」，整条为指向仓库的链接）→ lede → meta-row（N 篇 · 标签 · 期刊 · 年份）
+- 筛选维度三行 chips：**标签 / 期刊 / 时间区间**（时间 = online 发表日期）+ 排序
+  （发表 新→旧【默认】、旧→新、**随机**——2026-10 由「被引 多→少」改来：站点不再
+  携带被引数；每条目挂随机键做稳定洗牌，翻页 / 筛选不重排，点「随机」或重新访问页面
+  才重新洗牌，`?sort=rand` 可分享）
 - 文献卡片（`.card`，GeoSciPlot 瀑布流同源语言）：**封面通栏顶图**（自然宽高比不裁切，
   底色作加载占位；无封面时输出期刊缩写占位块 `.c-ph`，版式不塌）；说明区 `.c-cap` =
   徽章行（文章类型 + 期刊）+ 主标题（**中文优先**，悬停显示另一语言原题，3 行截断）
@@ -94,12 +98,14 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 ```
 返回全部（左上，窄栏外）
 ┄ 窄栏 677px ┄
-标题块 .p-head（居中，底部 accent 通栏线）
-  徽章行（期刊 · 年份 · 类型 · 被引 · OA · 行尾渲染样式切换圆点①②）
+标题块 .p-head（居中，底部强调色通栏线 —— 颜色随渲染样式切换，见 §3.4）
+  徽章行（期刊 · 年份 · 类型 · 行尾渲染颜色切换圆点×5）
   大标题（中文优先）→ 另一语言原题（副行）→ 作者
 1. 信息   字段行（字段名：值 同行）：DOI / 期刊（+缩写）/ 类型 / 发表（online 标注）
-          / 卷期页 / 出版商 / 被引 / 收录 / 被浏览 / 关键词 / 标签（可跳转 pills）
-          —— DOI、类型、卷期页、出版商、关键词有值才输出该行
+          / 卷期页 / 收录 / 被浏览 / 关键词 / 标签（可跳转 pills）
+          —— DOI、类型、卷期页、关键词有值才输出该行
+          （出版商 / 被引不展示：数据仍抓取入库供管理端使用；前端已不下发被引数
+          —— papers-data.js 不含 cited 字段，排序用随机替代）
 2. 摘要   中文摘要为主阅读区（15px / 1.8 行高 / 左对齐）
           英文原文摘要收合折叠；无中文时英文直接作为主阅读区
           备注（accent 左边线强调块）
@@ -122,8 +128,16 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 
 ### 3.3 全站搜索 `/search/`
 
-- 无检索后端：在 `papers-data.js` 全量元数据上做客户端匹配，多词空格分隔 = AND
-- 检索域（`se`，构建期算好）：id / DOI / 标题(中英) / 作者 / 期刊 / 年月 / 收录日 / 备注 / 出版商 / 类型 / 关键词(手动) / 标签 / **摘要全文(中英)**
+- 无检索后端：在 `papers-data.js` 全量元数据 + `weekly-data.js` 周报全文上做客户端匹配，
+  多词空格分隔 = AND（两份来源分别命中、分组展示）
+- 检索域（`se`，构建期算好）：id / DOI / 标题(中英) / 作者 / 期刊 / 年月 / 收录日 / 备注 / 出版商 / 类型 / 关键词 / 标签 / **摘要全文(中英)**
+- **每周速递检索**（2026-10 新增）：`build_weekly` 产出 `site/assets/weekly-data.js`
+  （u 路径 / t 标题 / d 日期 / s 摘要行 / w 字数 / x = `parse_md` 的 plain 全文，
+  **截 30000 字符**防无限增长，`<`→`\u003c` 防 `</script>` 截断；仅 /search/ 页经
+  `page_shell` 的 `extra_assets` 注入，其他页面零开销）；计数行双口径
+  「N 篇文献 · N 期周报」，周报结果行 = 期标题（高亮）+ 日期·收录摘要·字数 + 正文
+  命中片段（`wkSnip` 在正文自身内定位首个命中词、前后各取 50/90 字符、`<mark>` 高亮、
+  2 行截断），置于「每周速递」分组标题下
 - 结果行：主标题（中文优先，命中高亮）+ 元信息行（作者·期刊·年份·DOI·英文原题，可高亮）；`?q=` 可分享
 
 ### 3.4 每周速递 `/weekly/`（2026-10 新增，布局移植 mystation 博客）
@@ -150,12 +164,20 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   `--hairline→--line`、`--hairline-strong/--border→--line2`、`accent-soft-fade→transparent`
 - **静态裁剪**（零 JS）：ViewToggle/RSS、分组分页 Pager/查看更多、侧栏手风琴、TOC scrollspy
   与移动端抽屉不做；`page_shell(bare=True)` 让正文绕开 `.wrap`（全宽三栏自管容器）
-- **渲染样式切换**（2026-10 新增，与 §3.2 文献详情页共用）：meta 行尾两枚小圆点
-  （透明斜杠圈 = plain 普通样式：系统色标题无装饰，本页默认；蓝色实心圈 = accent
-  强调样式：标题变 `--accent` + 5px 左竖线、去 md-h1 底线，即文献详情的公众号式）。
+- **渲染颜色切换**（2026-10 新增，与 §3.2 文献详情页共用）：meta 行尾五枚小圆点
+  （透明斜杠圈 = plain 普通样式：系统色标题无装饰，本页默认；蓝/绿/淡紫/橘实心圈 =
+  对应强调色渲染：标题与左竖线换色，去 md-h1 底线，即文献详情的公众号式同构）。
+  强调色经 `--rs` 变量统一驱动（详情页的节标题竖线与文字、标题底线、备注线一并换色）：
+  蓝沿用 `--accent`；绿 `#3fb950`（亮 `#1a7f37`）· 淡紫 `#a371f7`（亮 `#8250df`）·
+  橘 `#f0883e`（亮 `#bc4c00`，亮色取深一档保证对比度）。
   偏好存 localStorage `mbd-rstyle`，**两页共享** —— 任一页切换，另一页下次打开即跟随；
   `<head>` 内联脚本渲染前置位防闪烁，点击后 `location.reload()` 整页重渲染。
-  CSS 键：`html[data-rstyle=…]` 作用域覆盖（`.sec-h` ↔ `.wk-content .md-h1/.md-h2`）
+  **换色范围 = 正文全部文字相关强调色**：除标题/竖线/底线/备注线外，
+  正文作用域（`.pbody` / `.wk-main` / `.back`）内的 `--accent` 整体重映射为 `--rs` ——
+  内容链接（含裸 DOI 自动链接）、DOI 与标签胶囊 hover、期刊徽章、周报分类 chip、
+  周报加粗字（原主站同源硬编码 #85a4ff）一并跟随；导航/页脚/切换圆点不受影响
+  （切换按钮的四枚彩色圆点用字面色值固定，蓝点不随页面换色）。
+  CSS 键：`html[data-rstyle=…]` 定义 `--rs` + 作用域覆盖（`.sec-h` ↔ `.wk-content .md-h1/.md-h2`）
 - sitemap 追加 `/weekly/` 与各文章页；og:type=article + 正文首图 og:image
 
 ### 3.5 管理后台 `scripts/admin_ui.html`（127.0.0.1:5201）
@@ -176,11 +198,23 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   行列表有缩略图；发布 / 更新 / 重新抓取时服务端按 id **探测**封面文件写 `cover` 字段
   （不信任客户端路径，文件在才是真相；换格式上传自动清旧格式文件）
 - **抓取结果卡片**：左列 = 与站点卡片同一徽章语言（期刊徽章 + 体裁 chip + 日期顶行、
-  英文标题粗体、中文标题副行、作者/卷期/被引/OA/id、**翻译状态徽章**
+  英文标题粗体、中文标题副行、作者/卷期/被引/id、**翻译状态徽章**
   「✓ 初译+审校 / ◑ 仅初译 / ✗ 失败」，悬停看原因，摘要 4 行截断）；
   右列 = 可编辑手动字段（中文标题 / 文章类型（datalist）/ 关键词 / 标签 / 中文摘要 / 备注）
 - **文献管理**：行卡片同一徽章语言；标题中文优先 + 英文副行；
   操作：编辑 / 重新抓取 / 重新翻译 / 删除；筛选：搜索 + 标签 chips + 期刊下拉 + 日期区间
+- **多选批量删除**（2026-10 新增，文献管理与每周速递共用同款交互）：行首勾选框
+  （`.mrow.msel` 三列网格，两类行通用）；文献勾选状态存 `mSelected`（按 id）、
+  期次存 `wkSelected`（按文件名），跨筛选 / 重渲染保留，列表刷新后剔除已不存在的条目；
+  「全选」文献侧只作用于当前筛选结果（期次列表无筛选即全部期次），
+  部分选中时全选框呈 indeterminate；「删除所选」按钮随勾选数实时显数，
+  经页内确认列出标题 / 期次清单（最多 8 条）后走与单条删除相同的后台任务 ——
+  `POST /api/delete` 入参 `ids` 数组（兼容旧的单 `id`），`do_delete` 逐条移除
+  papers.json 条目并连带删封面文件；`POST /api/weekly-delete` 入参 `names` 数组
+  （兼容旧的单 `name`），只删 content/weekly/*.md、已生成卡片保留。
+  部分成功也算成功、逐条记日志；默认提交信息单期/单条沿用旧格式
+  （`delete: 文献 {id}` / `weekly: 删除 {file}`），多条为
+  `delete: 文献 N 篇（id…）` / `weekly: 删除 N 期（file…）`
 - **每周速递**（2026-10 新增）：上传周报 md（点选 / 拖入，可多选）→ 三步自动流水线：
   ① md 落盘 `content/weekly/`（周报页随构建自动收录）；② 解析「# 文献N」小节
   （`render_md.parse_weekly_papers`，见 §3.4），新 DOI 走 Crossref+OpenAlex 抓取入库，
@@ -191,7 +225,7 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   同步预解析出确认弹窗（新 N 篇 / 跳过 N 篇 / 封面策略 / 期号冲突警告），确认后进
   后台任务（构建 + 推送 / 同步沿用发布区开关）。期次列表显示每篇 DOI 的收录状态
   （● 已入库 · ○ 待生成 · × 无 DOI）；同名文件重传 = 覆盖更新该期（库内 DOI 自动跳过）；
-  「删除此期」只删周报页，已生成卡片需到文献管理单独删
+  「删除此期」与勾选多选「删除所选」（见上方多选批量删除）只删周报页，已生成卡片需到文献管理单独删
 - **通用组件**：页内确认弹窗（替代原生 confirm，支持取消回调）、toast、任务日志步骤条
   （…/✓/✗，三个标签页各有独立日志区）、同批重复 DOI 客户端即时标出
 - 明暗主题跟随系统（prefers-color-scheme）；只监听 127.0.0.1 免登录
@@ -212,11 +246,13 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
     "year": "2023", "published": "2023-03-15",   // 时间口径 = online 优先
     "published_online": true,        // published 是否确为 online 日期
     "volume": "", "issue": "", "pages": "", "issn": "", "url": "",
-    "abstract": "...", "cited_by": 246, "oa": true, "source": "crossref+openalex",
+    "abstract": "...", "cited_by": 246, "source": "crossref+openalex",
     // ── LLM 生成字段（重新翻译时重写）──
     "title_zh": "...", "abstract_zh": "...", "article_type": "Research Article",
     // ── 手动字段（永不被自动流程覆盖）──
-    "keywords": ["sea ice", ...],    // 按文章原文填写（API 拿不到作者关键词）
+    "keywords": ["sea ice", ...],    // 抓取自动预填（OpenAlex 词表截前 10，
+                                     // Crossref subject 兜底），可手动修改；
+                                     // 重新抓取只回填空缺、不覆盖已填值
     "tags": ["样点分布图"], "note": "",
     "cover": "covers/{id}.png",      // 封面图（可选），相对 assets/ 的路径；
                                      // 服务端按 assets_src/covers/ 实际文件探测得出，
@@ -252,11 +288,12 @@ build_site.py：整体拷到 site/assets/covers/（镜像式，删除不残留�
 1. **规范化**：从任意文本提取 DOI（`10.x/...`，剥 doi.org 前缀），按「DOI 只含 ASCII」
    截断防全角标点混入，URL 侧再做一次 quote 兜底
 2. **分层**：Crossref（`works/{doi}`，mailto 礼貌池）主力 → OpenAlex（`works/doi:{doi}`）补
-   摘要（还原倒排索引）/ 被引 / OA / 体裁提示；**不抓出版社页面**（Cloudflare 反爬，稳定优先）
+   摘要（还原倒排索引）/ 关键词 / 被引 / 体裁提示；**不抓出版社页面**（Cloudflare 反爬，稳定优先）
 3. **时间口径**：`published-online` → `published` → `issued`（一篇文献有多个日期，全站统一
    以 online 为准；无 online 记录时回落并以 `published_online` 标记如实呈现）
-4. **关键词**：作者关键词 API 层不可得，OpenAlex keywords 属内容推断已**停用**，
-   关键词由管理端按原文手动填写
+4. **关键词**：OpenAlex keywords（基于标题 / 摘要抽取的词表，与作者关键词高度重合，
+   截前 10 个防长尾）自动采集，Crossref subject（出版社学科分类，多数不填）兜底；
+   管理端可手动修改 —— keywords 仍属手动字段，重新抓取只在空缺时回填、绝不覆盖
 5. **HTML 实体反转义**：部分出版社的 deposit 元数据自带 HTML 实体（如期刊名
    「Nature Ecology &amp; Evolution」），`_finalize` 对全部字符串字段统一
    `html.unescape`（摘要此前已在 `_clean_abstract` 处理），避免站点 `esc()`
@@ -300,7 +337,7 @@ build_site.py：整体拷到 site/assets/covers/（镜像式，删除不残留�
 | 菜单栏 active 构建期静态判定 | `path` 在生成时已知，无需 JS 参与；静态首屏与 JS 渲染天然一致 |
 | 菜单栏右端只放一枚占位按钮 | 用户要求预留（功能未定）；样式取主站 `.v3-nav-icon` 语言，之后挂功能只动 `page_shell` 一处 |
 | 详情页中文标题/摘要优先 | 站点受众为中文读者；英文原题保留（副行/折叠/悬停）保证溯源 |
-| 不抓出版社页面 | Cloudflare 反爬不可靠；代价是作者关键词、出版社精确栏目名需手动补 |
+| 不抓出版社页面 | Cloudflare 反爬不可靠；代价是出版社精确栏目名需手动补（关键词已改由 OpenAlex 词表自动采集） |
 | 去掉 titles.csv | 条目少结构稳，papers.json 单源比双写可靠 |
 | 时间以 online 为准 | print/online/issued 多日期中 online 最早最常用，全站（徽章/筛选/排序）统一 |
 | admin 只监听 127.0.0.1 | 免登录；发布用本机 git 凭据，服务器不存 token |

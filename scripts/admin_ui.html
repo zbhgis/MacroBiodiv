@@ -96,6 +96,10 @@ details pre{margin:8px 0 0;padding:10px;border:1px solid var(--line);border-radi
 /* 文献管理列表 */
 .mrow{display:grid;grid-template-columns:1fr auto;gap:14px;border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:12px;background:var(--card);align-items:start}
 @media (max-width:700px){.mrow{grid-template-columns:1fr}}
+/* 多选批量删除：管理行加行首勾选列（周报行不加 .msel，保持原布局） */
+.mrow.msel{grid-template-columns:auto 1fr auto}
+@media (max-width:700px){.mrow.msel{grid-template-columns:auto 1fr}}
+.mrow .selbox{width:auto;align-self:start;margin-top:5px;cursor:pointer}
 .minfo{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;color:var(--faint);line-height:1.8;word-break:break-all;min-width:0}
 .minfo .top{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px}
 .minfo .j{display:inline-block;padding:1px 8px;border:1px solid var(--accent);border-radius:3px;color:var(--accent);font-size:10.5px;max-width:15em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -214,6 +218,13 @@ details pre{margin:8px 0 0;padding:10px;border:1px solid var(--line);border-radi
     </div>
 
     <h2>已收录期次</h2>
+    <div class="row" style="margin:0 0 14px">
+      <label class="mono" style="display:flex;align-items:center;gap:6px;margin:0;font-size:11px;cursor:pointer">
+        <input type="checkbox" id="wkSelAll" style="width:auto"> 全选
+      </label>
+      <span class="note" id="wkSelNote">未勾选任何期次</span>
+      <button id="btnWkDelSel" class="danger" disabled style="margin-left:auto">删除所选</button>
+    </div>
     <div id="wkList"><p class="note">读取中…</p></div>
     <div class="log" id="wkLog"></div>
   </div>
@@ -236,6 +247,13 @@ details pre{margin:8px 0 0;padding:10px;border:1px solid var(--line);border-radi
       <button id="btnTrMiss">翻译缺中文的</button>
       <span class="note">被引走 OpenAlex · 翻译调本地大模型（只补空缺不覆盖，429/故障自动退避，可反复点直到补齐）</span>
     </div>
+    <div class="row" style="margin:0 0 14px">
+      <label class="mono" style="display:flex;align-items:center;gap:6px;margin:0;font-size:11px;cursor:pointer">
+        <input type="checkbox" id="mSelAll" style="width:auto"> 全选（当前筛选结果）
+      </label>
+      <span class="note" id="mSelNote">未勾选任何文献</span>
+      <button id="btnDelSel" class="danger" disabled style="margin-left:auto">删除所选</button>
+    </div>
     <div id="manageList"><p class="note">读取中…</p></div>
   </div>
 
@@ -252,11 +270,14 @@ details pre{margin:8px 0 0;padding:10px;border:1px solid var(--line);border-radi
     · 译文（中文标题 / 中文摘要）在表单里可直接修改，修改稿视为定稿 —— 重新抓取 / 刷新被引不会覆盖，只有「重新翻译」会重写。<br>
     · 文献 id 由 DOI（小写）sha1 前 10 位算出 —— 重复 DOI 发布时会被自动跳过；封面文件名与 id 一一对应，换封面即覆盖。<br>
     · 「重新抓取」更新标题 / 作者 / 期刊 / 摘要等自动字段；「刷新被引」只批量更新 cited_by。<br>
+    · 文献管理列表支持<b>勾选多选</b>：「全选」作用于当前筛选结果（搜索 / 标签 / 期刊 / 日期筛选后再全选可精准圈定范围），
+      「删除所选」批量删除并经页内确认列出标题清单；勾选状态跨筛选与翻看保留，单条「删除」按钮照常可用。<br>
     · <b>每周速递</b>：上传周报 md 自动两件事 —— ① 落盘 content/weekly/，周报页随构建收录；
       ② 解析「# 文献N」小节，DOI 抓取元数据入库生成主页卡片（周报自带中文标题 / 摘要 / 体裁注记直接预填，
       不走大模型；缺中文可事后用「翻译缺中文的」回补）。文献封面优先用本期图表图，图表为无或下载失败用站点 logo 兜底。<br>
     · 周报同名文件重复上传 = 覆盖更新该期（库内已有 DOI 自动跳过）；「删除此期」只删周报页，
-      已生成的文献卡片需到文献管理单独删除。<br>
+      已生成的文献卡片需到文献管理单独删除；期次列表同样支持<b>勾选多选</b>，
+      「删除所选」批量删并经页内确认列出期次清单。<br>
     · 发布 = 写 meta/papers.json → build_site.py → git add/commit/push →（可选）同步服务器。
   </p>
 </div>
@@ -691,7 +712,7 @@ function buildItemNode(rec) {
   left.appendChild(el("div", "t", p.title || "—"));
   if (rec.title_zh) left.appendChild(el("div", "tzh", rec.title_zh));
   left.appendChild(el("div", "", "作者 " + (p.authors || []).length + " 人：" + (p.authors || []).slice(0, 3).join(", ") + ((p.authors || []).length > 3 ? " et al." : "")));
-  left.appendChild(el("div", "", (p.volume ? "Vol " + p.volume + (p.issue ? " · Iss " + p.issue : "") + " · " : "") + (p.pages ? p.pages + " · " : "") + "被引 " + (p.cited_by || 0) + (p.oa ? " · OA" : "") + " · id " + (p.id || "?")));
+  left.appendChild(el("div", "", (p.volume ? "Vol " + p.volume + (p.issue ? " · Iss " + p.issue : "") + " · " : "") + (p.pages ? p.pages + " · " : "") + "被引 " + (p.cited_by || 0) + " · id " + (p.id || "?")));
   var stat = el("div", "", "来源 " + (p.source || "?"));
   if (!p.title) { stat.className = "err"; stat.textContent = "✗ 抓取结果不完整（无标题）"; }
   left.appendChild(stat);
@@ -742,7 +763,7 @@ function buildItemNode(rec) {
   field("中文标题 title_zh（大模型初译，可修改）", "title_zh", { full: true, placeholder: "抓取时自动初译+审校，留空则详情页只显示英文标题" });
   field("文章类型 article_type（大模型按出版社惯例判定，可修改）", "article_type",
         { full: true, list: "typeList", placeholder: "如 Article / Research Article / Perspective / Comment / News & Views / Review" });
-  field("关键词 keywords（按文章原文填写，逗号/顿号分隔；API 拿不到作者关键词，不会自动提取）", "keywordsText",
+  field("关键词 keywords（抓取时自动填入 OpenAlex 词表，可手动修改，逗号/顿号分隔）", "keywordsText",
         { full: true, placeholder: "如：sea ice, Arctic, regime shift" });
 
   var tagBox = el("div", "full");
@@ -968,6 +989,43 @@ function mWire() {
     el.addEventListener("click", function () { try { el.showPicker(); } catch (e) {} });
     el.addEventListener("focus", function () { try { el.showPicker(); } catch (e) {} });
   });
+  /* 全选 = 勾上当前筛选结果的全部；再点取消勾选同样范围 */
+  var sa = document.getElementById("mSelAll");
+  if (sa && !sa.dataset.wired) {
+    sa.dataset.wired = "1";
+    sa.addEventListener("change", function () {
+      var on = sa.checked;
+      mFiltered().forEach(function (it) {
+        if (on) mSelected[it.id] = 1; else delete mSelected[it.id];
+      });
+      mRender();
+    });
+    document.getElementById("btnDelSel").addEventListener("click", function () {
+      var ids = Object.keys(mSelected);
+      if (!ids.length) return;
+      var byId = {};
+      mItems.forEach(function (it) { byId[it.id] = it; });
+      var names = ids.map(function (id) {
+        var t = byId[id] || {};
+        return "《" + (String(t.title_zh || "").trim() || t.title || id) + "》";
+      });
+      var shown = names.slice(0, 8).join("\n") + (names.length > 8 ? "\n… 等共 " + names.length + " 篇" : "");
+      askConfirm("确定删除所选 " + ids.length + " 篇文献？\n" + shown
+        + "\n\n将从 papers.json 移除并同步 GitHub / 服务器，封面文件一并删除。", function () {
+        var btn = document.getElementById("btnDelSel");
+        btn.disabled = true;
+        btn.textContent = "删除中…（下方看实时进度）";
+        runJob("/api/delete", { ids: ids,
+                                push: document.getElementById("doPush").checked,
+                                sync: document.getElementById("doSync").checked }, function (res) {
+          mSelected = {};
+          mSelUpdate();
+          if (res && res.hint) toast(res.hint);
+          loadItems(); loadStatus();
+        });
+      });
+    });
+  }
 }
 function mRender() {
   var list = mFiltered();
@@ -975,10 +1033,32 @@ function mRender() {
   if (c) c.textContent = (mFilter.q || mFilter.tag !== "*" || mFilter.journal !== "*" || mFilter.from || mFilter.to)
     ? "匹配 " + list.length + " / " + mItems.length + " 篇" : "共 " + mItems.length + " 篇";
   renderManage(list);
+  mSelUpdate();
+}
+/* ── 多选批量删除 ──
+   勾选状态存 mSelected（id → 1），跨筛选 / 重渲染保留；列表刷新后剔除已不存在的 id，
+   避免选中一个已被别处删除的条目。「全选」只作用于当前筛选结果。 */
+var mSelected = {};
+function mSelUpdate() {
+  var ids = Object.keys(mSelected);
+  var note = document.getElementById("mSelNote");
+  var btn = document.getElementById("btnDelSel");
+  if (note) note.textContent = ids.length ? "已选 " + ids.length + " 篇" : "未勾选任何文献";
+  if (btn) { btn.disabled = !ids.length; btn.textContent = ids.length ? "删除所选（" + ids.length + "）" : "删除所选"; }
+  var sa = document.getElementById("mSelAll");
+  if (sa) {
+    var list = mFiltered();
+    var sel = list.filter(function (it) { return mSelected[it.id]; }).length;
+    sa.checked = list.length > 0 && sel === list.length;
+    sa.indeterminate = sel > 0 && sel < list.length;
+  }
 }
 function loadItems() {
   return api("/api/items").then(function (papers) {
     mItems = papers.items || [];
+    var exist = {};
+    mItems.forEach(function (it) { exist[it.id] = 1; });
+    Object.keys(mSelected).forEach(function (id) { if (!exist[id]) delete mSelected[id]; });
     mRenderChips();
     mRender();
   });
@@ -991,7 +1071,18 @@ function renderManage(items) {
   items.forEach(function (it) { box.appendChild(manageRow(it)); });
 }
 function manageRow(it) {
-  var node = el("div", "mrow");
+  var node = el("div", "mrow msel");
+  // 行首勾选框：纳入批量删除（状态存 mSelected，重渲染后按其回填）
+  var sel = el("input", "selbox");
+  sel.type = "checkbox";
+  sel.checked = !!mSelected[it.id];
+  sel.title = "勾选以纳入批量删除";
+  sel.setAttribute("aria-label", "选择：" + (String(it.title_zh || "").trim() || it.title || it.id));
+  sel.addEventListener("change", function () {
+    if (sel.checked) mSelected[it.id] = 1; else delete mSelected[it.id];
+    mSelUpdate();
+  });
+  node.appendChild(sel);
   var info = el("div", "minfo");
   // 顶行：封面缩略图（如有）+ 期刊徽章 + 体裁 + 日期 —— 与站点卡片同一视觉语言
   var top = el("div", "top");
@@ -1004,7 +1095,7 @@ function manageRow(it) {
   }
   top.appendChild(el("span", "j", it.journal || "—"));
   if (it.article_type) top.appendChild(el("span", "tchip", it.article_type));
-  top.appendChild(el("span", "y", (it.published || it.year || "—") + " · 被引 " + (it.cited_by || 0) + (it.oa ? " · OA" : "")));
+  top.appendChild(el("span", "y", (it.published || it.year || "—") + " · 被引 " + (it.cited_by || 0)));
   info.appendChild(top);
   // 标题：中文优先（与站点一致），另一语言作副行
   var zh = String(it.title_zh || "").trim(), en = String(it.title || "").trim();
@@ -1092,7 +1183,7 @@ function openEdit(node, it) {
   field("中文标题 title_zh（可选）", "title_zh", { full: true });
   field("文章类型 article_type（出版社惯例）", "article_type", { full: true, list: "typeList" });
   it.keywordsText = (it.keywords || []).join("、");
-  field("关键词 keywords（按文章原文填写，逗号/顿号分隔）", "keywordsText", { full: true });
+  field("关键词 keywords（自动抓取预填，可手动修改，逗号/顿号分隔）", "keywordsText", { full: true });
 
   var tagBox = el("div", "full");
   tagBox.appendChild(el("label", "", "标签 tags（点选已有，或输入新标签后回车）"));
@@ -1183,10 +1274,29 @@ document.getElementById("btnTrMiss").addEventListener("click", function () {
 var wkIssues = [];
 var wkSiteUrl = "";
 
+/* 期次多选批量删除：与文献管理同款交互（期次列表无筛选，「全选」即全部期次）。
+   勾选状态按文件名存 wkSelected，跨重渲染保留，刷新后剔除已不存在的期次。 */
+var wkSelected = {};
+function wkSelUpdate() {
+  var names = Object.keys(wkSelected);
+  var note = document.getElementById("wkSelNote");
+  var btn = document.getElementById("btnWkDelSel");
+  if (note) note.textContent = names.length ? "已选 " + names.length + " 期" : "未勾选任何期次";
+  if (btn) { btn.disabled = !names.length; btn.textContent = names.length ? "删除所选（" + names.length + "）" : "删除所选"; }
+  var sa = document.getElementById("wkSelAll");
+  if (sa) {
+    sa.checked = wkIssues.length > 0 && names.length === wkIssues.length;
+    sa.indeterminate = names.length > 0 && names.length < wkIssues.length;
+  }
+}
+
 function loadWeekly() {
   return api("/api/weekly").then(function (r) {
     wkIssues = r.issues || [];
     wkSiteUrl = r.siteUrl || "";
+    var exist = {};
+    wkIssues.forEach(function (it) { exist[it.file] = 1; });
+    Object.keys(wkSelected).forEach(function (f) { if (!exist[f]) delete wkSelected[f]; });
     wkRender();
   });
 }
@@ -1195,12 +1305,25 @@ function wkRender() {
   box.innerHTML = "";
   if (!wkIssues.length) {
     box.appendChild(el("p", "note", "还没有周报 —— 把第一期 md 拖到上方框里收录"));
+    wkSelUpdate();
     return;
   }
   wkIssues.forEach(function (it) { box.appendChild(wkRow(it)); });
+  wkSelUpdate();
 }
 function wkRow(it) {
-  var node = el("div", "mrow");
+  var node = el("div", "mrow msel");
+  // 行首勾选框：纳入批量删除（状态存 wkSelected，重渲染后按其回填）
+  var sel = el("input", "selbox");
+  sel.type = "checkbox";
+  sel.checked = !!wkSelected[it.file];
+  sel.title = "勾选以纳入批量删除";
+  sel.setAttribute("aria-label", "选择：" + (it.title || it.file));
+  sel.addEventListener("change", function () {
+    if (sel.checked) wkSelected[it.file] = 1; else delete wkSelected[it.file];
+    wkSelUpdate();
+  });
+  node.appendChild(sel);
   var info = el("div", "minfo");
   var top = el("div", "top");
   top.appendChild(el("span", "tchip", it.date || "无日期"));
@@ -1305,6 +1428,41 @@ function wkUploadOne(file, done) {
       function (f) { return /\.md$/i.test(f.name || ""); });
     if (!files.length) { toast("只识别 .md 周报文件"); return; }
     wkUploadQueue(files);
+  });
+  /* 期次多选：全选 + 批量删除（确认弹窗列期次清单；卡片保留，文献管理里单独删） */
+  var sa = document.getElementById("wkSelAll");
+  sa.addEventListener("change", function () {
+    var on = sa.checked;
+    wkIssues.forEach(function (it) {
+      if (on) wkSelected[it.file] = 1; else delete wkSelected[it.file];
+    });
+    wkRender();
+  });
+  document.getElementById("btnWkDelSel").addEventListener("click", function () {
+    var names = Object.keys(wkSelected);
+    if (!names.length) return;
+    var byFile = {};
+    wkIssues.forEach(function (it) { byFile[it.file] = it; });
+    var lines = names.map(function (f) {
+      var it = byFile[f] || {};
+      return "《" + (it.title || f) + "》" + (it.date ? "（" + it.date + "）" : "");
+    });
+    var shown = lines.slice(0, 8).join("\n") + (lines.length > 8 ? "\n… 等共 " + lines.length + " 期" : "");
+    askConfirm("确定删除所选 " + names.length + " 期周报？\n" + shown
+      + "\n\n将删除对应 content/weekly/*.md 并重建站点；已生成的文献卡片保留"
+      + "（在文献管理里单独删）。", function () {
+      var btn = document.getElementById("btnWkDelSel");
+      btn.disabled = true;
+      btn.textContent = "删除中…（下方看实时进度）";
+      runJob("/api/weekly-delete", { names: names,
+                                     push: document.getElementById("doPush").checked,
+                                     sync: document.getElementById("doSync").checked }, function (res) {
+        wkSelected = {};
+        wkSelUpdate();
+        if (res && res.hint) toast(res.hint);
+        loadWeekly(); loadStatus();
+      }, "wkLog");
+    });
   });
 })();
 

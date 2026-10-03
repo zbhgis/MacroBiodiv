@@ -12,7 +12,7 @@
        同时识别粘贴 / 拖拽的图片（封面图）：进入「待配区」，抓取成功后
        按顺序自动配给新文献（GeoSciPlot「标准导入」的同款配对逻辑）
     2. 逐条补 标签 / 中文标题 / 备注 / 封面图
-    3. 文献管理：编辑手动字段、重新抓取、刷新被引、删除
+    3. 文献管理：编辑手动字段、重新抓取、刷新被引、删除（勾选多选可批量删）
     4. 每周速递：上传周报 md → 落盘 content/weekly/（周报页自动收录）
        + 解析「# 文献N」的 DOI/图表 → 抓元数据入库（周报自带中文直接预填）
        + 图表图作封面（图表为无 → 站点 logo 兜底）
@@ -70,7 +70,8 @@ COVER_MIME = {"png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg",
 # 手动字段：自动抓取不会覆盖；abstract_zh 由大模型初填，之后视同手动字段（可在界面修改，
 # 重新抓取 / 刷新被引都会保留，只有显式「重新翻译」才重写）
 MANUAL_TEXT = ("title_zh", "abstract_zh", "article_type", "note")
-# keywords 手动维护（按文章原文填写；API 层拿不到作者关键词，不从正文推断）
+# keywords 抓取时自动预填（OpenAlex 词表，截前 10 个），仍可手动修改 —— 与 tags 一样
+# 视作手动字段：编辑保存的值优先，重新抓取只在空缺时回填、绝不覆盖已填值
 MANUAL_LIST = ("tags", "keywords")
 # ── 每周速递：内容源 content/weekly/*.md（build_site.py 直接消费该目录），
 #    上传的周报 md 在此落盘；文献封面缺图时用站点 logo 兜底 ──
@@ -274,14 +275,20 @@ def start_job(kind: str, body: dict) -> str:
                                               body.get("message") or "",
                                               bool(body.get("push", True)), bool(body.get("sync", True)))
             elif kind == "delete":
-                res = do_delete_and_finish((body.get("id") or "").strip(), body.get("message") or "",
+                ids = body.get("ids")
+                if not ids and body.get("id"):
+                    ids = [body.get("id")]      # 兼容旧客户端的单 id 入参
+                res = do_delete_and_finish(ids or [], body.get("message") or "",
                                            bool(body.get("push", True)), bool(body.get("sync", True)))
             elif kind == "weekly":
                 res = do_weekly_and_finish(body.get("name") or "", body.get("content") or "",
                                            body.get("message") or "",
                                            bool(body.get("push", True)), bool(body.get("sync", True)))
             elif kind == "weekly-delete":
-                res = do_weekly_delete_and_finish(body.get("name") or "", body.get("message") or "",
+                names = body.get("names")
+                if not names and body.get("name"):
+                    names = [body.get("name")]      # 兼容旧客户端的单文件名入参
+                res = do_weekly_delete_and_finish(names or [], body.get("message") or "",
                                                   bool(body.get("push", True)), bool(body.get("sync", True)))
             elif kind == "sync-server":
                 res = do_sync_server()
@@ -460,7 +467,9 @@ def do_refresh(ids: list) -> dict:
                 time.sleep(0.3)
             try:
                 record = fetch_paper(str(it.get("doi") or ""))
-                keep = {k: it[k] for k in ("id", "added", "title_zh", "abstract_zh", "article_type", "note", "tags", "keywords", "cover") if k in it}
+                keep = {k: it[k] for k in ("id", "added", "title_zh", "abstract_zh", "article_type", "note", "tags", "cover") if k in it}
+                if it.get("keywords"):
+                    keep["keywords"] = it["keywords"]   # 手动填过才保留；空缺由重新抓取回填
                 record.update(keep)
                 record["id"] = it.get("id")     # id 由入库时的 DOI 算出，保持不变
                 cov = detect_cover(record["id"])
@@ -573,20 +582,37 @@ def do_translate(ids: list, only_missing: bool = False) -> dict:
             "hint": "" if err_n == 0 else f"{err_n} 条翻译失败（见日志）——失败的可先发布英文版，稍后用「翻译缺中文的」补齐"}
 
 
-def do_delete(fid: str) -> dict:
+def do_delete(ids) -> dict:
+    """批量删除：ids（列表；兼容单个 id 字符串）每一条都从 papers.json 移除并清掉封面文件。
+    部分成功也算成功 —— 逐条记日志，返回 removed 供默认提交信息使用。"""
+    want: list[str] = []
+    for raw in (ids if isinstance(ids, list) else [ids]):
+        s = str(raw or "").strip()
+        if s and s not in want:
+            want.append(s)
+    if not want:
+        return {"ok": False, "log": [{"step": "删除", "ok": False, "out": "没有指定要删除的条目"}]}
+
+    log: list[dict] = []
     with DATA_LOCK:
         papers = load_papers()
         items = papers.get("items", [])
-        it = next((x for x in items if x.get("id") == fid), None)
-        if not it:
-            return {"ok": False, "log": [{"step": "删除", "ok": False, "out": f"id 不存在：{fid}"}]}
-
-        papers["items"] = [x for x in items if x.get("id") != fid]
+        by_id = {x.get("id"): x for x in items}
+        removed = [by_id[i] for i in want if i in by_id]
+        missing = [i for i in want if i not in by_id]
+        if not removed:
+            return {"ok": False,
+                    "log": [{"step": "删除", "ok": False, "out": "id 均不存在：" + " ".join(missing)}]}
+        drop = {x.get("id") for x in removed}
+        papers["items"] = [x for x in items if x.get("id") not in drop]
         save_papers(papers)
-    remove_cover(fid)       # 封面文件随条目一起删（站点重建后不再引用）
-    return {"ok": True, "item": it,
-            "log": [{"step": f"删除 {fid}", "ok": True,
-                     "out": f"已移除「{str(it.get('title') or '')[:50]}」（git 提交后详情页随构建自动消失）"}]}
+    for it in removed:
+        remove_cover(str(it.get("id") or ""))   # 封面文件随条目一起删（站点重建后不再引用）
+        log.append({"step": f"删除 {it.get('id')}", "ok": True,
+                    "out": f"已移除「{str(it.get('title') or '')[:50]}」"})
+    for fid in missing:
+        log.append({"step": f"删除 {fid}", "ok": False, "out": "id 不存在（可能已被删除）"})
+    return {"ok": True, "removed": [str(x.get("id") or "") for x in removed], "log": log}
 
 
 # ────────────────────────── 发布流水线 ──────────────────────────
@@ -736,12 +762,19 @@ def do_translate_and_finish(ids: list, only_missing: bool, message: str, push: b
     return out
 
 
-def do_delete_and_finish(fid: str, message: str, push: bool, sync: bool) -> dict:
-    res = do_delete(fid)
+def do_delete_and_finish(ids, message: str, push: bool, sync: bool) -> dict:
+    res = do_delete(ids)
     if not res.get("ok"):
         return res
     log = res.get("log", [])
-    return pipeline_after_content(log, message or f"delete: 文献 {fid}", push, sync)
+    removed = res.get("removed") or []
+    if not message.strip():
+        if len(removed) == 1:
+            message = f"delete: 文献 {removed[0]}"          # 与既有单条删除的提交信息同格式
+        else:
+            preview = " ".join(removed[:5]) + (" 等" if len(removed) > 5 else "")
+            message = f"delete: 文献 {len(removed)} 篇（{preview}）"
+    return pipeline_after_content(log, message, push, sync)
 
 
 # ────────────────────────── 每周速递 ──────────────────────────
@@ -961,18 +994,48 @@ def do_weekly_and_finish(name: str, content: str, message: str, push: bool, sync
     return pipeline_after_content(log, message or f"weekly: 收录《{res.get('title', name)}》", push, sync)
 
 
-def do_weekly_delete_and_finish(name: str, message: str, push: bool, sync: bool) -> dict:
-    log: list[dict] = []
-    fname = weekly_safe_name(name)
-    fp = WEEKLY_SRC / fname if fname else None
-    if not fp or not fp.exists():
+def do_weekly_delete(names) -> dict:
+    """批量删除周报期次：names（列表；兼容单个文件名字符串）逐个删除落盘文件。
+    只删周报页（content/weekly/*.md），已生成的文献卡片保留（在文献管理里单独删）。
+    部分成功也算成功 —— 逐条记日志，返回 removed 供默认提交信息使用。"""
+    want: list[str] = []
+    for raw in (names if isinstance(names, list) else [names]):
+        fname = weekly_safe_name(str(raw or ""))
+        if fname and fname not in want:
+            want.append(fname)
+    if not want:
         return {"ok": False,
-                "log": [{"step": "删除周报", "ok": False, "out": f"文件不存在：{fname or name}"}]}
-    fp.unlink()
-    log.append({"step": "删除周报", "ok": True,
-                "out": f"已删除 content/weekly/{fname}（周报页随构建消失；"
-                       f"已生成的文献卡片保留，在文献管理里单独删除）"})
-    return pipeline_after_content(log, message or f"weekly: 删除 {fname}", push, sync)
+                "log": [{"step": "删除周报", "ok": False, "out": "没有指定要删除的期次"}]}
+
+    log: list[dict] = []
+    removed: list[str] = []
+    for fname in want:
+        fp = WEEKLY_SRC / fname
+        if fp.exists():
+            fp.unlink()
+            removed.append(fname)
+            log.append({"step": f"删除周报 {fname}", "ok": True,
+                        "out": "周报页随构建消失；已生成的文献卡片保留，在文献管理里单独删除"})
+        else:
+            log.append({"step": f"删除周报 {fname}", "ok": False, "out": "文件不存在（可能已删除）"})
+    if not removed:
+        return {"ok": False, "log": log}
+    return {"ok": True, "removed": removed, "log": log}
+
+
+def do_weekly_delete_and_finish(names, message: str, push: bool, sync: bool) -> dict:
+    res = do_weekly_delete(names)
+    if not res.get("ok"):
+        return res
+    log = res.get("log", [])
+    removed = res.get("removed") or []
+    if not message.strip():
+        if len(removed) == 1:
+            message = f"weekly: 删除 {removed[0]}"           # 与既有单期删除的提交信息同格式
+        else:
+            preview = "、".join(removed[:3]) + (" 等" if len(removed) > 3 else "")
+            message = f"weekly: 删除 {len(removed)} 期（{preview}）"
+    return pipeline_after_content(log, message, push, sync)
 
 
 # ────────────────────────── HTTP ──────────────────────────

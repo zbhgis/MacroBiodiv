@@ -3,7 +3,7 @@
 
 分层策略（参考 doi2md，只取基本信息、不抓出版社页面，避开 Cloudflare 反爬）：
     1. Crossref  api.crossref.org/works/{doi}   → 标题 / 作者 / 期刊 / 年月 / 卷期页 / 摘要(若有)
-    2. OpenAlex  api.openalex.org/works/doi:{doi} → 补摘要(还原倒排索引) / 关键词 / 被引 / OA
+    2. OpenAlex  api.openalex.org/works/doi:{doi} → 补摘要(还原倒排索引) / 关键词 / 被引
 
 输出统一为「规范记录」字典（papers.json 单条去掉手动字段后的样子）。
 无第三方依赖，仅标准库。
@@ -143,6 +143,8 @@ def fetch_crossref(doi: str) -> dict:
         "issue": (d.get("issue") or "").strip(),
         "pages": page or art,
         "abstract": _clean_abstract(d.get("abstract") or ""),
+        # 出版社 deposit 的学科分类（如 "Ecology"）—— 多数出版社不填，作关键词兜底
+        "keywords": [str(s).strip() for s in (d.get("subject") or []) if str(s).strip()],
         "issn": (d.get("ISSN") or [""])[0] if d.get("ISSN") else "",
         "url": ((d.get("resource") or {}).get("primary") or {}).get("URL") or d.get("URL") or "",
         "source": "crossref",
@@ -164,12 +166,13 @@ def fetch_openalex(doi: str) -> dict:
 
     src = ((d.get("primary_location") or {}).get("source") or {})
     pd = d.get("publication_date") or ""
+    # OpenAlex keywords：基于标题 / 摘要抽取的词表，与作者关键词高度重合（2024 起质量
+    # 显著提升，实测论文关键词尽数命中）—— 截前 10 个防长尾噪声
+    oa_kws = [str(k.get("display_name") or "").strip() for k in (d.get("keywords") or [])]
     return {
         "abstract": abstract.strip(),
-        # 不采集 OpenAlex keywords —— 那是基于内容归类的主题标签（机器推断），
-        # 不是文章作者提供的关键词；keywords 改为管理端手动维护
+        "keywords": [x for x in oa_kws if x][:10],
         "cited_by": int(d.get("cited_by_count") or 0),
-        "oa": bool((d.get("open_access") or {}).get("is_oa")),
         # OpenAlex 体裁（article/review/editorial/letter/erratum…），作为大模型判定文章类型的提示
         "oa_type": (d.get("type") or "").strip(),
         "journal": (src.get("display_name") or "").strip(),
@@ -217,8 +220,9 @@ def fetch_paper(doi: str) -> dict:
         if not rec.get("abstract"):
             rec["abstract"] = oa.get("abstract", "")
         rec["cited_by"] = oa.get("cited_by", 0)
-        rec["oa"] = oa.get("oa", False)
         rec["oa_type"] = oa.get("oa_type", "")     # 体裁提示（供 LLM 判定文章类型）
+        # 关键词：OpenAlex 词表为主（作者关键词粒度）；Crossref subject 兜底
+        rec["keywords"] = (oa.get("keywords") or rec.get("keywords") or [])[:10]
         if not rec.get("journal"):
             rec["journal"] = oa.get("journal", "")
         if not rec.get("year") and oa.get("year"):
@@ -247,7 +251,6 @@ def _finalize(rec: dict) -> dict:
     rec = {k: _unescape_deep(v) for k, v in rec.items()}
     rec.setdefault("keywords", [])
     rec.setdefault("cited_by", 0)
-    rec.setdefault("oa", False)
     rec.setdefault("abstract", "")
     rec.setdefault("published_online", False)
     rec["title"] = (rec.get("title") or "").strip()
