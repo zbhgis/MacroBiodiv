@@ -250,9 +250,8 @@ details pre{margin:8px 0 0;padding:10px;border:1px solid var(--line);border-radi
     <div class="mgroup" style="margin:0 0 14px"><span class="mlabel">标签</span><div class="chips" id="mTagChips"></div></div>
     <div class="row" style="margin:0 0 16px">
       <button id="btnSync">同步站点到服务器</button>
-      <button id="btnCited">刷新全部被引数</button>
       <button id="btnTrMiss">翻译缺中文的</button>
-      <span class="note">被引走 OpenAlex · 翻译调本地大模型（只补空缺不覆盖，429/故障自动退避，可反复点直到补齐）</span>
+      <span class="note">翻译调本地大模型（只补空缺不覆盖，429/故障自动退避，可反复点直到补齐）</span>
     </div>
     <div class="row" style="margin:0 0 14px">
       <label class="mono" style="display:flex;align-items:center;gap:6px;margin:0;font-size:11px;cursor:pointer">
@@ -274,9 +273,9 @@ details pre{margin:8px 0 0;padding:10px;border:1px solid var(--line);border-radi
       限流预案：429 指数退避并遵守 Retry-After → 重试耗尽进入 60s 断路冷却（期间直接跳过不撞 API）→
       审校失败或超预算自动降级为「仅初译」→ 初译失败则中文留空。任何失败都不阻断抓取与发布，
       事后用文献管理的「翻译缺中文的」批量回补（只补空缺、可反复执行）。<br>
-    · 译文（中文标题 / 中文摘要）在表单里可直接修改，修改稿视为定稿 —— 重新抓取 / 刷新被引不会覆盖，只有「重新翻译」会重写。<br>
+    · 译文（中文标题 / 中文摘要）在表单里可直接修改，修改稿视为定稿 —— 重新抓取不会覆盖，只有「重新翻译」会重写。<br>
     · 文献 id 由 DOI（小写）sha1 前 10 位算出 —— 重复 DOI 发布时会被自动跳过；封面文件名与 id 一一对应，换封面即覆盖。<br>
-    · 「重新抓取」更新标题 / 作者 / 期刊 / 摘要等自动字段；「刷新被引」只批量更新 cited_by。<br>
+    · 「重新抓取」更新标题 / 作者 / 期刊 / 摘要等自动字段；被引数（cited_by）仅随抓取入库存档，界面与站点均不展示。<br>
     · 文献管理列表支持<b>勾选多选</b>：「全选」作用于当前筛选结果（搜索 / 标签 / 期刊 / 日期筛选后再全选可精准圈定范围），
       「删除所选」批量删除并经页内确认列出标题清单；勾选状态跨筛选与翻看保留，单条「删除」按钮照常可用。<br>
     · <b>每周速递</b>：上传周报 md 自动两件事 —— ① 落盘 content/weekly/，周报页随构建收录；
@@ -719,7 +718,7 @@ function buildItemNode(rec) {
   left.appendChild(el("div", "t", p.title || "—"));
   if (rec.title_zh) left.appendChild(el("div", "tzh", rec.title_zh));
   left.appendChild(el("div", "", "作者 " + (p.authors || []).length + " 人：" + (p.authors || []).slice(0, 3).join(", ") + ((p.authors || []).length > 3 ? " et al." : "")));
-  left.appendChild(el("div", "", (p.volume ? "Vol " + p.volume + (p.issue ? " · Iss " + p.issue : "") + " · " : "") + (p.pages ? p.pages + " · " : "") + "被引 " + (p.cited_by || 0) + " · id " + (p.id || "?")));
+  left.appendChild(el("div", "", (p.volume ? "Vol " + p.volume + (p.issue ? " · Iss " + p.issue : "") + " · " : "") + (p.pages ? p.pages + " · " : "") + "id " + (p.id || "?")));
   var stat = el("div", "", "来源 " + (p.source || "?"));
   if (!p.title) { stat.className = "err"; stat.textContent = "✗ 抓取结果不完整（无标题）"; }
   left.appendChild(stat);
@@ -923,7 +922,7 @@ document.getElementById("btnPush").addEventListener("click", function () {
   });
 });
 
-/* ── 文献管理（查 / 改 / 删 / 重抓 / 刷新被引）── */
+/* ── 文献管理（查 / 改 / 删 / 重抓）── */
 var mItems = [];
 var mFilter = { q: "", tag: "*", journal: "*", from: "", to: "" };
 function mFiltered() {
@@ -1116,7 +1115,7 @@ function manageRow(it) {
   }
   top.appendChild(el("span", "j", it.journal || "—"));
   if (it.article_type) top.appendChild(el("span", "tchip", it.article_type));
-  top.appendChild(el("span", "y", (it.published || it.year || "—") + " · 被引 " + (it.cited_by || 0)));
+  top.appendChild(el("span", "y", (it.published || it.year || "—")));
   info.appendChild(top);
   // 标题：中文优先（与站点一致），另一语言作副行
   var zh = String(it.title_zh || "").trim(), en = String(it.title || "").trim();
@@ -1261,18 +1260,6 @@ document.getElementById("btnSync").addEventListener("click", function () {
   runJob("/api/sync-server", {}, function () {
     btn.disabled = false;
     btn.textContent = "同步站点到服务器";
-  });
-});
-document.getElementById("btnCited").addEventListener("click", function () {
-  var btn = document.getElementById("btnCited");
-  btn.disabled = true;
-  btn.textContent = "刷新中…（不离开页面）";
-  runJob("/api/refresh-cited", { push: document.getElementById("doPush").checked,
-                                 sync: document.getElementById("doSync").checked }, function (res) {
-    btn.disabled = false;
-    btn.textContent = "刷新全部被引数";
-    if (res && res.hint) toast(res.hint);
-    loadItems(); loadStatus();
   });
 });
 /* 批量补译：只填空缺、不覆盖已有译文 —— 限流/故障后的安全回补通道，可反复执行 */

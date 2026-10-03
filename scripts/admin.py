@@ -12,7 +12,7 @@
        同时识别粘贴 / 拖拽的图片（封面图）：进入「待配区」，抓取成功后
        按顺序自动配给新文献（GeoSciPlot「标准导入」的同款配对逻辑）
     2. 逐条补 标签 / 中文标题 / 备注 / 封面图
-    3. 文献管理：编辑手动字段、重新抓取、刷新被引、删除（勾选多选可批量删）
+    3. 文献管理：编辑手动字段、重新抓取、删除（勾选多选可批量删）
     4. 每周速递：上传周报 md → 落盘 content/weekly/（周报页自动收录）
        + 解析「# 文献N」的 DOI/图表 → 抓元数据入库（周报自带中文直接预填）
        + 图表图作封面（图表为无 → 站点 logo 兜底）
@@ -45,7 +45,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from fetch_doi import fetch_paper, fetch_openalex, normalize_doi, paper_id  # noqa: E402
+from fetch_doi import fetch_paper, normalize_doi, paper_id  # noqa: E402
 from render_md import parse_front_matter, parse_weekly_papers  # noqa: E402
 import llm  # noqa: E402
 
@@ -68,7 +68,7 @@ COVER_MAX = 8 * 1024 * 1024
 COVER_MIME = {"png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg",
               "webp": "image/webp", "gif": "image/gif"}
 # 手动字段：自动抓取不会覆盖；abstract_zh 由大模型初填，之后视同手动字段（可在界面修改，
-# 重新抓取 / 刷新被引都会保留，只有显式「重新翻译」才重写）
+# 重新抓取都会保留，只有显式「重新翻译」才重写）
 MANUAL_TEXT = ("title_zh", "abstract_zh", "article_type", "note")
 # keywords 抓取时自动预填（OpenAlex 词表，截前 10 个），仍可手动修改 —— 与 tags 一样
 # 视作手动字段：编辑保存的值优先，重新抓取只在空缺时回填、绝不覆盖已填值
@@ -230,7 +230,7 @@ def repo_state() -> dict:
 JOBS: dict[str, dict] = {}
 JOBS_LOCK = threading.Lock()
 # papers.json 的读写锁：发布/更新/刷新/补译/删除都是「读→改→写回」，
-# 并发执行（如刷新被引未完又点发布）会互相覆盖丢数据，统一在此串行化
+# 并发执行（如补译未完又点发布）会互相覆盖丢数据，统一在此串行化
 DATA_LOCK = threading.Lock()
 
 
@@ -267,9 +267,6 @@ def start_job(kind: str, body: dict) -> str:
             elif kind == "refresh":
                 res = do_refresh_and_finish(body.get("ids") or [], body.get("message") or "",
                                             bool(body.get("push", True)), bool(body.get("sync", True)))
-            elif kind == "refresh-cited":
-                res = do_refresh_cited_and_finish(body.get("message") or "",
-                                                  bool(body.get("push", True)), bool(body.get("sync", True)))
             elif kind == "translate":
                 res = do_translate_and_finish(body.get("ids") or [], bool(body.get("only_missing")),
                                               body.get("message") or "",
@@ -489,28 +486,6 @@ def do_refresh(ids: list) -> dict:
         return {"ok": False, "log": [{"step": "重新抓取", "ok": False, "out": "没有匹配的条目"}]}
     return {"ok": err_n == 0, "log": log,
             "hint": "" if err_n == 0 else f"{err_n} 条刷新失败（多为网络问题，稍后重试）"}
-
-
-def do_refresh_cited() -> dict:
-    """批量刷新全部文献的被引数（只查 OpenAlex，单字段轻量）。"""
-    log = [{"step": "刷新被引（OpenAlex）", "out": "", "ok": None}]
-    n, err = 0, 0
-    with DATA_LOCK:
-        papers = load_papers()
-        for idx, it in enumerate(papers["items"]):
-            if idx:
-                time.sleep(0.25)
-            try:
-                oa = fetch_openalex(str(it.get("doi") or ""))
-                it["cited_by"] = oa.get("cited_by", it.get("cited_by", 0))
-                n += 1
-            except Exception:
-                err += 1
-        save_papers(papers)
-    log[0]["ok"] = err == 0
-    log[0]["out"] = f"更新 {n} 条" + (f"，失败 {err} 条" if err else "")
-    return {"ok": err == 0, "log": log,
-            "hint": "" if err == 0 else "部分条目刷新失败（网络波动），可重试"}
 
 
 def do_translate(ids: list, only_missing: bool = False) -> dict:
@@ -742,15 +717,6 @@ def do_refresh_and_finish(ids: list, message: str, push: bool, sync: bool) -> di
     return out
 
 
-def do_refresh_cited_and_finish(message: str, push: bool, sync: bool) -> dict:
-    res = do_refresh_cited()
-    log = res.get("log", [])
-    out = pipeline_after_content(log, message or "update: 刷新被引数", push, sync)
-    if res.get("hint"):
-        out["hint"] = res["hint"]
-    return out
-
-
 def do_translate_and_finish(ids: list, only_missing: bool, message: str, push: bool, sync: bool) -> dict:
     res = do_translate(ids, only_missing=only_missing)
     if not res.get("changed"):
@@ -806,14 +772,18 @@ def fetch_remote_image(url: str, timeout: int = 30) -> bytes:
     单源失败就让封面落到 logo 兜底太亏 —— 按官方镜像 → GitHub 源站顺序自动换源
     重试，全部失败才抛最后一个错误（weekly_cover 再走 logo 兜底）。"""
     candidates = [url]
-    m = re.match(r"https://cdn\.jsdelivr\.net/gh/([^/@\s]+)@([^/\s]+)/(.+)$", url)
+    # 实际外链形如 gh/{user}/{repo}@{branch}/{path}（如 zbhgis/BlogImg@main/blog/x.png），
+    # 注意 @ 前是「用户/仓库」两段
+    m = re.match(r"https://cdn\.jsdelivr\.net/gh/([^/@\s]+)/([^/@\s]+)(?:@([^/\s]+))?/(.+)$", url)
     if m:                                   # GitHub 仓库图：补齐镜像与源站
-        user, br, path = m.groups()
+        user, repo, br, path = m.groups()
+        spec = f"{user}/{repo}" + (f"@{br}" if br else "")
         candidates += [
-            f"https://fastly.jsdelivr.net/gh/{user}@{br}/{path}",
-            f"https://gcore.jsdelivr.net/gh/{user}@{br}/{path}",
-            f"https://raw.githubusercontent.com/{user}/{br}/{path}",
+            f"https://fastly.jsdelivr.net/gh/{spec}/{path}",
+            f"https://gcore.jsdelivr.net/gh/{spec}/{path}",
         ]
+        if br:                              # raw 源站必须带分支/标签
+            candidates.append(f"https://raw.githubusercontent.com/{user}/{repo}/{br}/{path}")
     err = ""
     for i, u in enumerate(candidates):
         try:
@@ -1175,7 +1145,7 @@ class Handler(BaseHTTPRequestHandler):
                 ok, val = save_cover(fid, body.get("dataUrl") or "")
                 self._json({"ok": ok, "cover": val if ok else "",
                             "error": "" if ok else val})
-        elif path in ("/api/publish", "/api/update", "/api/refresh", "/api/refresh-cited",
+        elif path in ("/api/publish", "/api/update", "/api/refresh",
                       "/api/translate", "/api/delete", "/api/sync-server", "/api/init", "/api/push"):
             # 长操作：立即返回任务号，后台线程执行，前端轮询 /api/job/<id>
             self._json({"job": start_job(path[len("/api/"):], body)})
