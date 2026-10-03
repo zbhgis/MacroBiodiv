@@ -182,8 +182,14 @@
       `<line class="gl" x1="${pl}" y1="${Y(v).toFixed(1)}" x2="${W - pr}" y2="${Y(v).toFixed(1)}"/>`
       + `<text class="gt" x="${pl - 7}" y="${(Y(v) + 3.5).toFixed(1)}" text-anchor="end">${v}</text>`).join("");
     const mid = Math.round(N / 2);
-    const xlab = [[0, "start"], [mid, "middle"], [N, "end"]].map(([i, a]) =>
-      `<text class="gt" x="${X(i).toFixed(1)}" y="${H - 8}" text-anchor="${a}">${pts[i][0].slice(5)}</text>`).join("");
+    /* x 轴刻度：首/中/尾三档；中点与首尾任一间距 <44px 时丢弃，跨度为 0 只画一枚 */
+    const xlab = (N === 0
+      ? [[0, "middle"]]
+      : [[0, "start"], [mid, "middle"], [N, "end"]]
+        .filter(([i]) => i === 0 || i === N
+          || (X(i) - X(0) >= 44 && X(N) - X(i) >= 44)))
+      .map(([i, a]) =>
+        `<text class="gt" x="${X(i).toFixed(1)}" y="${H - 8}" text-anchor="${a}">${pts[i][0].slice(5)}</text>`).join("");
     /* 数据点：只有真实入库的日期出点；hit 大圆承担 hover */
     const marks = pts.map((p, i) => ({ x: X(i), y: Y(p[1]), k: p[0], n: p[1], add: p[2] }))
       .filter((p) => p.add > 0);

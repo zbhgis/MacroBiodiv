@@ -635,7 +635,9 @@ html[data-theme=light] .st-tc3{--tc:#8250df}html[data-theme=light] .st-tc4{--tc:
 .st-tab{padding:2px 10px;border:1px solid var(--line2);border-radius:99px;background:none;color:var(--dim);font-family:inherit;font-size:var(--fs-xs);cursor:pointer;transition:color .16s,border-color .16s,background-color .16s}
 .st-tab:hover{color:var(--text)}
 .st-tab.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
-/* 词云：字号 ∝ 频次，flex 换行自然流式排布（不定位，避免重叠） */
+/* 词云：字号 ∝ 频次，flex 换行自然流式排布（不定位，避免重叠）；
+   [hidden] 显式声明 —— 作者 display:flex 会压过 UA 的 hidden 隐藏 */
+.st-cloud[hidden]{display:none}
 .st-cloud{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline;min-height:90px;margin-top:12px}
 .st-cloud .st-w{line-height:1.4;cursor:default;transition:color .16s,opacity .16s}
 .st-cloud .st-w:hover{color:var(--accent);opacity:1!important}
