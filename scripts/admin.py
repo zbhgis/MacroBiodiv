@@ -802,13 +802,39 @@ def weekly_slug(title: str, stem: str) -> str:
 
 
 def fetch_remote_image(url: str, timeout: int = 30) -> bytes:
-    """下载周报里的图表图（jsdelivr 等 CDN）。"""
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 MacroBiodivAdmin/1.0"})
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        data = r.read(COVER_MAX + 1)
-    if len(data) > COVER_MAX:
-        raise ValueError(f"图片超过 {COVER_MAX // (1024 * 1024)}MB 上限")
-    return data
+    """下载周报里的图表图。jsdelivr 在国内时常整段抽风（连不上 / 403 / 断流），
+    单源失败就让封面落到 logo 兜底太亏 —— 按官方镜像 → GitHub 源站顺序自动换源
+    重试，全部失败才抛最后一个错误（weekly_cover 再走 logo 兜底）。"""
+    candidates = [url]
+    m = re.match(r"https://cdn\.jsdelivr\.net/gh/([^/@\s]+)@([^/\s]+)/(.+)$", url)
+    if m:                                   # GitHub 仓库图：补齐镜像与源站
+        user, br, path = m.groups()
+        candidates += [
+            f"https://fastly.jsdelivr.net/gh/{user}@{br}/{path}",
+            f"https://gcore.jsdelivr.net/gh/{user}@{br}/{path}",
+            f"https://raw.githubusercontent.com/{user}/{br}/{path}",
+        ]
+    err = ""
+    for i, u in enumerate(candidates):
+        try:
+            req = urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0 MacroBiodivAdmin/1.0"})
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                data = r.read(COVER_MAX + 1)
+            if len(data) > COVER_MAX:
+                raise ValueError(f"图片超过 {COVER_MAX // (1024 * 1024)}MB 上限")
+            return data
+        except Exception as e:
+            err = f"{u} → {type(e).__name__}: {e}"
+            if i < len(candidates) - 1:
+                time.sleep(0.5)             # 换源前稍歇，避免对同域连环撞
+    raise RuntimeError(err)
+
+
+def _is_logo_cover(fid: str) -> bool:
+    """封面是否为「logo 兜底」（字节与站点 logo 相同的 png）—— 真图下载失败时的
+    落盘标记；周报重新上传同 DOI 时据此自动补下真图，避免一次失败永远 logo。"""
+    f = COVERS / f"{fid}.png"
+    return LOGO_SRC.exists() and f.exists() and f.read_bytes() == LOGO_SRC.read_bytes()
 
 
 def weekly_cover(fid: str, images: list, log: list, label: str) -> None:
@@ -857,10 +883,15 @@ def weekly_issues() -> dict:
             parsed = parse_weekly_papers(text)
             title = str(meta.get("title") or md.stem).strip()
             dois = []
+            n_logo = 0
             for p in parsed:
                 doi = normalize_doi(p["doi_line"] or "")
-                dois.append({"doi": doi, "inLib": bool(doi) and doi.lower() in known,
+                in_lib = bool(doi) and doi.lower() in known
+                dois.append({"doi": doi, "inLib": in_lib,
                              "hasImg": bool(p["images"])})
+                # 已入库但封面还是 logo 兜底的篇数（重传本文件即可自动补真图）
+                if in_lib and _is_logo_cover(paper_id(doi)):
+                    n_logo += 1
             issues.append({
                 "file": md.name, "title": title,
                 "date": str(meta.get("date") or "")[:10],
@@ -868,6 +899,7 @@ def weekly_issues() -> dict:
                 "n": len(parsed),
                 "nDoi": sum(1 for d in dois if d["doi"]),
                 "inLib": sum(1 for d in dois if d["inLib"]),
+                "nLogo": n_logo,
                 "dois": dois,
             })
     issues.sort(key=lambda x: (x["date"], x["file"]), reverse=True)
@@ -934,6 +966,7 @@ def do_weekly_import(name: str, content: str, log: list) -> dict:
                 "out": f"content/weekly/{fname}（周报页随本次构建自动收录）"})
 
     added, skipped, failed = 0, 0, 0
+    dirty = False
     with DATA_LOCK:
         papers = load_papers()
         by_doi = {str(i.get("doi") or "").lower(): i for i in papers["items"]}
@@ -945,6 +978,15 @@ def do_weekly_import(name: str, content: str, log: list) -> dict:
                 failed += 1
                 continue
             if doi.lower() in by_doi:
+                # 已在库也要看一眼封面：上次导入时真图下载失败会落 logo 兜底，
+                # 这次重传同一期且解析到图 → 自动补下真图覆盖（日志标「补封面」）
+                ex = by_doi[doi.lower()]
+                if p["images"] and _is_logo_cover(str(ex.get("id") or "")):
+                    weekly_cover(ex["id"], p["images"], log, f"{label} 补封面")
+                    cov = detect_cover(ex["id"])
+                    if cov:
+                        ex["cover"] = cov
+                        dirty = True
                 log.append({"step": label, "ok": True, "out": f"DOI 已在文献库，跳过（{doi}）"})
                 skipped += 1
                 continue
@@ -973,7 +1015,7 @@ def do_weekly_import(name: str, content: str, log: list) -> dict:
             added += 1
             log.append({"step": label, "ok": True,
                         "out": f"已入库：{str(record['title_zh'] or record['title'])[:48]}（{record['id']}）"})
-        if added:
+        if added or dirty:
             papers["items"] = list(by_doi.values())
             save_papers(papers)
     summary = f"收录完成：新增 {added} 篇"
@@ -1085,7 +1127,11 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/api/status":
             self._json(repo_state())
         elif path == "/api/items":
-            self._json(load_papers())
+            data = load_papers()
+            for it in data.get("items", []):
+                # 封面是否为 logo 兜底：文献管理列表据此挂警示角标与补图指引
+                it["coverLogo"] = _is_logo_cover(str(it.get("id") or ""))
+            self._json(data)
         elif path == "/api/weekly":
             self._json(weekly_issues())
         elif path.startswith("/api/job/"):

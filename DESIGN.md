@@ -56,7 +56,7 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 - 右：导航组 `.mnav-links`（**与主站 v3-nav 同源**：15px、`6px 10px` 内边距、前置 **14px
   stroke 图标**、hover 变 text 且下划线 scaleX 0→1、`data-active=true` → accent 常亮）。
   现有项：**每周速递（纸飞机 → `/weekly/`，按 `path` 构建期标 `data-active` + aria-current）/
-  全站统计（柱状图 → `/stats/`，同款 active 检测）/ 更多▾**。
+  全站统计（柱状图 → `/statistics/`，同款 active 检测）/ 更多▾**。
   「更多」= 主站 v3-more 同款：触发钮为 button（text + 11px caret），hover 或
   focus-visible 展开 `.mnav-dd`（display 直切无动画、caret 旋转 180°；面板 `--bg` 实底 +
   描边 + 主站同款投影 `0 10px 28px rgba(0,0,0,.16)`，项 14px / `8px 11px` / 15px faint
@@ -161,12 +161,12 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   2 行截断），置于「每周速递」分组标题下
 - 结果行：主标题（中文优先，命中高亮）+ 元信息行（作者·期刊·年份·DOI·英文原题，可高亮）；`?q=` 可分享
 
-### 3.3.1 全站统计 `/stats/`（2026-10 新增）
+### 3.3.1 全站统计 `/statistics/`（2026-10 新增）
 
 - 数据层 `build_stats_data` → `site/assets/stats-data.js`（window.MBD_STATS）：只带统计所需的
   **英文原文与分面字段**（t 英文原题 / ab 英文摘要 / kw 关键词 / au 作者全名 / j 期刊 /
   at 体裁 / y 年份）—— 中文翻译字段与每周速递一律不进数据；`<`→`\u003c` 防 script 截断；
-  仅 /stats/ 页经 `extra_assets` 注入（stats-data.js + stats.js）
+  仅 /statistics/ 页经 `extra_assets` 注入（stats-data.js + stats.js）
 - **筛选 → 实时重算**（简化版即席查询：全站数据打底，不做 URL 分享与下钻）：
   期刊下拉 / 类型下拉 / 年份区间（两个 number 输入）/ 重置；选项来自全量数据；
   过滤 → 聚合 → 条形图重渲染，全部客户端完成
@@ -175,7 +175,7 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   作者 Top 10（英文全名精确计数，缩写名同名异写不合并）/ 标题·摘要高频词 Top 15
   （小写化 → `[^a-z]+` 切词 → 停用词表剪除 → 长度 ≥3；停用词 = 功能词 + 少量学术填充词）
 - 总览行：命中 N 篇 · 期刊数 · 年份跨度 · 去重关键词数；命中 0 时隐藏图表网格并出空态；
-  导航「全站统计」占位链接改为真实 `/stats/`（`is_stats` 按 path 标 active），sitemap 收录
+  导航「全站统计」占位链接改为真实 `/statistics/`（`is_stats` 按 path 标 active），sitemap 收录
 
 ### 3.4 每周速递 `/weekly/`（2026-10 新增，布局移植 mystation 博客）
 
@@ -257,14 +257,24 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   （`render_md.parse_weekly_papers`，见 §3.4），新 DOI 走 Crossref+OpenAlex 抓取入库，
   **周报自带中文直接预填**（标题行首个 CJK 起为中文段 → title_zh；摘要节 → abstract_zh；
   「文献N」注记体裁 → article_type，不走大模型，空缺事后用「翻译缺中文的」回补）；
-  ③ 图表图按序下载为封面（魔数校验），**图表为无 / 下载失败 → 站点 logo 兜底**
-  （`assets_src/logo.png` 复制为 `covers/{id}.png`）。上传前先 `/api/weekly-parse`
+  ③ 图表图按序下载为封面（魔数校验）；**下载走多源自动重试**（jsdelivr 国内时常整段
+  抽风：cdn.jsdelivr.net → fastly → gcore → raw.githubusercontent.com 逐源尝试），
+  **图表为无 / 全部源失败 → 站点 logo 兜底**（`assets_src/logo.png` 复制为 `covers/{id}.png`，
+  字节与 logo 相同即「兜底标记」—— 同期重传时对已入库条目自动补下真图覆盖，避免一次
+  失败永远 logo）。上传前先 `/api/weekly-parse`
   同步预解析出确认弹窗（新 N 篇 / 跳过 N 篇 / 封面策略 / 期号冲突警告），确认后进
   后台任务（构建 + 推送 / 同步沿用发布区开关）。期次列表显示每篇 DOI 的收录状态
   （● 已入库 · ○ 待生成 · × 无 DOI）；同名文件重传 = 覆盖更新该期（库内 DOI 自动跳过）；
   「删除此期」与勾选多选「删除所选」（见上方多选批量删除）只删周报页，已生成卡片需到文献管理单独删
 - **通用组件**：页内确认弹窗（替代原生 confirm，支持取消回调）、toast、任务日志步骤条
   （…/✓/✗，三个标签页各有独立日志区）、同批重复 DOI 客户端即时标出
+- **封面兜底可视化**（2026-10 新增）：封面为 logo 兜底的条目处处可辨 —— `/api/items` 逐篇
+  附 `coverLogo`、`/api/weekly` 逐期附 `nLogo`；文献管理行卡片挂橙色「logo 兜底」chip +
+  指引行（重传该期周报自动补真图），期次列表显示「⚠ N 篇封面为 logo 兜底」，
+  未上传封面显示中性「无封面」chip（站点卡片为占位块，非故障）
+- **任务运行提示**：上传周报的确认弹窗写明耗时与「勿关本页面 / 后台程序」（任务在
+  daemon 线程，进程一关即中断、索引不落盘）；任务执行期间日志区底部常驻
+  「⏳ 后台任务执行中」提示行，完成与否以「收录完成」步骤为准
 - 明暗主题跟随系统（prefers-color-scheme）；只监听 127.0.0.1 免登录
 
 ## 4. 数据模型 `meta/papers.json`

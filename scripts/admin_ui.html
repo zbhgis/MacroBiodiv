@@ -6,8 +6,8 @@
 <title>MacroBiodiv · 本地管理</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <style>
-:root{--bg:#0d1117;--text:#e6edf3;--dim:#8b949e;--faint:#6e7681;--line:#1c2129;--line2:#30363d;--accent:#58a6ff;--card:#161b22;--ok:#3fb950;--bad:#f85149;color-scheme:dark}
-@media (prefers-color-scheme:light){:root{--bg:#fff;--text:#1f2328;--dim:#59636e;--faint:#818b98;--line:#e8ebef;--line2:#d0d7de;--accent:#0969da;--card:#f6f8fa;--ok:#1a7f37;--bad:#cf222e;color-scheme:light}}
+:root{--bg:#0d1117;--text:#e6edf3;--dim:#8b949e;--faint:#6e7681;--line:#1c2129;--line2:#30363d;--accent:#58a6ff;--card:#161b22;--ok:#3fb950;--bad:#f85149;--warn:#f0883e;color-scheme:dark}
+@media (prefers-color-scheme:light){:root{--bg:#fff;--text:#1f2328;--dim:#59636e;--faint:#818b98;--line:#e8ebef;--line2:#d0d7de;--accent:#0969da;--card:#f6f8fa;--ok:#1a7f37;--bad:#cf222e;--warn:#bc4c00;color-scheme:light}}
 *{box-sizing:border-box}
 @keyframes blink{50%{opacity:.3}}
 body{margin:0;background:var(--bg);color:var(--text);font:14px/1.6 ui-sans-serif,system-ui,"PingFang SC","Microsoft YaHei",sans-serif}
@@ -104,6 +104,9 @@ details pre{margin:8px 0 0;padding:10px;border:1px solid var(--line);border-radi
 .minfo .top{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px}
 .minfo .j{display:inline-block;padding:1px 8px;border:1px solid var(--accent);border-radius:3px;color:var(--accent);font-size:10.5px;max-width:15em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .minfo .tchip{display:inline-block;padding:1px 7px;border:1px solid var(--line2);border-radius:3px;color:var(--dim);font-size:10px}
+/* 封面兜底警示：橙chip + 指引行（重传周报自动补真图） */
+.minfo .tchip.warn{color:var(--warn);border-color:var(--warn)}
+.warnline{margin-top:6px;font-size:11.5px;line-height:1.6;color:var(--warn)}
 .minfo .y{color:var(--faint);font-size:10.5px}
 .minfo .t{color:var(--text);font-size:13px;line-height:1.55;font-family:ui-sans-serif,system-ui,"PingFang SC","Microsoft YaHei",sans-serif;font-weight:600}
 .minfo .talt{color:var(--dim);font-size:12px;margin-top:2px;font-family:ui-sans-serif,system-ui,"PingFang SC","Microsoft YaHei",sans-serif}
@@ -208,8 +211,12 @@ details pre{margin:8px 0 0;padding:10px;border:1px solid var(--line);border-radi
       <div class="big">点选或把周报 <b>.md</b> 拖到这里（可多选）</div>
       <p class="note" style="margin:6px 0 0">收录流程：md 落盘 content/weekly/（周报页自动收录）→ 解析「# 文献N」的
         DOI 与图表 → 新 DOI 抓取元数据入库（周报自带中文标题 / 摘要 / 体裁注记直接预填）→
-        图表图下载作封面，<b>图表为无的用站点 logo 兜底</b> → 生成主页卡片，之后在「文献管理」统一管理。<br>
-        同名文件再次上传 = 覆盖更新该期（已在库的 DOI 自动跳过，只补新增）。</p>
+        图表图下载作封面（<b>jsdelivr 多源自动重试</b>：cdn → fastly → gcore → GitHub 源站；
+        图表为无或全部源失败才用站点 logo 兜底，<b>重传同一期自动补下真图</b>）→
+        生成主页卡片，之后在「文献管理」统一管理。<br>
+        同名文件再次上传 = 覆盖更新该期（已在库的 DOI 自动跳过，仅封面为 logo 兜底的会补图）。<br>
+        ⚠ 导入需数分钟（逐篇抓取 + 封面下载），<b>期间请勿关闭本页面或后台程序</b>——
+        任务在后台执行，中断即停，索引不落盘（以日志「收录完成」为准）。</p>
       <div class="row" style="margin-top:10px">
         <button class="primary" id="btnWkPick">选择 .md 文件</button>
         <input id="wkFile" type="file" accept=".md,text/markdown" multiple>
@@ -830,7 +837,12 @@ function runJob(path, body, done, boxId) {
     var timer = setInterval(function () {
       api("/api/job/" + jid).then(function (s) {
         renderLog(s.log, boxId);
-        if (!s.done) return;
+        if (!s.done) {
+          // 运行中持续提示：任务断了（关页面 / 关后台进程）索引不会落盘
+          document.getElementById(boxId || "log").appendChild(el("div", "hint",
+            "⏳ 后台任务执行中 —— 请保持本页面与后台程序开启，关闭即中断（已完成的步骤不回滚）。"));
+          return;
+        }
         clearInterval(timer);
         if (s.hint) document.getElementById(boxId || "log").appendChild(el("div", "hint", s.hint));
         if (done) done({ ok: s.ok, log: s.log, hint: s.hint });
@@ -1092,6 +1104,15 @@ function manageRow(it) {
     th.src = "/api/cover/" + it.id;
     th.alt = "封面缩略图";
     top.appendChild(th);
+    if (it.coverLogo) {          // 兜底封面：缩略图旁挂橙标，一眼看出这不是论文真图
+      var cw = el("span", "tchip warn", "logo 兜底");
+      cw.title = "收录时图表图下载失败，封面暂用站点 logo；重传该期周报可自动补下真图";
+      top.appendChild(cw);
+    }
+  } else {
+    var nc = el("span", "tchip", "无封面");
+    nc.title = "未上传封面：站点卡片显示期刊缩写占位块，可在编辑里上传";
+    top.appendChild(nc);
   }
   top.appendChild(el("span", "j", it.journal || "—"));
   if (it.article_type) top.appendChild(el("span", "tchip", it.article_type));
@@ -1118,6 +1139,10 @@ function manageRow(it) {
   info.appendChild(doiLine);
   info.appendChild(el("div", "", "关键词：" + ((it.keywords || []).join("、") || "—")));
   info.appendChild(el("div", "", "标签：" + ((it.tags || []).join("、") || "—") + " · 收录：" + (it.added || "—") + " · id：" + (it.id || "—")));
+  if (it.coverLogo) {
+    info.appendChild(el("div", "warnline",
+      "⚠ 封面为 logo 兜底（收录时图表图下载失败）—— 到「每周速递」重传该期周报即可自动补下真图。"));
+  }
   node.appendChild(info);
 
   var act = el("div", "mact");
@@ -1336,6 +1361,11 @@ function wkRow(it) {
   info.appendChild(el("div", "", "收录状态 " + it.dois.map(function (d) {
     return d.doi ? (d.inLib ? "●" : "○") : "×";
   }).join("") + (it.dois.length ? "（● 已入库 · ○ 待生成 · × 无 DOI）" : "（未解析到文献小节）")));
+  // 封面兜底统计：>0 时明确告知原因与补救路径
+  if (it.nLogo) {
+    info.appendChild(el("div", "warnline",
+      "⚠ " + it.nLogo + " 篇封面为 logo 兜底（收录时图表图下载失败）—— 重传本文件即可自动补下真图。"));
+  }
   node.appendChild(info);
 
   var act = el("div", "mact");
@@ -1389,16 +1419,19 @@ function wkUploadOne(file, done) {
       var fresh = pv.items.filter(function (x) { return x.doi && !x.inLib; });
       var dup = pv.items.filter(function (x) { return x.inLib; }).length;
       var noDoi = pv.items.filter(function (x) { return !x.doi; }).length;
+      var noImg = fresh.filter(function (x) { return !x.hasImg; });
       var lines = ["即将收录《" + pv.title + "》（" + (pv.date || "无日期") + "）",
         "· 解析 " + pv.n + " 篇文献：新入库 " + fresh.length + " 篇"
           + (dup ? "、已入库跳过 " + dup + " 篇" : "")
           + (noDoi ? "、无 DOI " + noDoi + " 篇（只出周报页，不出卡片）" : ""),
-        "· 新文献封面：" + fresh.filter(function (x) { return x.hasImg; }).length
-          + " 篇用图表图、" + fresh.filter(function (x) { return !x.hasImg; }).length
-          + " 篇无图表（站点 logo 兜底）",
+        "· 新文献封面：" + (fresh.length - noImg.length) + " 篇下载图表图（jsdelivr 多源自动重试：cdn → fastly → gcore → GitHub 源站）"
+          + (noImg.length ? "、" + noImg.length + " 篇无图表（文献" + noImg.map(function (x) { return x.no; }).join("、")
+            + "，用站点 logo 兜底）" : ""),
         "· " + (pv.overwrite ? "覆盖已有文件 " : "新文件 ") + pv.file
           + "（周报页 " + pv.slug + " 随构建收录）"];
       (pv.warnings || []).forEach(function (w) { lines.push("⚠ " + w); });
+      lines.push("· 任务在后台执行（每篇含抓取与封面下载，需数分钟），期间请勿关闭本页面或管理后台程序；"
+        + "完成后下方日志显示「收录完成」。若个别封面下载失败会自动用 logo 兜底并在文献管理中标出，重传本文件即可补图。");
       askConfirm(lines.join("\n") + "\n\n确认开始？", function () {
         runJob("/api/weekly", { name: pv.file, content: content,
                                 push: document.getElementById("doPush").checked,

@@ -23,12 +23,16 @@
     + "data analysis methods method approach approaches different between").split(" "));
 
   const el = (id) => document.getElementById(id);
+  /* HTML 转义：期刊名带 &（Nature Ecology & Evolution）、LLM 体裁标签为人工可编辑文本，
+     进 innerHTML 前必须转义文本与属性两处 */
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   const state = { j: "*", t: "*", from: "", to: "" };
 
   /* ── 筛选控件：选项来自全量数据 ── */
   function fillSelect(sel, values, label) {
     sel.innerHTML = `<option value="*">${label} 全部</option>` +
-      values.map((v) => `<option value="${v.replace(/"/g, "&quot;")}">${v}</option>`).join("");
+      values.map((v) => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
   }
   const journals = [...new Set(DATA.map((d) => d.j).filter(Boolean))].sort();
   const types = [...new Set(DATA.map((d) => d.at).filter(Boolean))].sort();
@@ -80,7 +84,7 @@
     const max = Math.max(...rows.map((r) => r.n));
     box.innerHTML = rows.map((r) => {
       const w = Math.max(2, Math.round((r.n / max) * 100));
-      return `<div class="st-row"><span class="st-k" title="${r.k.replace(/"/g, "&quot;")}">${r.k}</span>`
+      return `<div class="st-row"><span class="st-k" title="${esc(r.k)}">${esc(r.k)}</span>`
         + `<span class="st-bar"><i style="width:${w}%"></i></span>`
         + `<span class="st-n">${r.n}</span></div>`;
     }).join("");
