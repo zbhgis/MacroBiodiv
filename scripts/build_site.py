@@ -1975,13 +1975,22 @@ def build_weekly(cfg: dict) -> list[str]:
     for md in sorted(WEEKLY_SRC.glob("*.md")):
         text = md.read_text(encoding="utf-8")
         meta, doc, toc, plain = parse_md(text)
-        title = (str(meta.get("title") or md.stem)).strip()
+        # 标题自动识别正文第一个一级标题（frontmatter 的 title 不作为标题来源）；
+        # 文件直接以「文献N」开头（无总标题 H1）时回退 frontmatter title / 文件名
+        h1 = next((txt for lv, hid, txt in toc
+                   if hid == "doc-1" and not re.match(r"^文献\d+", txt)), "")
+        title = (h1 or str(meta.get("title") or "")).strip() or md.stem
         m = re.search(r"精选(\d+)", title)
         slug = f"weekly-{m.group(1) if m else md.stem[:8]}"
-        # 正文首个 `# ` 标题与 front matter title 重复：剥离（TOC 同步剔除 doc-1）
+        # 正文首个 `# ` 标题已用作页面标题：剥离（TOC 同步剔除 doc-1）
         doc = re.sub(r'<h2 id="doc-1" class="md-h1">.*?</h2>\n*', "", doc, count=1)
         toc = [t for t in toc if t[1] != "doc-1"]
         date = str(meta.get("date") or "")[:10]
+        # 年月标签从标题提取：期号覆盖的周区间形如 260309-0315 → 2026年3月
+        # （不看 frontmatter date——那是补录日期，不代表期号所属月份）；
+        # 标题里没有日期段时回退 frontmatter date
+        m_ym = re.search(r"(?<!\d)(\d{2})(0[1-9]|1[0-2])\d{2}(?!\d)", title)
+        month = f"20{m_ym.group(1)}年{int(m_ym.group(2))}月" if m_ym else _month_label(date)
         words = len(plain)
         reading = max(1, -(-words // 200))          # ceil(words/200)，主站同口径
         n_papers = len([1 for lv, _, txt in toc if lv == 1])
@@ -1992,9 +2001,7 @@ def build_weekly(cfg: dict) -> list[str]:
             summ += " 等"
         first_img = re.search(r'<p class="wk-img"><img src="([^"]+)"', doc)
         posts.append({
-            "slug": slug, "title": title, "date": date,
-            "month": _month_label(date), "cat": (meta.get("categoryTags") or ["文献速递"])[0],
-            "subs": meta.get("subCategoryTags") or [],
+            "slug": slug, "title": title, "date": date, "month": month,
             "doc": doc, "toc": toc, "words": words, "reading": reading,
             "summary": summ, "og_image": first_img.group(1) if first_img else "",
             "plain": plain,
@@ -2036,11 +2043,8 @@ def build_weekly(cfg: dict) -> list[str]:
 
     # 文章页：三栏骨架
     for i, p in enumerate(posts):
-        tags = [f'<span class="wk-tag wk-tag-accent">{esc(p["cat"])}</span>']
-        if p["month"]:
-            tags.append(f'<span class="wk-tag">{esc(p["month"])}</span>')
-        for st in p["subs"]:
-            tags.append(f'<span class="wk-tag">{esc(st)}</span>')
+        # 标签行只保留年月（分类/子类标签不再渲染）
+        tags = [f'<span class="wk-tag">{esc(p["month"])}</span>'] if p["month"] else []
         prev_p = posts[i - 1] if i > 0 else None
         next_p = posts[i + 1] if i + 1 < len(posts) else None
         toc_rows = "".join(
@@ -2084,7 +2088,6 @@ def build_weekly(cfg: dict) -> list[str]:
                      f'<span class="wk-line-main"><h3 class="wk-line-ttl">{esc(p["title"])}</h3>'
                      f'<p class="wk-line-sum">{esc(p["summary"])}</p></span>'
                      f'<span class="wk-line-side"><span class="wk-line-tags">'
-                     f'<span class="wk-tag wk-tag-accent">{esc(p["cat"])}</span>'
                      f'<span class="wk-tag">{esc(p["month"])}</span></span>'
                      f'<span class="wk-line-date">{p["date"]}</span></span></span></a>')
         sections += (f'<section class="wk-group" id="m-{key}">'

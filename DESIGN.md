@@ -259,13 +259,21 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 
 ### 3.4 每周速递 `/weekly/`（2026-10 新增，布局移植 mystation 博客）
 
-内容源 `content/weekly/*.md`（14 期周报，front matter：title/date/categoryTags/subCategoryTags，
+内容源 `content/weekly/*.md`（front matter：title/date/categoryTags/subCategoryTags，
+**仅 date 用于「创建于」展示与标题缺日期时的年月回退，其余字段不进渲染**——见下方口径；
 正文 `# 文献N` → `## 1.信息/2.摘要/3.图表`，图片为 jsdelivr CDN 外链）。md 经
 `scripts/render_md.py`（**标准库迷你渲染器**：标题降级映射 `h2.md-h1`/`h3.md-h2` 带 anchor、
 粗/斜体、独立图片行 → `.wk-img` 懒加载、裸 DOI URL 自动链接；先转义再套内联标记，未知语法纯文本兜底）。
 
-- 口径：slug = `weekly-{期号}`（标题正则 `精选(\d+)`）；字数 = 去标记字符数；阅读时长 =
-  `ceil(字数/200)` 分钟（主站 config 同口径）；摘要 = 「本期收录 N 篇 · 期刊去重」
+- 口径（2026-10-04 起）：**标题 = 正文第一个一级标题**（TOC 的 `doc-1` 条目，
+  文件直接以「文献N」开头时回退 frontmatter title/文件名）；**年月标签从标题提取**
+  （期号周区间 `260309-0315` → `2026年3月`，正则 `(?<!\d)(\d{2})(0[1-9]|1[0-2])\d{2}(?!\d)`，
+  标题无日期段时回退 frontmatter date）；slug = `weekly-{期号}`（标题正则 `精选(\d+)`）；
+  字数 = 去标记字符数（**不含 front matter**）；阅读时长 = `ceil(字数/200)` 分钟（主站同口径）；
+  摘要 = 「本期收录 N 篇 · 期刊去重」；**front matter（title/date/categoryTags/subCategoryTags）
+  一律不作为渲染与标签来源**——FM_RE 容忍 BOM/前导空白行，parse_md 的纯文本也取剥离后的正文
+- **标签行只保留年月**（2026-10-04 起）：文章页 tags 行与列表页条目右侧 tags 均只渲染
+  一个 `wk-tag`（年月），`categoryTags`/`subCategoryTags` 不再输出
 - **列表页**：`wk-col` 760px → 页头（`wk-kicker` mono 大写 + `wk-deco` 大标题 + lede）→
   `wk-quicknav` 月份锚点 chip（`wk-btn` 带计数）→ 按月倒序分组：`wk-label`（月份 + N 篇）→
   `wk-line` 条目（标题 hover 变 accent + 摘要两行截断 + 右侧 tags（分类 accent + 月份）+ 日期 mono）

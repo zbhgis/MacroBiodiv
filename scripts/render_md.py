@@ -8,8 +8,9 @@
 import html
 import re
 
-# front matter：--- 包裹的 key: value / key: ["a", "b"] 极简 YAML 子集
-FM_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*\n?", re.S)
+# front matter：--- 包裹的 key: value / key: ["a", "b"] 极简 YAML 子集。
+# 容忍 BOM 与前导空白行（外部来源的 md 常带），否则 front matter 会漏进正文渲染
+FM_RE = re.compile(r"\A[\s\uFEFF]*---\s*\n(.*?)\n---\s*\n?", re.S)
 H_RE = re.compile(r"^(#{1,6})\s+(.*?)\s*#*\s*$")
 IMG_RE = re.compile(r"^!\[([^\]]*)\]\(([^)\s]+)\)\s*$")
 BOLD_RE = re.compile(r"\*\*(.+?)\*\*")
@@ -123,7 +124,8 @@ def parse_md(text: str) -> tuple[dict, str, list, str]:
     """一次解析：返回 (meta, 正文 HTML, TOC, 纯文本)。"""
     meta, body = parse_front_matter(text)
     doc, toc = render(body)
-    return meta, doc, toc, plain_text(text)
+    # 纯文本取剥离 front matter 之后的正文——搜索索引与字数统计不收元数据
+    return meta, doc, toc, plain_text(body)
 
 
 # ── 「文献N」结构解析（管理后台上传收录用）──
