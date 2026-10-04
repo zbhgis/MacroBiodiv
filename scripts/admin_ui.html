@@ -268,7 +268,9 @@ details pre{margin:8px 0 0;padding:10px;border:1px solid var(--line);border-radi
     · 粘贴的 DOI 会立即抓取元数据，并调用本地大模型做<b>中文翻译（初译 + 审校，两重处理）</b>；只有点「发布」后才写入 <b>meta/papers.json</b>、生成站点并提交。<br>
     · <b>封面图</b>：图片可直接粘贴 / 拖进 DOI 输入框（进「待配区」，抓取后按顺序自动配给新文献），
       或在每篇卡片的封面区块单独上传；服务端校验真实格式（PNG/JPEG/WebP/GIF，≤20MB）后存
-      assets_src/covers/{id}.{ext}，发布时按 id 探测写入 papers.json，前台展示在卡片顶图与详情页。<br>
+      assets_src/covers/{id}.{ext}，发布时按 id 探测写入 papers.json，前台展示在卡片顶图与详情页。
+      也可点封面区块的<b>「外链」</b>直接贴图片 URL（http/https）：不入库文件、cover 字段存完整链接，
+      前台直显（前端多源降级兜底）——已入库文献立即生效，新文献随条目在发布时写入；「移除封面」会连外链一起清掉。<br>
     · 大模型配置走环境变量 LLM_API_KEY / LLM_BASE_URL / LLM_MODEL_NAME（OpenAI 兼容接口）。
       限流预案：429 指数退避并遵守 Retry-After → 重试耗尽进入 60s 断路冷却（期间直接跳过不撞 API）→
       审校失败或超预算自动降级为「仅初译」→ 初译失败则中文留空。任何失败都不阻断抓取与发布，
@@ -426,7 +428,8 @@ function uploadCover(fid, dataUrl, cb) {
     if (cb) cb(res || { ok: false, error: "响应为空" });
   }).catch(function (e) { if (cb) cb({ ok: false, error: String(e) }); });
 }
-/* 封面区块渲染：holder = {id, cover(服务端路径), coverData(本地预览 dataURL)} */
+/* 封面区块渲染：holder = {id, cover(服务端路径或外链 URL), coverData(本地预览 dataURL)} */
+function isExtCover(v) { return String(v || "").indexOf("http://") === 0 || String(v || "").indexOf("https://") === 0; }
 function renderCover(box, holder, onChange) {
   box.innerHTML = "";
   var prev = el("div", "covprev");
@@ -436,12 +439,15 @@ function renderCover(box, holder, onChange) {
     prev.appendChild(im1);
   } else if (holder.cover) {
     var im2 = document.createElement("img");
-    im2.src = "/api/cover/" + holder.id + "?t=" + (holder._ct || 0);
+    /* 外链封面直接用 URL 预览；本地文件走服务端路由（?t= 防缓存） */
+    im2.src = isExtCover(holder.cover) ? holder.cover : "/api/cover/" + holder.id + "?t=" + (holder._ct || 0);
     im2.alt = "封面预览";
+    im2.title = holder.cover;
     prev.appendChild(im2);
+    if (isExtCover(holder.cover)) prev.appendChild(el("span", "note", "外链"));
   } else {
     prev.appendChild(el("span", "empty-tip",
-      "未设置 —— 把图片拖到这里、Ctrl+V 粘贴，或点「上传封面」；发布后展示在卡片与详情页"));
+      "未设置 —— 拖图到这里、Ctrl+V 粘贴、点「上传封面」，或点「外链」直接贴图片 URL；发布后展示在卡片与详情页"));
   }
   box.appendChild(prev);
   var btns = el("div", "covbtns");
@@ -452,6 +458,34 @@ function renderCover(box, holder, onChange) {
     document.getElementById("coverFile").click();
   });
   btns.appendChild(up);
+  /* 外链：图片 URL 直接写入 cover 字段（不落盘，与周报管线「外链直显」同模式） */
+  var ext = el("button", "tiny", "外链");
+  ext.type = "button";
+  ext.title = "用图片外链（URL）作为封面：不下载落盘，直接存入 cover 字段";
+  ext.addEventListener("click", function () {
+    var cur = isExtCover(holder.cover) ? holder.cover : "";
+    var u = prompt("输入图片外链（http:// 或 https:// 开头）：\n已入库文献立即写入 papers.json；新文献随条目在发布时写入。", cur);
+    if (u === null) return;
+    u = String(u).trim();
+    if (!u) return;
+    if (!/^https?:\/\//.test(u)) { toast("外链必须以 http:// 或 https:// 开头"); return; }
+    api("/api/cover", { id: holder.id, url: u }).then(function (res) {
+      if (res && res.ok) {
+        holder.cover = res.cover || u; holder.coverData = "";
+        toast("封面已设为外链");
+      } else if (res && /尚未入库/.test(res.error || "")) {
+        /* 新文献还没发布：先记在条目上，发布时服务端原样写入（无本地文件时不覆盖） */
+        holder.cover = u; holder.coverData = "";
+        toast("新文献尚未入库：外链已记录，发布时一并写入");
+      } else {
+        /* 失败：holder 保持原状（可能仍是本地路径封面），只提示 */
+        toast("外链设置失败：" + ((res && res.error) || "未知错误"));
+      }
+      renderCover(box, holder, onChange);
+      if (onChange) onChange(holder);
+    }).catch(function (e) { toast("外链设置失败：" + String(e)); });
+  });
+  btns.appendChild(ext);
   if (holder.cover || holder.coverData) {
     var rmv = el("button", "tiny danger", "移除封面");
     rmv.type = "button";

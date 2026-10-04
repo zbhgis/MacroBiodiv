@@ -194,6 +194,39 @@ def detect_cover(fid: str) -> str:
     return ""
 
 
+def set_cover_url(fid: str, url: str) -> tuple[bool, str]:
+    """外链封面：cover 字段直接存完整 URL（与周报管线「外链直显」同模式，不落盘）。
+    本地旧封面文件一并清掉 —— 编辑保存以磁盘文件为准，留着文件外链永远不会生效。
+    返回 (ok, cover路径或错误信息)。"""
+    if not re.fullmatch(r"[0-9a-f]{10}", fid or ""):
+        return False, "无效的文献 id"
+    u = (url or "").strip()
+    if not u.startswith(("http://", "https://")):
+        return False, "外链必须以 http:// 或 https:// 开头"
+    papers = load_papers()
+    hit = [it for it in papers.get("items", []) if it.get("id") == fid]
+    if not hit:
+        return False, "该文献尚未入库（新文献的外链会随条目在发布时写入）"
+    remove_cover(fid)
+    hit[0]["cover"] = u
+    save_papers(papers)
+    return True, u
+
+
+def clear_cover_url(fid: str) -> None:
+    """外链封面的「移除」：磁盘上没有文件可删，把 papers.json 里的外链字段清掉。
+    只动外链值；本地文件封面照旧走 remove_cover + 编辑保存时按磁盘探测。"""
+    if not re.fullmatch(r"[0-9a-f]{10}", fid or ""):
+        return
+    papers = load_papers()
+    hit = [it for it in papers.get("items", [])
+           if it.get("id") == fid and str(it.get("cover") or "").startswith(("http://", "https://"))]
+    if hit:
+        for it in hit:
+            it.pop("cover", None)
+        save_papers(papers)
+
+
 def repo_state() -> dict:
     papers = load_papers()
     items = papers.get("items", [])
@@ -1077,7 +1110,21 @@ class Handler(BaseHTTPRequestHandler):
                         sent = True
                         break
             if not sent:
-                self._send(404, b"no cover", "text/plain; charset=utf-8")
+                # 外链封面本地无文件：302 到原始 URL，管理界面的缩略图/预览共用此路由
+                target = ""
+                if re.fullmatch(r"[0-9a-f]{10}", fid):
+                    for it in load_papers().get("items", []):
+                        if it.get("id") == fid:
+                            cov = str(it.get("cover") or "")
+                            if cov.startswith(("http://", "https://")):
+                                target = cov
+                            break
+                if target:
+                    self.send_response(302)
+                    self.send_header("Location", target)
+                    self.end_headers()
+                else:
+                    self._send(404, b"no cover", "text/plain; charset=utf-8")
         else:
             self._send(404, b"not found", "text/plain; charset=utf-8")
 
@@ -1099,7 +1146,12 @@ class Handler(BaseHTTPRequestHandler):
             fid = (body.get("id") or "").strip()
             if body.get("remove"):
                 remove_cover(fid)
+                clear_cover_url(fid)     # 外链封面：字段一并清掉，否则保存后又回来了
                 self._json({"ok": True, "cover": ""})
+            elif str(body.get("url") or "").strip():
+                ok, val = set_cover_url(fid, body.get("url") or "")
+                self._json({"ok": ok, "cover": val if ok else "",
+                            "error": "" if ok else val})
             else:
                 ok, val = save_cover(fid, body.get("dataUrl") or "")
                 self._json({"ok": ok, "cover": val if ok else "",

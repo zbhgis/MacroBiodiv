@@ -2,8 +2,8 @@
  * stats —— 全站统计页（/statistics/，仅该页随 stats-data.js 注入）。
  *
  * 访客向数据面板：hero 总览（数字滚动）→ 热读文献 Top 5（全量口径）→
- * 筛选（期刊/类型/年份区间）联动重算：收录动态面积图（SVG）· 文章类型环形图（SVG）·
- * 期刊条形图 · 研究热词词云（关键词 / 标题·摘要 两个 tab）。
+ * 筛选（期刊/类型/年份区间）联动重算：Online 发表动态面积图（SVG）· 文章类型环形图
+ * （SVG）· 期刊条形图 · 研究热词词云（关键词 / 标题·摘要 两个 tab）。
  * 手写 SVG + vanilla JS，无第三方库；数据 window.MBD_STATS 只含英文原文与分面字段。
  */
 (function () {
@@ -33,7 +33,6 @@
   const API = (window.MBD && window.MBD.api) || "";
   const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const state = { j: "*", t: "*", from: "", to: "" };
-  let currentList = DATA;                       // 供 resize 时只重绘面积图
 
   /* 分类调色板（暗色亮色各一档，与站点 token 同源）：环形图 / hero 顶条 / 图例共用 */
   const PAL = [["#58a6ff", "#0969da"], ["#3fb950", "#1a7f37"], ["#a371f7", "#8250df"],
@@ -151,13 +150,22 @@
     });
   }
 
-  /* ── 收录动态面积图：按入库日期逐日累计；SVG 按容器实测像素构建（文字不变形），
-     resize 防抖重绘；悬停显示「日期 · 累计 N 篇」── */
+  /* ── Online 发表动态面积图：按文献 online 发表日期（d.po）逐日累计；
+     SVG 按容器实测像素构建（文字不变形），resize 防抖重绘；
+     悬停显示「日期 · 累计 N 篇」── */
   function renderGrowth(box, list) {
+    /* 日期归一：部分文献只有年月（2026-03）甚至只有年 —— 补成该月/当年首日，
+       否则 new Date("2026-03T00:00:00Z") 是 Invalid Date 会直接炸掉图表 */
+    const norm = (s) => s.length === 7 ? s + "-01" : s.length === 4 ? s + "-01-01" : s;
     const byDay = {};
-    list.forEach((d) => { if (d.ad) byDay[d.ad] = (byDay[d.ad] || 0) + 1; });
+    list.forEach((d) => {
+      if (!d.po) return;
+      const k = norm(d.po);
+      if (isNaN(new Date(k + "T00:00:00Z"))) return;   // 脏日期兜底：跳过不进图
+      byDay[k] = (byDay[k] || 0) + 1;
+    });
     const days = Object.keys(byDay).sort();
-    if (!days.length) { box.innerHTML = '<p class="st-none">无入库日期数据</p>'; return; }
+    if (!days.length) { box.innerHTML = '<p class="st-none">无发表日期数据</p>'; return; }
     const t0 = new Date(days[0] + "T00:00:00Z");
     const N = Math.max(1, Math.round((new Date(days[days.length - 1] + "T00:00:00Z") - t0) / 864e5));
     const W = Math.max(320, box.clientWidth || 640), H = 200;
@@ -182,12 +190,16 @@
       `<line class="gl" x1="${pl}" y1="${Y(v).toFixed(1)}" x2="${W - pr}" y2="${Y(v).toFixed(1)}"/>`
       + `<text class="gt" x="${pl - 7}" y="${(Y(v) + 3.5).toFixed(1)}" text-anchor="end">${v}</text>`).join("");
     const mid = Math.round(N / 2);
-    /* x 轴刻度：首/中/尾三档；中点与首尾任一间距 <44px 时丢弃，跨度为 0 只画一枚 */
-    const xlab = (N === 0
-      ? [[0, "middle"]]
-      : [[0, "start"], [mid, "middle"], [N, "end"]]
-        .filter(([i]) => i === 0 || i === N
-          || (X(i) - X(0) >= 44 && X(N) - X(i) >= 44)))
+    /* x 轴刻度：首/尾/中三档（端点优先）；索引重复（N≤1 时 mid 撞端点）或
+       中点与两端间距 <44px 时丢弃，跨度为 0 只画一枚 */
+    const seenI = new Set();
+    const xlab = (N === 0 ? [[0, "middle"]] : [[0, "start"], [N, "end"], [mid, "middle"]]
+        .filter(([i]) => {
+          if (seenI.has(i)) return false;
+          if (i !== 0 && i !== N && (X(i) - X(0) < 44 || X(N) - X(i) < 44)) return false;
+          seenI.add(i);
+          return true;
+        }))
       .map(([i, a]) =>
         `<text class="gt" x="${X(i).toFixed(1)}" y="${H - 8}" text-anchor="${a}">${pts[i][0].slice(5)}</text>`).join("");
     /* 数据点：只有真实入库的日期出点；hit 大圆承担 hover */
@@ -225,33 +237,114 @@
     });
   }
 
-  /* ── 词云：字号 ∝ 频次（lo–hi 线性映射），透明度随频次衰减；不定位不旋转，流式换行 ── */
+  /* ── 词云 v2：经典螺旋布局 —— 首词落中心，其余沿阿基米德螺旋外溢，
+     用 DOM 实测包围盒做精确碰撞（不重叠不稀疏）；字号按频次对数映射 11–34px，
+     颜色按名次分档（accent → 绿 → 紫 → 橙 → 灰阶），中后段长词偶发竖排；
+     布局完全确定性 —— 同样的数据永远同样的形状（主题切换/筛选重绘不跳变）；
+     椭圆系数按容器实测宽高归一，宽卡铺满不留大片空白；
+     hidden 卡（display:none 无法测量）先临时展开为不可见，渲染完复原 ── */
+  function unhideBox(box) {
+    if (!box.hidden) return () => {};
+    box.style.visibility = "hidden";
+    box.style.display = "block";
+    return () => { box.style.display = ""; box.style.visibility = ""; };
+  }
+
   function renderCloud(box, rows) {
+    const restore = unhideBox(box);
     box.innerHTML = "";
-    if (!rows.length) { box.innerHTML = '<p class="st-none">无数据</p>'; return; }
-    const max = Math.max(...rows.map((r) => r.n));
-    const min = Math.min(...rows.map((r) => r.n));
-    const lo = 12, hi = 34;
-    const mid = Math.round((lo + hi) / 2);
-    box.innerHTML = rows.map((r) => {
-      const size = max === min ? mid : Math.round(hi - ((max - r.n) / (max - min)) * (hi - lo));
-      const op = (0.55 + 0.45 * (r.n / max)).toFixed(2);
-      return `<span class="st-w" style="font-size:${size}px;opacity:${op}" title="${esc(r.k)} × ${r.n}">${esc(r.k)}</span>`;
-    }).join("");
+    if (!rows.length) { box.innerHTML = '<p class="st-none">无数据</p>'; restore(); return; }
+    const W = Math.max(280, box.clientWidth), H = Math.max(200, box.clientHeight);
+    const small = W < 480;
+    const data = rows.slice(0, small ? 16 : 32);
+    const max = data[0].n, min = data[data.length - 1].n;
+    const lr = Math.log(max / Math.max(1, min));            // 频次对数跨度
+    const cx = W / 2, cy = H / 2;
+    const TMAX = 620;
+    const ax = (W / 2 - 6) / (5.5 * Math.sqrt(TMAX));       // 螺旋半径 → 容器宽映射
+    const ay = (H / 2 - 6) / (5.5 * Math.sqrt(TMAX));
+    const placed = [];
+    const PAD = 3;
+    const hits = (x, y, w, h) => placed.some((b) =>
+      x < b.x + b.w + PAD && x + w > b.x - PAD && y < b.y + b.h + PAD && y + h > b.y - PAD);
+    const tryPlace = (bw, bh) => {
+      for (let t = 0; t < TMAX; t++) {
+        const rad = 5.5 * Math.sqrt(t);
+        const a = -Math.PI / 2 + t * 0.105;
+        const x = cx + Math.cos(a) * rad * ax - bw / 2;
+        const y = cy + Math.sin(a) * rad * ay - bh / 2;
+        if (x < 2 || y < 2 || x + bw > W - 2 || y + bh > H - 2) continue;
+        if (!hits(x, y, bw, bh)) return [x, y];
+      }
+      return null;
+    };
+    /* 颜色/透明度按名次分档：头两词主色、其后绿→紫→橙、长尾灰阶垫底 */
+    const TCOL = [col(0), col(1), col(2), col(3), "var(--faint)"];
+    const TOP = [1, .92, .85, .8, .72];
+    const tier = (i) => i < 2 ? 0 : i < 6 ? 1 : i < 12 ? 2 : i < 19 ? 3 : 4;
+    const frag = document.createDocumentFragment();
+    data.forEach((r, i) => {
+      const k = lr > 0 ? Math.log(r.n / Math.max(1, min)) / lr : 1;
+      const size = Math.round(11 + k * (small ? 17 : 23));  // 11–34px
+      const s = document.createElement("span");
+      s.className = "st-w";
+      s.textContent = r.k;
+      s.title = r.k + " × " + r.n;
+      s.style.fontSize = size + "px";
+      s.style.color = TCOL[tier(i)];
+      s.style.opacity = TOP[tier(i)];
+      s.style.animationDelay = Math.min(480, i * 18) + "ms";
+      frag.appendChild(s);
+    });
+    box.appendChild(frag);                                  // 入 DOM 才有真实包围盒
+    const els = [...box.querySelectorAll(".st-w")];
+    /* 面积守恒：词总面积超过容器可用面积（50%）时整体等比缩小字号 ——
+       中屏/小屏也能放下全部词（层级关系不变；缩后逐词重测无需重排档位） */
+    let area = 0;
+    els.forEach((s) => { area += s.offsetWidth * s.offsetHeight; });
+    const usable = W * H * 0.5;
+    if (area > usable) {
+      const f = Math.max(0.55, Math.sqrt(usable / area));   // 最多缩到 55% 防过小
+      els.forEach((s) => s.style.fontSize = Math.max(9, parseFloat(s.style.fontSize) * f) + "px");
+    }
+    let fb = 0;                                             // 兜底堆叠行号
+    els.forEach((s, i) => {
+      let w = s.offsetWidth, h = s.offsetHeight;
+      const vert = !small && i >= 8 && i % 6 === 4 && w > h * 2.2;   // 长词偶发竖排
+      if (vert) s.classList.add("st-wv");
+      let bw = vert ? h : w, bh = vert ? w : h;             // 旋转后包围盒
+      let pos = tryPlace(bw, bh);
+      if (!pos) {                                           // 放不下 → 缩 15% 再试
+        s.style.fontSize = parseFloat(s.style.fontSize) * 0.85 + "px";
+        w = s.offsetWidth; h = s.offsetHeight;
+        bw = vert ? h : w; bh = vert ? w : h;
+        pos = tryPlace(bw, bh);
+      }
+      if (pos) {                                            // left/top 取旋转前盒的左上角
+        s.style.left = (pos[0] + (bw - w) / 2) + "px";
+        s.style.top = (pos[1] + (bh - h) / 2) + "px";
+        placed.push({ x: pos[0], y: pos[1], w: bw, h: bh });
+      } else {
+        s.style.left = "2px";
+        s.style.top = (2 + fb * 20) + "px";                 // 兜底：左侧纵向排开不互叠
+        placed.push({ x: 2, y: 2 + fb * 20, w: bw, h: bh });
+        fb++;
+      }
+    });
+    restore();
   }
 
   function render() {
     const list = filtered();
-    currentList = list;
     el("st-count").textContent = `命中 ${list.length} / ${DATA.length} 篇`;
     el("st-empty").hidden = list.length > 0;
     grid.style.visibility = list.length ? "visible" : "hidden";
 
     renderGrowth(el("st-growth"), list);
-    renderDonut(el("st-types"), countBy(list, (d) => d.at, 8));
+    renderDonut(el("st-types"), countBy(list, (d) => d.at, 6));   // 调色板 6 色，超出会撞色
     renderBars(el("st-journals"), countBy(list, (d) => d.j, 10));
-    renderCloud(el("st-kwc"), countBy(list, (d) => d.kw, 30));
-    renderCloud(el("st-wc"), wordFreq(list, 30));
+    renderCloud(el("st-kwc"), countBy(list, (d) => d.kw, 34));
+    renderCloud(el("st-wc"), wordFreq(list, 34));
   }
 
   /* ── hero 总览（全量口径）── */
@@ -312,11 +405,11 @@
   new MutationObserver(render).observe(document.documentElement,
     { attributes: true, attributeFilter: ["data-theme"] });
 
-  /* ── 面积图按容器宽度构建，窗口变化时只重绘它 ── */
+  /* ── 窗口尺寸变化：面积图与词云都按容器实测像素构建，统一防抖重算 ── */
   let rzT;
   window.addEventListener("resize", () => {
     clearTimeout(rzT);
-    rzT = setTimeout(() => renderGrowth(el("st-growth"), currentList), 180);
+    rzT = setTimeout(render, 180);
   });
 
   /* ── 筛选事件 ── */

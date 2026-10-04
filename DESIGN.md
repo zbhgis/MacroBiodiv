@@ -42,6 +42,16 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   布局零改动。**菜单栏 .mnav 与大标题 clamp 为固定框架，保持 px 不参与调节**；
   FAB「A」按钮切换（标准/放大两档），偏好存 localStorage `mbd-fs`，head 内联脚本
   渲染前置位防闪烁；原 10–12.5px 的 mono 微字号就近并入 xs 档（视觉整体 +2px 左右）
+- **形状分层（2026-10 与 GeoSciPlot 全面对齐）**：①「控件」一律胶囊
+  `border-radius:999px` + `--fs-sm`——搜索框（连体壳：外壳 999px、内部按钮只圆右半
+  `0 999px 999px 0` + `border-left` 内分隔 + `:focus-within` 整框亮 accent）、
+  chips、日期输入、select、普通按钮（筛选/重置/上一页/下一页/页码/返回/复制）、
+  排序胶囊组（外壳 `--card` 底，选中项 **accent 实底**，实底只给真单选组）、
+  搜索页大输入框、统计页小 tab；卡片徽章（类型/期刊/周报 tag）也统一 mini 胶囊。
+  ②「容器」保留小圆角：卡片/缩略图/下拉面板/虚线框 6px，大图/统计卡 8px。
+  两层圆角必须分开，全胶囊会让卡片失去边界感。控件行 `align-items:center`
+  （baseline 会让高矮不一的胶囊错位）；**表单控件不继承 body 字体**，每个
+  button/input/select 都显式写等宽栈 + 字号，漏写就掉回浏览器默认字体
 - 首页容器 1180px；**桌面端右内边距 74px** 给右侧悬浮队列让位（≤640px 队列转横排）
 - 断点：1100px（首页瀑布流卡片 4→3 列）、760px（3→2 列）、640px（队列横排）
 
@@ -84,17 +94,30 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 
 - Header：logo + 大标题 → gh-note（「文献数据存储于 GitHub，访问需具备 GitHub 访问能力
   （点此查看仓库）」，整条为指向仓库的链接）→ lede → meta-row（N 篇 · 标签 · 期刊 · 年份）
-- 筛选维度三行 chips：**标签 / 期刊 / 时间区间**（时间 = online 发表日期）+ 排序
-  （发表 新→旧【默认】、旧→新、**随机**——2026-10 由「被引 多→少」改来：站点不再
-  携带被引数；每条目挂随机键做稳定洗牌，翻页 / 筛选不重排，点「随机」或重新访问页面
-  才重新洗牌，`?sort=rand` 可分享）
+- 筛选维度三行：**标签 / 期刊 chips（多选模型）** + **时间区间**（时间 = online 发表
+  日期）+ 排序（发表 新→旧【默认】、旧→新、**随机**——2026-10 由「被引 多→少」改来：
+  站点不再携带被引数；每条目挂随机键做稳定洗牌，翻页 / 筛选不重排，点「随机」或重新
+  访问页面才重新洗牌，`?sort=rand` 可分享）
+- **chips 多选语义（GeoSciPlot 同源，2026-10 重做）**：默认全选（构建期
+  `aria-pressed="true"`），点击某枚=剔除，行尾固定两枚虚线胶囊「全选」「反选」；计数
+  徽标 `<i class="n">` 为 chip 内 mini 胶囊（`--line` 底、`min-width:22px` 定宽、
+  `tabular-nums`）。状态矩阵：入选=透明底 + `--text` 字 + `--line2` 描边；剔除=
+  `--faint` 字 + `--line` 边 + **删除线** + `opacity .75`；hover=accent 字/边 +
+  `--accent-soft` 底。入选标签之间 **OR**（任一命中即显示）；全部选中=不筛选；
+  被剔除的 ≤3 个时筛选摘要显示「标签/期刊 排除 X、Y」，否则「仅 入选值」；筛选激活时
+  无标签/无期刊的内容随之隐藏。**标签行在 tags 数据为空时整行不输出**（管理员在后台
+  补录 tags 后自动出现）——期刊同理走同一组件。chips 的 `aria-pressed` 是唯一状态
+  真源，重置 = 全部写回 pressed=true（旧单选「只留第一枚」的写法已删净）
 - 文献卡片（`.card`，GeoSciPlot 瀑布流同源语言）：**封面通栏顶图**（自然宽高比不裁切，
-  底色作加载占位；无封面时输出期刊缩写占位块 `.c-ph`，版式不塌）；说明区 `.c-cap` =
-  徽章行（文章类型 + 期刊）+ 主标题（**中文优先**，悬停显示另一语言原题，3 行截断）
+  底色作加载占位；无封面或**外链封面加载失败时换成期刊缩写占位块 `.c-ph`**——
+  jsdelivr 多源降级耗尽后由 `__coverPlaceholder` 兜底，不留破图，版式不塌）；
+  说明区 `.c-cap` = 徽章行（文章类型 + 期刊）+ 主标题（**中文优先**，悬停显示另一语言
+  原题，3 行截断）
 - 瀑布流 **CSS multi-columns**：4 列、列距 18px，≤1100px 3 列、≤760px 2 列（列距 12px）；
   `break-inside:avoid` 防卡片跨列截断；hover 仅边框变 accent（无阴影，克制工程感）；
   **首屏 30 张由 Python 静态输出**（爬虫/AI 引擎友好），翻页与筛选由 JS 重渲染，两者输出必须完全一致（构建期 `sort_items` 与 JS `cmp` 同序；封面字段 `cv` 构建期写死带 `?v=`，静态与 JS 渲染同源）
-- 分页 20/30/50；页码窗口随视口收窄；筛选/排序状态可记 localStorage（`mbd-per/mbd-sort2/mbd-filters`）；URL 参数 `?q=&tag=&journal=&from=&to=` 可分享
+- 分页 20/30/50；页码窗口随视口收窄；筛选/排序状态可记 localStorage（`mbd-per/mbd-sort2/mbd-filters`）；URL 参数 `?q=&tag=A|B|C&journal=A|B&from=&to=` 可分享（`encodeURIComponent`，
+  多值 `|` 分隔，**旧单值链接天然兼容**；全部选中时该参数无意义，分享链接按选中集还原）
 
 ### 3.2 详情页 `/{id}/`（公众号推文式分节阅读，2026-10 对齐「浩瀚地学」文献精选排版）
 
@@ -146,15 +169,29 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   <1280px 同款 FAB + 抽屉；配套给 `.sec-h` 补 `scroll-margin-top:80px`
   （修锚点跳转被吸顶导航遮挡，也让高亮观察带能命中）。仅这两种文章页注入
 
-### 3.2.1 分享与收录（SEO）
+### 3.2.1 分享与收录（SEO / GEO）
 
 - 页面输出 Open Graph 标签（og:title/description/type/url/site_name）：详情页 `og:type=article`，
   配置 `site_url` 后自动生成，聊天工具分享出卡片；**详情页有封面时附 `og:image`（绝对 URL）**，
   分享卡片带封面
+- **canonical 全页输出**（2026-10 新增）：`page_shell` 在配置了 `site_url` 时为每页输出
+  `<link rel="canonical">`（与 og:url 同值）——多入口/带参数访问时搜索引擎只认这一份
 - 详情页内嵌 Schema.org **ScholarlyArticle JSON-LD**（标题/作者/期刊/出版商/日期/DOI/关键词/
-  **封面 image**），搜索引擎可直接理解文献结构
-- 构建时生成 **robots.txt + sitemap.xml**（全站 URL + lastmod）与 **atom.xml**（最新 20 篇订阅源，
-  中文摘要优先），同样依赖 `site_url` 配置
+  **封面 image**），搜索引擎可直接理解文献结构；首页内嵌 **WebSite JSON-LD**（2026-10 新增，
+  `name=MacroBiodiv` + `alternateName=宏观生物多样性文献库` 中英双名，供引擎建立站点身份映射）
+- **首页 title 带中文关键词**（2026-10 新增）：`宏观生物多样性文献库 · MacroBiodiv`——只写
+  "MacroBiodiv" 时搜中文词在 title 上无命中
+- 构建时生成 **robots.txt + sitemap.xml** 与 **atom.xml**（最新 20 篇订阅源，中文摘要优先），
+  同样依赖 `site_url` 配置：
+  - robots.txt 含 **AI 爬虫白名单**（2026-10 新增，与主站 zbhgis.com robots.ts 同一份 UA 清单：
+    GPTBot / ClaudeBot / PerplexityBot / Google-Extended 等，允许抓取以产出引用）
+  - sitemap 的 **lastmod 用真实日期**（2026-10 新增）：文献页=收录日 `added`、首页=最新收录日、
+    搜索/统计/周报页=构建日——不用构建时间冒充全站更新（引擎会学会忽略该字段）
+- **llms.txt（GEO，2026-10 新增）**：给 AI 引擎的自然语言站点地图——站点定位引言、四个栏目
+  链接（首页/搜索/每周速递/统计）、全量文献索引（中文标题 + 链接 + 期刊年份 + DOI）
+- **404.html（2026-10 新增）**：构建产出带 `noindex` 的 404 页；nginx 侧 `try_files` 末段用
+  `=404`（`deploy/nginx-macrobiodiv.conf` 已同步）——旧写法兜底 `/index.html` 会把所有坏链
+  变成 200 首页（软 404），引擎会索引一堆内容相同的 URL
 
 ### 3.3 全站搜索 `/search/`
 
@@ -173,27 +210,52 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 ### 3.3.1 全站统计 `/statistics/`（2026-10 新增）
 
 - 数据层 `build_stats_data` → `site/assets/stats-data.js`（window.MBD_STATS）：只带统计所需的
-  **英文原文与分面字段**（t 英文原题 / ab 英文摘要 / kw 关键词 / au 作者全名 / j 期刊 /
-  at 体裁 / y 年份）—— 中文翻译字段与每周速递一律不进数据；`<`→`\u003c` 防 script 截断；
+  **英文原文与分面字段**（t 英文原题 / ab 英文摘要 / kw 关键词 / j 期刊 / at 体裁 / y 年份 /
+  po 发表日期）—— 中文翻译字段、作者、每周速递一律不进数据；`<`→`\u003c` 防 script 截断；
   仅 /statistics/ 页经 `extra_assets` 注入（stats-data.js + stats.js）
+- **访客向数据面板**（2026-10 重设计；此前为筛选+六张纯 CSS 条形卡的管理口径版）：
+  页面流 = **hero 总览四 tile**（收录文献/来源期刊/研究关键词，数字滚动 count-up 700ms
+  ease-out，reduced-motion 直落；「文献被浏览」来自统计服务）→ **热读文献 Top 5** →
+  筛选行 → 图表网格 → 末尾「去全站搜索 / 回首页」CTA 行
+- **hero / 热读榜为全量口径**，不随筛选重算：一次 fetch `/api/v1/stats/views?prefix=/macrobiodiv/`
+  同时喂 hero「文献被浏览」累计与热读榜（正则 `/^\/macrobiodiv\/[^/]+\/$/` 只留文献卡片页，
+  **每周速递两段路径被排除**）；热读榜排序 = 浏览数降序、**同数随机**（`Math.random()` 键），
+  行内淡色底条 `--w` = 浏览量占比，No.1 实心章 / 2·3 描边章（`.top/.pod`），副行显示期刊·年份；
+  localhost / 无统计服务时 hero 显示「—」、热读榜显示本地预览提示，不发起请求
 - **筛选 → 实时重算**（简化版即席查询：全站数据打底，不做 URL 分享与下钻）：
   期刊下拉 / 类型下拉 / 年份区间（两个 number 输入）/ 重置；选项来自全量数据；
-  过滤 → 聚合 → 条形图重渲染，全部客户端完成
-- 六个图表卡（纯 CSS 条形，宽度 = 占该图最大值比例；两栏 grid，≤860px 单栏）：
-  年度发文分布（按年升序）/ 期刊 Top 10 / 文章类型 / 关键词 Top 15（整个短语计数）/
-  作者 Top 10（英文全名精确计数，缩写名同名异写不合并）/ 标题·摘要高频词 Top 15
-  （小写化 → `[^a-z]+` 切词 → 停用词表剪除 → 长度 ≥3；停用词 = 功能词 + 少量学术填充词）
-- **两张词云卡**（2026-10 新增，随筛选实时重算）：关键词词云 / 标题·摘要高频词词云
-  （Top 30，`wordFreq(list, 30)`）；字号 ∝ 频次（12–34px 线性映射），透明度随频次衰减
-  （0.55–1），flex 流式换行不定位不旋转（避免重叠）；悬停 title 显示「词 × 次数」并高亮
-- **被浏览排行 Top 5**（2026-10 新增）：独立卡置于筛选区上方，**全量口径不随筛选重算**；
-  数据来自统计服务 `/api/v1/stats/views?prefix=/macrobiodiv/`（与详情页浏览量同源），
-  正则 `/^\/macrobiodiv\/[^/]+\/$/` 只留文献卡片页（**每周速递两段路径被排除**）；
-  排序 = 浏览数降序、**同数随机**（每条目挂 `Math.random()` 键）；只展示前 5，
-  词目链接进详情页；`stats-data.js` 为此新增 `id` 字段（path → 文献映射）；
-  localhost / 无统计服务时显示「本地预览无浏览统计」提示，不发起请求
-- 总览行：命中 N 篇 · 期刊数 · 年份跨度 · 去重关键词数；命中 0 时隐藏图表网格并出空态；
-  导航「全站统计」占位链接改为真实 `/statistics/`（`is_stats` 按 path 标 active），sitemap 收录
+  过滤 → 聚合 → 图表重渲染，全部客户端完成；命中 0 时隐藏图表网格并出空态
+- 图表网格（两栏 grid，≤860px 单栏；`.st-wide` 通栏卡）：
+  ① **Online 发表动态**（通栏）：按文献 **online 发表日期**（`po` = `published` 字段；
+  注意 `published_online` 在数据里是布尔标注而非日期）逐日累计的 **SVG 面积图**
+  （accent 渐变填充），JS 按容器实测像素构建（文字不变形），resize 防抖 180ms 重绘；
+  仅真实发表日出点，hover 显示「MM-DD · 累计 N 篇（+K）」（绝对定位 tip，
+  getBoundingClientRect 定位）；x 轴刻度首/尾/中三档，端点优先 + 索引去重 +
+  中点 44px 间距门槛（跨度 ≤1 天不叠字）
+  ② **文章类型构成**：**SVG 环形图**（`r=15.9155` → 周长恰 100，dasharray 直接用百分比；
+  中心合计「N 篇 · M 类」），段与图例**双向联动高亮**（互斥 off/加粗 big）
+  ③ **期刊 Top 10**：CSS 条形（细轨 + 进场 `stgrow` 生长动画，innerHTML 重建即触发；
+  reduced-motion 关闭）
+  ④ **研究热词**（通栏 tab 卡）：关键词 / 标题·摘要 两枚胶囊 tab 切换两张词云
+  （均随筛选重渲染，tab 仅显隐；**`.st-cloud[hidden]` 需显式 display:none** ——
+  作者 display:flex 会压过 UA 的 hidden 隐藏，实测踩过）
+  **词云 v2 螺旋布局**（2026-10-04 重做，替代 flex 流式排布）：定高 300px 相对容器
+  （≤480px 240px），词沿**阿基米德螺旋**外溢 —— 半径按容器实测宽高归一（宽卡铺满
+  不留大空白），**DOM 实测 offsetWidth/Height 包围盒**精确碰撞（PAD 3px，放不下
+  缩 15% 重试，兜底左上角）；字号按频次**对数**映射 11–34px（Top 32，窄屏 16 词）；
+  颜色按名次分档（头 2 词 accent 蓝 → 绿 → 紫 → 橙 → 长尾 `--faint` 灰阶），
+  中后段长词（i≥8 且 i%6=4 且宽>2.2 倍高）**竖排** rotate(-90°)（碰撞盒换轴）；
+  布局**完全确定性**（不用 Math.random，主题切换/筛选重绘形状不跳变）；
+  入场逐词淡入（stwin 45ms 级联，reduced-motion 关闭），hover 光晕 + 全亮；
+  hidden 卡 display:none 无法测量 —— 渲染前临时 `visibility:hidden + display:block`
+  展开、完成后复原（`unhideBox`）
+  ~~年度发文分布、作者 Top 10 已按 2026-10-04 要求移除~~
+  （高频词 = 小写化 → `[^a-z]+` 切词 → 停用词表剪除 → 长度 ≥3）
+- **分类调色板**（环形图/图例/hero 顶条共用，`PAL` 6 组暗亮双值，站点 token 同源）：
+  #58a6ff/#0969da · #3fb950/#1a7f37 · #a371f7/#8250df · #f0883e/#bc4c00 · #db61a2/#a2306e ·
+  #39c5cf/#0a7c84；SVG 颜色构建时写死，**监听 `documentElement` 的 data-theme
+  MutationObserver 整页重绘**（主题切换后图表换色）
+- 导航「全站统计」占位链接改为真实 `/statistics/`（`is_stats` 按 path 标 active），sitemap 收录
 
 ### 3.4 每周速递 `/weekly/`（2026-10 新增，布局移植 mystation 博客）
 
@@ -257,6 +319,13 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   「移除（不入库）」与删除文献都会连带删封面文件；文献管理编辑表单同样有封面区块，
   行列表有缩略图；发布 / 更新 / 重新抓取时服务端按 id **探测**封面文件写 `cover` 字段
   （不信任客户端路径，文件在才是真相；换格式上传自动清旧格式文件）
+- **封面外链（2026-10 新增）**：封面区块第三枚按钮「外链」，贴 http/https 图片 URL
+  直接写入 `cover` 字段（`set_cover_url`，与周报管线「外链直显」同模式，**不落盘**；
+  本地旧封面文件一并清掉 —— 编辑保存以磁盘文件为准，留着文件外链不会生效）。
+  已入库文献立即写 papers.json；新文献尚未入库时先记在条目上，发布时随条目写入
+  （服务端仅在本地文件存在时才覆盖 `cover`）。预览：UI 对外链直接用 URL；
+  行列表缩略图走 `GET /api/cover/{id}`，本地无文件时 **302 到外链**。
+  「移除封面」= 删文件 + 清外链字段（`clear_cover_url`），否则保存后 URL 又会回来
 - **抓取结果卡片**：左列 = 与站点卡片同一徽章语言（期刊徽章 + 体裁 chip + 日期顶行、
   英文标题粗体、中文标题副行、作者/卷期/id、**翻译状态徽章**
   「✓ 初译+审校 / ◑ 仅初译 / ✗ 失败」，悬停看原因，摘要 4 行截断）；
