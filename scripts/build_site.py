@@ -2265,6 +2265,12 @@ def main() -> int:
             page_shell(cfg, f"页面不存在 · {cfg['title']}", nf_body, path="/404.html",
                        noindex=True),
             encoding="utf-8")
+        # IndexNow key 文件：与主站 zbhgis.com 共用同一把 key（IndexNow 允许同一
+        # 所有者在多个站点托管同一 key 文件）。ping-search.sh 推送前探测本地址可达。
+        key_file = ROOT / "deploy" / "indexnow.key"
+        if key_file.exists():
+            key = key_file.read_text(encoding="utf-8").strip()
+            (SITE / (key + ".txt")).write_text(key, encoding="utf-8")
         # Atom 订阅源：最新 20 篇（按收录日期），文献库的订阅闭环
         # XML 不允许的控制字符（\x00-\x08 等）会导致解析失败，先剥掉
         xml_bad = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")

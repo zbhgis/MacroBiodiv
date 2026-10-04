@@ -653,6 +653,14 @@ def do_sync_server() -> dict:
     code, out = run(["scp", "-r", "-o", "BatchMode=yes", str(SITE) + "/.", f"{host}:{webroot}/"], timeout=600)
     if code != 0:
         return {"ok": False, "log": [{"step": "同步服务器", "ok": False, "out": "scp 失败\n" + out}]}
+    # 部署后搜索引擎推送：服务器端 ping-search.sh 按 sitemap 增量对比推 IndexNow
+    # （脚本与主站共用同一份，按传入 URL 分账状态；失败只记日志不影响发布）
+    site_url = (cfg.get("site_url") or "").rstrip("/")
+    if site_url:
+        ping, ping_out = run(ssh_base + [f"bash /opt/mystation/deploy/ping-search.sh {site_url}"], timeout=120)
+        ping_log = {"step": "搜索引擎推送（IndexNow）", "ok": ping == 0, "out": ping_out.strip() or "完成"}
+        return {"ok": True, "log": [{"step": "同步服务器", "ok": True, "out": f"site/ → {host}:{webroot}"},
+                                    ping_log]}
     return {"ok": True, "log": [{"step": "同步服务器", "ok": True, "out": f"site/ → {host}:{webroot}"}]}
 
 
