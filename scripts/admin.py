@@ -643,16 +643,27 @@ def do_sync_server() -> dict:
                                 "\"server\": {\"host\": \"root@47.98.133.104\", \"webroot\": \"/var/www/macrobiodiv\"}"}]}
 
     ssh_base = ["ssh", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=accept-new", host]
-    code, out = run(ssh_base + [f"mkdir -p {webroot} && find {webroot} -mindepth 1 -maxdepth 1 -exec rm -rf {{}} +"],
-                    timeout=120)
+    # 原子换台式同步：先整体传到 staging 目录，成功后再毫秒级 rename 就位。
+    # 旧流程「清空 webroot → 逐文件 scp」有分钟级发布空窗——期间访问 /
+    # 是 403（目录在但 index.html 未传到），访问详情页会拿到引用缺失资源的
+    # 半套页面（2026-10-04 实证）。staging 失败时旧站点原样保留，发布失败
+    # 不再破坏线上。
+    stage = webroot + ".staging"
+    code, out = run(ssh_base + [f"rm -rf {stage} && mkdir -p {stage}"],
+                    timeout=60)
     if code != 0:
         return {"ok": False, "log": [{"step": "同步服务器", "ok": False,
                                       "out": "SSH 连接失败（需先把本机公钥加入服务器 authorized_keys，"
                                              "命令见 README「服务器部署」一节）\n" + out}]}
 
-    code, out = run(["scp", "-r", "-o", "BatchMode=yes", str(SITE) + "/.", f"{host}:{webroot}/"], timeout=600)
+    code, out = run(["scp", "-r", "-o", "BatchMode=yes", str(SITE) + "/.", f"{host}:{stage}/"], timeout=600)
     if code != 0:
-        return {"ok": False, "log": [{"step": "同步服务器", "ok": False, "out": "scp 失败\n" + out}]}
+        run(ssh_base + [f"rm -rf {stage}"], timeout=60)  # 清掉残局，线上保持旧版本
+        return {"ok": False, "log": [{"step": "同步服务器", "ok": False, "out": "scp 失败（线上保持旧版本）\n" + out}]}
+    code, out = run(ssh_base + [f"mv {webroot} {webroot}.old 2>/dev/null; "
+                                f"mv {stage} {webroot} && rm -rf {webroot}.old"], timeout=120)
+    if code != 0:
+        return {"ok": False, "log": [{"step": "同步服务器", "ok": False, "out": "切换 staging 失败\n" + out}]}
     # 部署后搜索引擎推送：服务器端 ping-search.sh 按 sitemap 增量对比推 IndexNow
     # （脚本与主站共用同一份，按传入 URL 分账状态；失败只记日志不影响发布）
     site_url = (cfg.get("site_url") or "").rstrip("/")
@@ -691,7 +702,7 @@ def pipeline_after_content(log: list[dict], message: str, push: bool, sync: bool
             return {"ok": False, "log": log, "hint": "推送失败：检查 origin 与凭据（也可能是网络波动，稍后手动 git push）"}
 
     if sync:
-        log.append({"step": "同步服务器（ssh 清理 + scp 上传）", "out": "", "ok": None})
+        log.append({"step": "同步服务器（staging 原子换台）", "out": "", "ok": None})
         res = do_sync_server()
         log[-1]["ok"] = bool(res["ok"])
         log[-1]["out"] = "\n".join(x.get("out", "") for x in res["log"])
