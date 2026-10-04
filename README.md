@@ -24,7 +24,51 @@ python scripts/admin.py        # 本地管理界面（仅本机可访问，自�
 
 流程：**粘贴 DOI（+ 粘贴/拖入封面图）→ 自动抓取 → 大模型中文化（初译+审校）
 → 补标签/备注 → 点发布**。
-发布自动执行：写 `meta/papers.json` → 构建站点 → git push →（可选）同步服务器。
+
+### 发布流水线（点「发布」后自动执行）
+
+1. 写 `meta/papers.json` → `build_site.py` 构建静态站（robots/sitemap/llms.txt/404 页/
+   IndexNow key 文件一并产出）；
+2. `git add -A` → 提交 → 推送 GitHub（网络慢时超时放宽到 5 分钟）；
+3. **staging 原子换台同步服务器**（勾选"同步到服务器"时）：`site/` 整体 scp 到服务器
+   `.staging` 目录，成功后两连 `mv` 就位——发布期间旧版本完整在线，scp 失败线上原样
+   保留（旧的「清空 webroot → 逐文件 scp」有分钟级空窗，期间站点 403/资源 404，
+   2026-10-04 弃用）；
+4. 调用主站的 `ping-search.sh` 做 IndexNow 增量推送（key 文件随构建部署在本站根目录）。
+
+**每周速递上传联动**：上传周报 md 后自动两件事——md 落盘 `content/weekly/` 收进周报页；
+同时解析每篇「文献N」的 DOI 与图表图，新 DOI 抓取元数据生成主页卡片。周报页的
+标题取正文第一个一级标题、年月标签从标题的周区间提取（如 260309 → 2026年3月）、
+frontmatter 只用于「创建于」展示——md 带不带 frontmatter 都能正确处理。
+
+### 发布前必查（踩坑清单）
+
+- **`git add -A` 会收编工作区全部改动**：发布提交是全量的——先 `git status`
+  确认没有无关的半成品文件，或先把它们单独提交/清理。
+- **发布失败不影响线上**：build 失败 → 未提交未同步；scp 失败 → 线上保持旧版本且
+  残局自动清理。日志区每步状态可见：push 失败多半是网络波动，稍后手动 `git push`；
+  同步失败检查本机公钥是否在服务器 `authorized_keys`。
+- **nginx 配对关系**：构建产出的 `404.html` 依赖服务器 nginx 的
+  `error_page 404 /404.html` + `try_files ... =404`（留档在 `deploy/nginx-macrobiodiv.conf`，
+  与服务器现行版一致）——别改回 `/index.html` 兜底，那会把坏链变成 200 首页（软 404）。
+- **文档同步**：改构建逻辑/页面结构/数据模型后，按 AGENTS.md 约定同步 DESIGN.md
+  对应小节再提交。
+
+### 手工部署（应急/全量重传）
+
+```bash
+python scripts/build_site.py            # 生成 site/
+scp -r site/. root@47.98.133.104:/var/www/macrobiodiv/
+```
+
+> 注意手工 scp **不删除**服务器上已下线的旧文献目录（会累积失效页）——日常发布走
+> 管理界面（staging 换台自带清理 + 搜索推送）。
+
+### 发布后验证
+
+首页 200、任一文献详情页 200 且带 canonical、`/weekly/` 列表按月分组、
+IndexNow key 文件 200、随机坏路径返回**真 404**（不是首页）。
+全站无服务器编译——构建永远在本地做，服务器只放静态文件。
 
 ## 站点功能
 
