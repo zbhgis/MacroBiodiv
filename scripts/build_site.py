@@ -2071,17 +2071,27 @@ def build_weekly(cfg: dict) -> list[str]:
                               extra_assets=["image-lightbox.js", "article-toc.js"])
         (d / "index.html").write_text(html_txt, encoding="utf-8")
 
-    # 列表页：页头 + QuickNav 月份锚点 + 按月分组条目
+    # 列表页：页头 + QuickNav 月份锚点 + 按月分组条目。
+    # 分组键 = 标题识别的年月（与条目 chip、文章页同源），不看 frontmatter
+    # date——补录期次的 date 是录入日，按它分会把「260223-0301」错归 3 月
+    # （2026-10-04 实证）。组序显式按 YYYYMM 倒序、未知月份垫底：补录场景下
+    # date 序不再等价于期号顺序，不能沿用插入序。
+    def _month_key(label: str) -> str:
+        m = re.match(r"(\d{4})年(\d{1,2})月", label or "")
+        return f"{m.group(1)}{int(m.group(2)):02d}" if m else "0000"
+
     groups: dict[str, dict] = {}
-    for p in posts:                       # posts 已按日期倒序，组天然新→旧
-        key = p["date"][:7].replace("-", "") if p["date"] else "0000"
-        groups.setdefault(key, {"label": p["month"] or "未知月份", "items": []})
+    for p in posts:
+        label = p["month"] or "未知月份"
+        key = _month_key(p["month"])
+        groups.setdefault(key, {"label": label, "items": []})
         groups[key]["items"].append(p)
+    ordered = sorted(groups.items(), key=lambda kv: kv[0], reverse=True)
     chips = "".join(
         f'<a class="wk-btn" href="#m-{key}">{esc(g["label"])} <span class="n">{len(g["items"])}</span></a>'
-        for key, g in groups.items())
+        for key, g in ordered)
     sections = ""
-    for key, g in groups.items():
+    for key, g in ordered:
         rows = ""
         for p in g["items"]:
             rows += (f'<a class="wk-line" href="{p["slug"]}/"><span class="wk-line-in">'
