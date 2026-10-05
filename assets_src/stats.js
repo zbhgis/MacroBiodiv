@@ -384,14 +384,16 @@
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (!d || !d.items) throw 0;
+        /* 只统计文献卡片页：path 末段必须命中已知文献 id ——
+           正则拦不住 /statistics/ /weekly/ /search/ 这类单段系统路径（实测混进 Top5） */
         const rows = d.items
-          .filter((x) => /^\/macrobiodiv\/[^/]+\/$/.test(x.path))    // 两段以上 = 周报等，排除
           .map((x) => {
             const id = x.path.replace(/^\/macrobiodiv\//, "").replace(/\/$/, "");
             const meta = DATA.find((m) => m.id === id);
-            return { id, n: x.views || 0, t: (meta && meta.t) || id,
+            return { id, ok: !!meta, n: x.views || 0, t: (meta && meta.t) || id,
               j: (meta && meta.j) || "", y: (meta && meta.y) || "", rnd: Math.random() };
-          });
+          })
+          .filter((r) => r.ok);
         countUp(viewsEl, rows.reduce((s, r) => s + r.n, 0));
         const top = rows.slice().sort((a, b) => b.n - a.n || a.rnd - b.rnd).slice(0, 5);
         if (!top.length) { rankBox.innerHTML = '<p class="st-none">暂无浏览数据</p>'; return; }
