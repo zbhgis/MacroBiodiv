@@ -55,18 +55,30 @@
 
   /* ── 筛选控件：选项来自全量数据 ── */
   function fillSelect(sel, values, label) {
-    sel.innerHTML = `<option value="*">${label} 全部</option>` +
+    /* label 由筛选行的 .flabel 承担，首项只写「全部」 */
+    sel.innerHTML = `<option value="*">${esc(label)}</option>` +
       values.map((v) => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
   }
-  fillSelect(el("st-journal"), [...new Set(DATA.map((d) => d.j).filter(Boolean))].sort(), "期刊");
-  fillSelect(el("st-type"), [...new Set(DATA.map((d) => d.at).filter(Boolean))].sort(), "类型");
+  fillSelect(el("st-journal"), [...new Set(DATA.map((d) => d.j).filter(Boolean))].sort(), "全部");
+  fillSelect(el("st-type"), [...new Set(DATA.map((d) => d.at).filter(Boolean))].sort(), "全部");
 
   function filtered() {
-    return DATA.filter((d) =>
-      (state.j === "*" || d.j === state.j) &&
-      (state.t === "*" || d.at === state.t) &&
-      (!state.from || (d.y && d.y >= state.from)) &&
-      (!state.to || (d.y && d.y <= state.to)));
+    /* 时间筛选按 online 发表日期（po）做年月日比较。po 有月精度的（YYYY-MM，
+       Crossref 只给到月）按整月区间 [月初, 月底] 与筛选区间取重叠 ——
+       字符串比较即可，"-31" 只是月内上界、不校验真实历法 */
+    return DATA.filter((d) => {
+      if (state.j !== "*" && d.j !== state.j) return false;
+      if (state.t !== "*" && d.at !== state.t) return false;
+      if (state.from || state.to) {
+        const v = d.po || "";
+        if (!v) return false;                     // 无发表日期：筛选激活时隐藏
+        const ps = v.length === 7 ? v + "-01" : v;
+        const pe = v.length === 7 ? v + "-31" : v;
+        if (state.from && pe < state.from) return false;
+        if (state.to && ps > state.to) return false;
+      }
+      return true;
+    });
   }
 
   /* ── 聚合 ── */
@@ -110,8 +122,9 @@
   }
 
   /* ── 环形图：stroke-dasharray 段（r=15.9155 → 周长恰为 100，直接用百分比），
-     中心合计，段与图例双向联动高亮 ── */
-  function renderDonut(box, rows) {
+     中心合计，段与图例双向联动高亮。nTypes = 全部类目数（合并「其他」后
+     rows.length 会少计，中心「N 类」标注用真实类目数） ── */
+  function renderDonut(box, rows, nTypes) {
     box.innerHTML = "";
     if (!rows.length) { box.innerHTML = '<p class="st-none">无数据</p>'; return; }
     const total = rows.reduce((s, r) => s + r.n, 0);
@@ -132,7 +145,7 @@
       + `<circle cx="18" cy="18" r="15.9155" style="fill:none;stroke:var(--line);stroke-width:3.6"/>`
       + segs
       + `<text x="18" y="16.6" text-anchor="middle" class="don-v">${total}</text>`
-      + `<text x="18" y="21.2" text-anchor="middle" class="don-k">篇 · ${rows.length} 类</text></svg>`
+      + `<text x="18" y="21.2" text-anchor="middle" class="don-k">篇 · ${nTypes || rows.length} 类</text></svg>`
       + `<div class="st-legend">${legend}</div>`;
     const segEls = [...box.querySelectorAll(".seg")];
     const lgEls = [...box.querySelectorAll(".st-lg")];
@@ -341,7 +354,14 @@
     grid.style.visibility = list.length ? "visible" : "hidden";
 
     renderGrowth(el("st-growth"), list);
-    renderDonut(el("st-types"), countBy(list, (d) => d.at, 6));   // 调色板 6 色，超出会撞色
+    /* 环形图画前 5 类、其余合并为「其他」（调色板 6 色，第 6 色给「其他」）——
+       中心合计恢复全量口径，与 hero 的「收录文献」一致；
+       此前 topN=6 直接截断，第 7 类起的文献不进扇区也不进合计（102≠103 的根因） */
+    const typeRows = countBy(list, (d) => d.at);
+    const donutRows = typeRows.slice(0, 5);
+    const restN = typeRows.slice(5).reduce((s, r) => s + r.n, 0);
+    if (restN > 0) donutRows.push({ k: "其他", n: restN });
+    renderDonut(el("st-types"), donutRows, typeRows.length);
     renderBars(el("st-journals"), countBy(list, (d) => d.j, 10));
     renderCloud(el("st-kwc"), countBy(list, (d) => d.kw, 34));
     renderCloud(el("st-wc"), wordFreq(list, 34));

@@ -497,7 +497,7 @@ def do_refresh(ids: list) -> dict:
                 time.sleep(0.3)
             try:
                 record = fetch_paper(str(it.get("doi") or ""))
-                keep = {k: it[k] for k in ("id", "added", "title_zh", "abstract_zh", "article_type", "note", "tags", "cover") if k in it}
+                keep = {k: it[k] for k in ("id", "added", "title_zh", "abstract_zh", "article_type", "note", "tags", "cover", "cover_thumb", "cover_thumb_w", "cover_thumb_h") if k in it}
                 if it.get("keywords"):
                     keep["keywords"] = it["keywords"]   # 手动填过才保留；空缺由重新抓取回填
                 record.update(keep)
@@ -676,8 +676,17 @@ def do_sync_server() -> dict:
 
 
 def pipeline_after_content(log: list[dict], message: str, push: bool, sync: bool) -> dict:
-    """内容变更后的公共收尾：生成站点 → git 提交推送 →（可选）同步服务器。
+    """内容变更后的公共收尾：封面缩略图 → 生成站点 → git 提交推送 →（可选）同步服务器。
     所有步骤用 step() 执行，前端能看到每一步的实时状态。"""
+    # 增量补封面缩略图（下载新封面 → webp → 推图床 → 写 cover_thumb）。
+    # 必须在 build 之前：新缩略外链要进本次构建产物。
+    # 失败不阻断发布 —— 缺缩略图的卡片自动回退原图外链，下次发布自动重试
+    ok_t, out_t = step(log, "封面缩略图（增量 → 图床）",
+                       [PYTHON, "scripts/prepare_thumbs.py", "--push", "--quiet"], timeout=580)
+    if not ok_t:
+        log.append({"step": "封面缩略图（未阻断发布）", "ok": False,
+                    "out": "缺缩略图的卡片回退原图外链；下次发布会自动重试\n" + out_t[:300]})
+
     ok, out = step(log, "生成静态站 (build_site.py)", [PYTHON, "scripts/build_site.py"])
     if not ok:
         return {"ok": False, "log": log, "hint": "build_site.py 失败，未提交"}

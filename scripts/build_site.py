@@ -289,8 +289,15 @@ select{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-siz
 /* .c-y 详情页 .p-top 仍在复用 */
 .c-y{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--faint);flex:none}
 .c-t{font-size:var(--fs-sm);font-weight:600;line-height:1.5;color:var(--text);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-/* 封面通栏顶图：自然宽高比不裁切（瀑布流错落靠比例）；底色作加载占位防白闪 */
-.c-cov{display:block;width:100%;height:auto;background:var(--line)}
+/* 封面通栏顶图：自然宽高比不裁切（瀑布流错落靠比例）。
+   加载占位：c-covbox 垫 --line 底 + ::before「加载中」层；img 的 width/height
+   属性（取缩略图真实尺寸）让浏览器在加载前就预留同比例空间 —— 占位层可见
+   且零抖动，图片画出来后自然盖住占位层（z-index 1） */
+.c-covbox{display:block;position:relative;min-height:96px;background:var(--line)}
+.c-covbox::before{content:"加载中";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);letter-spacing:.14em;color:var(--faint);animation:covpulse 1.2s ease-in-out infinite alternate}
+.c-cov{position:relative;z-index:1;display:block;width:100%;height:auto;background:var(--line)}
+@keyframes covpulse{to{opacity:.45}}
+@media (prefers-reduced-motion:reduce){.c-covbox::before{animation:none}}
 /* 无封面占位块：期刊缩写居中（GeoSciPlot .ph 同语言） */
 .c-ph{display:flex;align-items:center;justify-content:center;min-height:140px;padding:18px;background:var(--line);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);letter-spacing:.08em;color:var(--faint);text-align:center}
 .c-cap{display:block;padding:10px 12px 12px}
@@ -595,7 +602,9 @@ html[data-theme=light] .st-tc3{--tc:#8250df}html[data-theme=light] .st-tc4{--tc:
 .st-rank .n{flex:none;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--dim);font-variant-numeric:tabular-nums}
 .st-filter{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:16px 0 4px}
 .st-filter select,.st-filter input{width:auto;padding:7px 10px;border-radius:999px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-sm)}
-.st-year{display:inline-flex;align-items:center;gap:6px}
+/* 筛选行与首页 fgroup 同语言：mono 小标签 + 胶囊控件，日期走原生 date（color-scheme 随主题） */
+.st-fgroup{display:inline-flex;align-items:center;gap:8px}
+.st-filter .dateinp{padding:6px 12px;color-scheme:dark light}
 .st-dash{color:var(--faint)}
 .st-count{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--faint)}
 .st-empty{margin:26px 0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--faint)}
@@ -985,8 +994,14 @@ JS = """\
        否则为「入选值」数组，命中任一即通过（OR），无标签/期刊的内容随之隐藏 */
     if (state.tag && !(it.tg || []).some(function (t) { return state.tag.indexOf(t) > -1; })) return false;
     if (state.journal && state.journal.indexOf(it.j || "") === -1) return false;
-    if (state.from && (it.pd || "") < state.from) return false;
-    if (state.to && (it.pd || "") > state.to) return false;
+    /* 日期区间按重叠匹配：pd 只有月精度（YYYY-MM）时按整月 [月初, 月底] 算 */
+    if (state.from || state.to) {
+      const v = it.pd || "";
+      if (!v) return false;
+      const ps = v.length === 7 ? v + "-01" : v, pe = v.length === 7 ? v + "-31" : v;
+      if (state.from && pe < state.from) return false;
+      if (state.to && ps > state.to) return false;
+    }
     if (state.q && (it.se || "").indexOf(state.q) === -1) return false;
     return true;
   }
@@ -1012,13 +1027,17 @@ JS = """\
     a.href = it.id + "/";
     // 主标题已中文优先（数据构建期定好）；悬停提示给另一种语言的标题
     a.title = (it.tz && it.t === it.tz) ? (it.te || it.t) : (it.tz || it.t);
-    if (it.cv) {                          // 封面通栏顶图（自然比例），与静态首屏输出一致
+    if (it.ct || it.cv) {                 // 封面通栏顶图（自然比例），与静态首屏输出一致
+      var box = el("span", "c-covbox");   // 垫「加载中」占位层，img 加载后自然盖住
       var cov = document.createElement("img");
       cov.className = "c-cov";
       cov.loading = "lazy";
-      cov.src = it.cv;
+      if (it.ct) { cov.src = it.ct; cov.dataset.full = it.cv; }   // 缩略外链优先，失败回退原图
+      else cov.src = it.cv;
+      if (it.ctw && it.cth) { cov.width = it.ctw; cov.height = it.cth; }  // 预留位防抖动
       cov.alt = "封面图";
-      a.appendChild(cov);
+      box.appendChild(cov);
+      a.appendChild(box);
     } else {                              // 无封面：期刊缩写占位块
       a.appendChild(el("span", "c-ph", it.jb || it.j || "—"));
     }
@@ -1394,9 +1413,16 @@ window.__coverPlaceholder = function (img) {{
   ph.className = "c-ph";
   var jb = card.querySelector(".c-j");
   ph.textContent = (jb && jb.textContent) || "—";
-  img.replaceWith(ph);
+  /* 连 c-covbox 一起换掉：占位块就位的同时把「加载中」层撤掉 */
+  (img.closest(".c-covbox") || img).replaceWith(ph);
 }};
 window.__imgFallback = function (img) {{
+  /* 缩略外链失败 → 先回退原图外链（data-full），原图走下面的多源降级链 */
+  if (img.dataset.full && !img.dataset.fullTried) {{
+    img.dataset.fullTried = "1";
+    img.src = img.dataset.full;
+    return;
+  }}
   var orig = img.dataset.origSrc || "";
   if (!orig) {{
     orig = img.src;
@@ -1574,9 +1600,19 @@ def card_html(p: dict) -> str:
     alt = alt_title(p)
     tip = esc(alt) if alt else esc(p.get('title'))
     cov = (p.get("cover") or "").strip()
-    cov_html = (f'\n  <img class="c-cov" src="{cover_src(cov)}" alt="封面图" loading="lazy">'
-                if cov else
-                f'\n  <span class="c-ph">{esc(jb)}</span>')
+    ctb = (p.get("cover_thumb") or "").strip()
+    ctw, cth = p.get("cover_thumb_w") or 0, p.get("cover_thumb_h") or 0
+    dims = f' width="{ctw}" height="{cth}"' if ctw and cth else ""
+    if ctb:
+        # 缩略外链优先（图床 webp，30-60KB）；width/height 预留位 + 「加载中」占位层；
+        # data-full 供加载失败时回退原图外链
+        cov_html = (f'\n  <span class="c-covbox"><img class="c-cov" src="{esc(ctb)}"'
+                    f' data-full="{cover_src(cov)}"{dims} alt="封面图" loading="lazy"></span>')
+    elif cov:
+        cov_html = (f'\n  <span class="c-covbox"><img class="c-cov" src="{cover_src(cov)}"'
+                    f' alt="封面图" loading="lazy"></span>')
+    else:
+        cov_html = f'\n  <span class="c-ph">{esc(jb)}</span>'
     return f"""<a class="card" href="{esc(p['id'])}/" title="{tip}">{cov_html}
   <span class="c-cap"><span class="c-meta">{ty_html}<span class="c-j" title="{esc(p.get('journal') or '')}">{esc(jb)}</span></span>
   <span class="c-t">{esc(display_title(p))}</span></span>
@@ -1913,14 +1949,16 @@ def build_stats_page(cfg: dict, items: list) -> str:
 <div class="st-ranks" id="st-rank"><p class="st-none">加载中…</p></div></section>
 
 <div class="st-filter">
-  <select id="st-journal" aria-label="按期刊筛选"><option value="*">期刊 全部</option></select>
-  <select id="st-type" aria-label="按类型筛选"><option value="*">类型 全部</option></select>
-  <span class="st-year">
-    <input type="number" id="st-from" placeholder="年份起" min="1800" max="2100" aria-label="年份起">
-    <span class="st-dash">–</span>
-    <input type="number" id="st-to" placeholder="年份止" min="1800" max="2100" aria-label="年份止">
-  </span>
-  <button id="st-reset" type="button">重置</button>
+  <span class="st-fgroup"><span class="flabel">期刊</span>
+    <select id="st-journal" aria-label="按期刊筛选"><option value="*">全部</option></select></span>
+  <span class="st-fgroup"><span class="flabel">类型</span>
+    <select id="st-type" aria-label="按类型筛选"><option value="*">全部</option></select></span>
+  <span class="st-fgroup"><span class="flabel">时间</span>
+    <input type="date" id="st-from" class="dateinp" aria-label="online 发表日期 起"
+           title="按 online 发表日期筛选（仅精确到月的文献按整月重叠匹配）">
+    <span class="st-dash" aria-hidden="true">–</span>
+    <input type="date" id="st-to" class="dateinp" aria-label="online 发表日期 止"></span>
+  <button id="st-reset" class="reset" type="button">重置</button>
   <span class="st-count" id="st-count"></span>
 </div>
 <p class="st-empty" id="st-empty" hidden>当前筛选条件下没有文献</p>
@@ -1986,11 +2024,19 @@ def build_weekly(cfg: dict) -> list[str]:
         doc = re.sub(r'<h2 id="doc-1" class="md-h1">.*?</h2>\n*', "", doc, count=1)
         toc = [t for t in toc if t[1] != "doc-1"]
         date = str(meta.get("date") or "")[:10]
-        # 年月标签从标题提取：期号覆盖的周区间形如 260309-0315 → 2026年3月
-        # （不看 frontmatter date——那是补录日期，不代表期号所属月份）；
-        # 标题里没有日期段时回退 frontmatter date
-        m_ym = re.search(r"(?<!\d)(\d{2})(0[1-9]|1[0-2])\d{2}(?!\d)", title)
-        month = f"20{m_ym.group(1)}年{int(m_ym.group(2))}月" if m_ym else _month_label(date)
+        # 展示日期与年月标签都自动识别自标题里的期号区间（形如 260330-0405，
+        # YYMMDD-MMDD、同年省略年份）：区间起始日 = 该期收录周的周一，月份与日期
+        # 天然一致，跨月的期（260330-0405）不会再出现「3月胶囊配 4月日期」。
+        # frontmatter date 是补录日期，只作标题无区间时的回退，不再参与展示
+        m_rng = re.search(
+            r"(?<!\d)(\d{2})(0[1-9]|1[0-2])(\d{2})-(0[1-9]|1[0-2])(\d{2})(?!\d)", title)
+        if m_rng:
+            date = f"20{m_rng.group(1)}-{m_rng.group(2)}-{m_rng.group(3)}"
+            month = f"20{m_rng.group(1)}年{int(m_rng.group(2))}月"
+            period = f"{date} ~ {m_rng.group(4)}-{m_rng.group(5)}"
+        else:
+            month = _month_label(date)
+            period = date
         words = len(plain)
         reading = max(1, -(-words // 200))          # ceil(words/200)，主站同口径
         n_papers = len([1 for lv, _, txt in toc if lv == 1])
@@ -2002,6 +2048,7 @@ def build_weekly(cfg: dict) -> list[str]:
         first_img = re.search(r'<p class="wk-img"><img src="([^"]+)"', doc)
         posts.append({
             "slug": slug, "title": title, "date": date, "month": month,
+            "period": period,
             "doc": doc, "toc": toc, "words": words, "reading": reading,
             "summary": summ, "og_image": first_img.group(1) if first_img else "",
             "plain": plain,
@@ -2056,7 +2103,7 @@ def build_weekly(cfg: dict) -> list[str]:
 <h1 class="wk-deco wk-h1">{esc(p["title"])}</h1>
 <div class="wk-tagsrow">{'<span class="dot">·</span>'.join(tags)}</div>
 <div class="wk-meta"><span>{WK_ICO_USER}{WK_AUTHOR}</span><span>{WK_ICO_DOC}{p["words"]} 字</span><span>{WK_ICO_CLOCK}约 {p["reading"]} 分钟</span>{rstyle_toggle("plain")}</div>
-<div class="wk-dates"><span>创建于 <time datetime="{p["date"]}">{p["date"]}</time></span></div>
+<div class="wk-dates"><span>{'收录周期' if p["period"] != p["date"] else '创建于'} <time datetime="{p["date"]}">{p["period"]}</time></span></div>
 <div class="wk-content">{p["doc"]}</div>
 <nav class="wk-prevnext" aria-label="文章导航">{pn_cell(prev_p, False)}{pn_cell(next_p, True)}</nav>
 </article></main>
@@ -2210,7 +2257,11 @@ def main() -> int:
         "doi": p.get("doi") or "",
         "ab": abstract_disp(p),
         # cv = 封面（可选）：本地路径带 ?v= 防缓存；外链（http 开头）原样直显
+        # ct = 缩略外链（可选，图床 webp）：卡片优先用，加载失败回退 cv（data-full）
         "cv": cover_src(p.get("cover") or ""),
+        "ct": (p.get("cover_thumb") or "").strip(),
+        "ctw": p.get("cover_thumb_w") or 0,
+        "cth": p.get("cover_thumb_h") or 0,
         "se": haystack(p),
     } for p in items]
     (SITE / "assets" / "papers-data.js").write_text(

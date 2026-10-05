@@ -109,8 +109,12 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   补录 tags 后自动出现）——期刊同理走同一组件。chips 的 `aria-pressed` 是唯一状态
   真源，重置 = 全部写回 pressed=true（旧单选「只留第一枚」的写法已删净）
 - 文献卡片（`.card`，GeoSciPlot 瀑布流同源语言）：**封面通栏顶图**（自然宽高比不裁切，
-  底色作加载占位；无封面或**外链封面加载失败时换成期刊缩写占位块 `.c-ph`**——
-  jsdelivr 多源降级耗尽后由 `__coverPlaceholder` 兜底，不留破图，版式不塌）；
+  底色作加载占位；**有 `cover_thumb` 时优先引用图床缩略外链**（`ct`/`data-full` 静态与
+  JS 渲染一致），**`img` 带 width/height 预留位 + `.c-covbox::before`「加载中」呼吸层**——
+  加载前按缩略图真实比例撑出占位区零抖动，图片画出来后自然盖住；加载失败先回退原图
+  外链再降级；无封面或全部失败时换成期刊缩写占位块
+  `.c-ph`（连 c-covbox 一起替换，撤掉加载层）——jsdelivr 多源降级耗尽后由
+  `__coverPlaceholder` 兜底，不留破图，版式不塌）；
   说明区 `.c-cap` = 徽章行（文章类型 + 期刊）+ 主标题（**中文优先**，悬停显示另一语言
   原题，3 行截断）
 - 瀑布流 **CSS multi-columns**：4 列、列距 18px，≤1100px 3 列、≤760px 2 列（列距 12px）；
@@ -223,7 +227,11 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   行内淡色底条 `--w` = 浏览量占比，No.1 实心章 / 2·3 描边章（`.top/.pod`），副行显示期刊·年份；
   localhost / 无统计服务时 hero 显示「—」、热读榜显示本地预览提示，不发起请求
 - **筛选 → 实时重算**（简化版即席查询：全站数据打底，不做 URL 分享与下钻）：
-  期刊下拉 / 类型下拉 / 年份区间（两个 number 输入）/ 重置；选项来自全量数据；
+  期刊下拉 / 类型下拉 / **时间区间（两个原生 `type=date` 输入，按 online 发表日期
+  年月日比较）** / 重置；筛选行与首页 fgroup 同语言（mono 小标签分组 + 胶囊控件 +
+  描边重置，2026-10-05 重设计——此前重置按钮无样式掉浏览器默认外观、年份是
+  number 输入）；**月精度的发表日期（YYYY-MM，Crossref 只给到月）按整月区间
+  [月初, 月底] 与筛选区间取重叠匹配**（首页日期筛选同口径）；选项来自全量数据；
   过滤 → 聚合 → 图表重渲染，全部客户端完成；命中 0 时隐藏图表网格并出空态
 - 图表网格（两栏 grid，≤860px 单栏；`.st-wide` 通栏卡）：
   ① **Online 发表动态**（通栏）：按文献 **online 发表日期**（`po` = `published` 字段；
@@ -233,7 +241,10 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   getBoundingClientRect 定位）；x 轴刻度首/尾/中三档，端点优先 + 索引去重 +
   中点 44px 间距门槛（跨度 ≤1 天不叠字）
   ② **文章类型构成**：**SVG 环形图**（`r=15.9155` → 周长恰 100，dasharray 直接用百分比；
-  中心合计「N 篇 · M 类」），段与图例**双向联动高亮**（互斥 off/加粗 big）
+  中心合计「N 篇 · M 类」），段与图例**双向联动高亮**（互斥 off/加粗 big）；
+  **画前 5 类 + 其余合并为「其他」扇区**（2026-10-05 起）——调色板 6 色，
+  此前 topN=6 直接截断，第 7 类起的文献不进扇区也不进中心合计，
+  出现「hero 103 vs 环形图 102」的口径分裂（实测踩过）；中心 M 类 = 真实类目数
   ③ **期刊 Top 10**：CSS 条形（细轨 + 进场 `stgrow` 生长动画，innerHTML 重建即触发；
   reduced-motion 关闭）
   ④ **研究热词**（通栏 tab 卡）：关键词 / 标题·摘要 两枚胶囊 tab 切换两张词云
@@ -260,15 +271,20 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 ### 3.4 每周速递 `/weekly/`（2026-10 新增，布局移植 mystation 博客）
 
 内容源 `content/weekly/*.md`（front matter：title/date/categoryTags/subCategoryTags，
-**仅 date 用于「创建于」展示与标题缺日期时的年月回退，其余字段不进渲染**——见下方口径；
+**date 是补录日期，仅作标题缺期号区间时的兜底，不参与展示**——见下方口径；
 正文 `# 文献N` → `## 1.信息/2.摘要/3.图表`，图片为 jsdelivr CDN 外链）。md 经
 `scripts/render_md.py`（**标准库迷你渲染器**：标题降级映射 `h2.md-h1`/`h3.md-h2` 带 anchor、
 粗/斜体、独立图片行 → `.wk-img` 懒加载、裸 DOI URL 自动链接；先转义再套内联标记，未知语法纯文本兜底）。
 
-- 口径（2026-10-04 起）：**标题 = 正文第一个一级标题**（TOC 的 `doc-1` 条目，
-  文件直接以「文献N」开头时回退 frontmatter title/文件名）；**年月标签从标题提取**
-  （期号周区间 `260309-0315` → `2026年3月`，正则 `(?<!\d)(\d{2})(0[1-9]|1[0-2])\d{2}(?!\d)`，
-  标题无日期段时回退 frontmatter date）；slug = `weekly-{期号}`（标题正则 `精选(\d+)`）；
+- 口径（2026-10-04 起；**2026-10-05 起日期与年月统一自动识别自标题期号区间**）：
+  **标题 = 正文第一个一级标题**（TOC 的 `doc-1` 条目，
+  文件直接以「文献N」开头时回退 frontmatter title/文件名）；**期号区间从标题提取**
+  （`260330-0405`，正则 `(?<!\d)(\d{2})(0[1-9]|1[0-2])(\d{2})-(0[1-9]|1[0-2])(\d{2})(?!\d)`，
+  YYMMDD-MMDD、同年省略年份）：**年月标签 = 区间起始月**（`2026年3月`）、
+  **展示日期 = 区间起始日**（= 收录周周一，列表行 / 搜索结果 / 排序 / `<time>` 均用它）、
+  **详情页「收录周期」= `2026-03-30 ~ 04-05`**——跨月的期不会再出现「3月胶囊配 4月日期」；
+  标题无日期段时全部回退 frontmatter date（展示文案退回「创建于」）；
+  slug = `weekly-{期号}`（标题正则 `精选(\d+)`）；
   字数 = 去标记字符数（**不含 front matter**）；阅读时长 = `ceil(字数/200)` 分钟（主站同口径）；
   摘要 = 「本期收录 N 篇 · 期刊去重」；**front matter（title/date/categoryTags/subCategoryTags）
   一律不作为渲染与标签来源**——FM_RE 容忍 BOM/前导空白行，parse_md 的纯文本也取剥离后的正文
@@ -408,6 +424,15 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
                                      // ② 外链：完整 http(s) URL（周报图表图直显，
                                      //    不落盘；探测不到本地文件也不会被清除，
                                      //    前端 __imgFallback 提供多源降级）
+    "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/BlogImg@main/blog/thumb/{id}.webp",
+                                     // 缩略外链（可选，2026-10-05 新增）：图床上的 webp
+                                     // 缩略图，**卡片优先引用**（详情页/og:image 保持原图）；
+                                     // 由 scripts/prepare_thumbs.py 生成并写回；
+                                     // 缺失时卡片回退 cover（行为与历史版本一致）
+    "cover_thumb_w": 480, "cover_thumb_h": 327,
+                                     // 缩略图像素尺寸（prepare_thumbs 写回）：卡片
+                                     // <img width/height> 预留位用 —— 加载前浏览器
+                                     // 按同比例撑出「加载中」占位层，零抖动
     // ── 统计 ──
     "added": "2026-09-19"
   }]
@@ -431,9 +456,24 @@ build_site.py：整体拷到 site/assets/covers/（镜像式，删除不残留�
 
 - 一篇文献至多一张封面（文章封面 / 图形摘要语义），重传即覆盖；id 由 DOI 派生，
   封面与文献的关联天然稳定，无需额外索引
-- 不做压缩/转码：零第三方依赖约束下不引 Pillow，原图原样入库（20MB 上限兜底，
-  周报图表原图常超 10MB），
-  体积优化依赖上传前自行处理
+- **原图不压缩/转码**：零第三方依赖约束下，站点构建（build_site.py）与管理后台
+  （admin.py）不引 Pillow，原图原样入库（20MB 上限兜底，周报图表原图常超 10MB）；
+  体积优化交给**缩略图管线**（下条）
+- **缩略图管线（2026-10-05 新增，学 GeoSciPlot scripts/prepare.py）**：
+  `scripts/prepare_thumbs.py` 把外链封面压缩成 webp（**长边 ≤480 · quality 78 ·
+  LANCZOS · EXIF 转正 · 透明垫白**，实测 2MB PNG → 30-60KB），存图床仓库
+  **zbhgis/BlogImg**（本地克隆 `E:/AAAproject/BlogImg`）的 `blog/thumb/{id}.webp`
+  并 `git push`，把缩略外链与像素尺寸（`cover_thumb_w/h`，供卡片预留位）写回
+  papers.json。**Pillow 仅此工具需要**
+  （site 构建/管理后台仍零依赖）；增量运行（跳过已有 cover_thumb）、`--force` 全量、
+  `--push` 提交推送、`--git-proxy` 给 push 挂本地代理（github 直连不通时）。
+  卡片引用顺序：`cover_thumb` → `cover`（缩略图加载失败先回退原图外链 data-full，
+  再走多源降级，最后占位块）；详情页 / og:image / JSON-LD 始终原图。
+  **已并入发布任务自动执行（2026-10-05）**：`pipeline_after_content` 第一步以
+  `--push --quiet` 调用本脚本（超时 580s），在 build 之前补齐新封面缩略图；
+  **推送成功才写 cover_thumb**（否则站点会引用 CDN 上不存在的文件）；push 直连
+  失败自动改走内置兜底代理重试；失败不阻断发布，下次发布自动重试。
+  手动运行仅作应急/全量重建：`python scripts/prepare_thumbs.py --push`
 
 ## 5. DOI 抓取管线（fetch_doi.py）
 
@@ -471,6 +511,10 @@ build_site.py：整体拷到 site/assets/covers/（镜像式，删除不残留�
 
 - 数据与索引随 GitHub 仓 `zbhgis/MacroBiodiv`；封面图存 `assets_src/covers/` 同样入库，
   构建时拷入 `site/assets/covers/`，生产包为 HTML/JS + 封面图片
+- **图片流量不经站点服务器（2026-10-05 起）**：卡片优先引用图床缩略外链
+  （`zbhgis/BlogImg@main/blog/thumb/{id}.webp`），详情页大图为原图外链——
+  nginx 只出 HTML/JS/JSON 与本地封面兜底文件；缩略图由
+  `scripts/prepare_thumbs.py --push` 维护（见「封面图管线」小节），部署本身零图片改动
 - nginx：`deploy/nginx-macrobiodiv.conf`（webroot /var/www/macrobiodiv，/api/ 反代主站
   FastAPI 做浏览统计；安全响应头 nosniff / SAMEORIGIN / Referrer-Policy；
   /assets/ 因带 ?v= 版本号放行 30d 长缓存）；DNS / 证书步骤见 `deploy/部署操作手册.md`
@@ -484,7 +528,7 @@ build_site.py：整体拷到 site/assets/covers/（镜像式，删除不残留�
 | 纯标准库 + 静态站，无框架 | 与 GeoSciPlot 同构，零运维，服务器只跑 nginx |
 | 首页卡片瀑布流（CSS multi-columns，2026-10 由等宽 grid 改入） | 封面升级为卡片常规要素（封面+标题+类型+期刊），自然比例错落成瀑布流，与 GeoSciPlot 保持同源；无封面用期刊缩写占位块兜底版式 |
 | 封面存 assets_src/covers + 探测式写库；周报图表封面走外链（2026-10） | site/ 是构建产物不入库；本地封面由服务端按磁盘文件探测，杜绝客户端伪造路径与状态漂移；周报图表图量大会撑爆仓库 → cover 存 jsdelivr URL 外链直显（探测保 URL 不清除），前端多源降级 |
-| 封面不做压缩/转码 | 零第三方依赖（不引 Pillow）；20MB 上限兜底（周报图表原图大），质量可控交给上传者 |
+| 封面原图不压缩/转码，缩略图走图床管线（2026-10-05 起） | 零第三方约束限定在站点构建与管理后台（不引 Pillow），压缩交给独立工具 `scripts/prepare_thumbs.py`（Pillow 仅此工具需要）；原图 20MB 上限兜底，缩略图长边 480 webp 存 BlogImg 图床，卡片引用缩略外链（首屏图片流量 60MB → 0.7MB），缺失时回退原图直显 |
 | 首屏静态输出 + JS 重渲染双轨 | 爬虫/AI 引擎可见 + 交互灵活；两者排序逻辑必须一致 |
 | 文章图片外链直显 + 前端多源降级（2026-10 定） | 几千张规模：入库/本地化会把仓库或部署包撑到 GB 级；外链零存储负担，可靠性靠 cdn → fastly → gcore → raw 逐源自动切换 |
 | 菜单栏 active 构建期静态判定 | `path` 在生成时已知，无需 JS 参与；静态首屏与 JS 渲染天然一致 |
