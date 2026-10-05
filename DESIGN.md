@@ -27,6 +27,8 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 | `--bg` / `--card` | #0d1117 / #161b22 | #fff / #f6f8fa | 背景 / 卡片 |
 | `--text` / `--dim` / `--faint` | #e6edf3 / #8b949e / #6e7681 | #1f2328 / #59636e / #818b98 | 正文三级 |
 | `--line` / `--line2` | #1c2129 / #30363d | #e8ebef / #d0d7de | 发丝线 / 控件描边 |
+| `--hairline-strong` | #2d333b | #d0d7de | rail 描边（主站同源，比 --line2 柔一档） |
+| `--scrollbar-thumb` / `-hover` | #2d333b / #484f58 | #d0d7de / #a1a8b2 | 自定义滚动条（主站同源细窄条，见 2.2） |
 | `--accent` | #58a6ff | #0969da | 强调（徽章、链接、按压态） |
 
 - 暗色为默认主题；手动切换记 `localStorage("mbd-theme")`
@@ -53,11 +55,19 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   （baseline 会让高矮不一的胶囊错位）；**表单控件不继承 body 字体**，每个
   button/input/select 都显式写等宽栈 + 字号，漏写就掉回浏览器默认字体
 - 首页容器 1180px；**桌面端右内边距 74px** 给右侧悬浮队列让位（≤640px 队列转横排）
+- **滚动条（2026-10-05 移植主站同源）**：`html{scrollbar-gutter:stable}`；Firefox 走
+  `@supports not selector(::-webkit-scrollbar)` 内的 `scrollbar-width:thin` + color
+  （Chromium 里标准属性会让 ::-webkit-scrollbar 自定义被原生渲染完全忽略——必须隔离）；
+  WebKit 全局 10px、track 透明、thumb 透明边 3px + background-clip 内缩成 4px 视觉细条
+  （命中区仍 10px 好拖）、hover 加深、corner 透明
 - 断点：1100px（首页瀑布流卡片 4→3 列）、760px（3→2 列）、640px（队列横排）
 
 ### 2.3 右侧悬浮按钮队列
 
-42px 正圆 · `--card` 实底 · 发丝描边 · hover 变 accent 并 scale(1.06)。
+42px 正圆 · `--card` 实底 · 描边 `--hairline-strong`（#2d333b/#d0d7de，比 `--line2`
+柔一档的主站同源值，2026-10-05 起 rail 专用）· hover 变 accent 并 scale(1.06)。
+**明暗主题图标 = 主站 24px 同款 SVG**（stroke 1.7：太阳 circle r3.6 + 八向光线 /
+月牙单径），此前 16px/1.6 自绘版已换掉；图标随主题切换（暗显太阳=点去亮色）。
 顺序固定：全站搜索 / 返回 Home / GitHub / 明暗主题 / **字号 A**（标准/放大两档，
 `html[data-fs=lg]` 覆盖字号变量，偏好存 `mbd-fs`）/ 回到顶部（与主站 rail 同款同序；
 2026-10 应用户要求移除最初顶部的「返回主站」跨站回链 —— 主站入口改由菜单栏「更多▾」承担）
