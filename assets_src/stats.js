@@ -377,8 +377,10 @@
      浏览数相同按随机排序，只展示前 5 ── */
   const rankBox = el("st-rank");
   const viewsEl = el("stv-views");
-  if (!LOCAL && API) {
-    fetch(API + "/api/v1/stats/views?prefix=/macrobiodiv/")
+  /* API 为空 = 同源（nginx 把 /api/ 反代到主站统计服务），不能当作「未配置」——
+     此前写成 if (!LOCAL && API)，线上 api 默认空串导致热读榜永远走本地预览分支（实测踩过） */
+  if (!LOCAL) {
+    fetch((API || "") + "/api/v1/stats/views?prefix=/macrobiodiv/")
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (!d || !d.items) throw 0;
