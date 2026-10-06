@@ -942,6 +942,15 @@ JS = """\
     });
   }
 
+  /* 详情页「返回全部」（a.back 只在详情页有）：优先回最近一次图库地址
+     （URL 自带筛选/排序/页码，随机排序也不重排 —— GSP gsp-back 同源思路）；
+     无记录（直链打开详情页）保持 ../ 兜底 */
+  try {
+    var backLink = document.querySelector("a.back");
+    var backUrl = sessionStorage.getItem("mbd-back");
+    if (backLink && backUrl) backLink.setAttribute("href", backUrl);
+  } catch (e) {}
+
   var grid = document.getElementById("grid");
   if (!grid) return;
 
@@ -952,7 +961,7 @@ JS = """\
     if ([20, 30, 50].indexOf(savedPer) > -1) state.per = savedPer;   // 仅接受合法档位，旧值自动回默认 30
     if (localStorage.getItem("mbd-sort2")) { state.sort = localStorage.getItem("mbd-sort2"); }
   } catch (e) {}
-  reshuffle();       // 初始随机键：每次访问页面「随机」排序都是新顺序
+  reshuffle();       // 会话种子键：同会话内稳定，详情页返回 / 刷新 / 翻页不重排
   var q = document.getElementById("q");
   var empty = document.getElementById("empty");
   var count = document.getElementById("count");
@@ -1023,9 +1032,26 @@ JS = """\
     // 同日期内按 id 排：与 build_site.py 的静态首屏顺序保持一致
     return (a.id || "").localeCompare(b.id || "");
   }
-  /* 随机排序：每条目挂一个随机键做稳定排序 —— 翻页 / 筛选时不重排，
-     点「随机」按钮或重新访问页面才重新洗牌 */
-  function reshuffle() { ITEMS.forEach(function (it) { it._rk = Math.random(); }); }
+  /* 随机排序（GSP 路由 + 会话种子）：键 = hash(文献id + 会话种子)，种子存
+     sessionStorage —— 同一会话内返回 / 刷新 / 翻页 / 筛选都不重排；
+     点「随机」或新开会话才换新种子重洗。此前 Math.random 每次加载全新键，
+     从详情页返回 Home 随机顺序全变（实际踩坑） */
+  function hash01(s) {
+    var h = 2166136261;
+    for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return ((h >>> 0) % 100000) / 100000;
+  }
+  function newSeed() {
+    var s = Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
+    try { sessionStorage.setItem("mbd-rseed", s); } catch (e) {}
+    return s;
+  }
+  function reshuffle() {
+    var s = "";
+    try { s = sessionStorage.getItem("mbd-rseed") || ""; } catch (e) {}
+    if (!s) s = newSeed();
+    ITEMS.forEach(function (it) { it._rk = hash01((it.id || "") + ":" + s); });
+  }
   function cmpRand(a, b) { return (a._rk || 0) - (b._rk || 0); }
   function el(tag, cls, txt) {
     var e = document.createElement(tag);
@@ -1085,6 +1111,24 @@ JS = """\
     }
     if (empty) empty.style.display = list.length ? "none" : "block";
     syncFilterBtn();
+    syncUrl();
+  }
+  /* 状态 → URL（GSP 同款路由）：筛选/排序/页码写进地址栏，replaceState 不新增
+     历史记录、不打断返回手势；顺带把图库当前地址记进 sessionStorage（mbd-back），
+     详情页「返回全部」据此跳回 —— 随机排序也不会因返回而重排 */
+  function syncUrl() {
+    try {
+      var parts = [];
+      if (state.q) parts.push("q=" + encodeURIComponent(state.q));
+      if (state.tag) parts.push("tag=" + encodeURIComponent(state.tag.join("|")));
+      if (state.journal) parts.push("journal=" + encodeURIComponent(state.journal.join("|")));
+      if (state.from) parts.push("from=" + encodeURIComponent(state.from));
+      if (state.to) parts.push("to=" + encodeURIComponent(state.to));
+      if (state.sort !== "pub") parts.push("sort=" + encodeURIComponent(state.sort));
+      if (state.page > 1) parts.push("page=" + state.page);
+      history.replaceState(null, "", location.pathname + (parts.length ? "?" + parts.join("&") : ""));
+      sessionStorage.setItem("mbd-back", location.pathname + location.search);
+    } catch (e) {}
   }
   function resetPage() { state.page = 1; render(); }
 
@@ -1142,7 +1186,7 @@ JS = """\
       b.setAttribute("aria-pressed", String(b.getAttribute("data-sort") === state.sort));
       b.addEventListener("click", function () {
         state.sort = b.getAttribute("data-sort");
-        if (state.sort === "rand") reshuffle();   // 每次点「随机」都重新洗牌
+        if (state.sort === "rand") { newSeed(); reshuffle(); }   // 每次点「随机」换新种子重洗
         try { localStorage.setItem("mbd-sort2", state.sort); } catch (e) {}
         sortBtns.forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
         resetPage();
@@ -1228,9 +1272,15 @@ JS = """\
   var applied = false;
   try {
     var params = new URLSearchParams(location.search);
-    ["q", "tag", "journal", "from", "to", "sort"].forEach(function (k) {
+    ["q", "tag", "journal", "from", "to", "sort", "page"].forEach(function (k) {
       var v = params.get(k);
       if (!v) return;
+      if (k === "page") {
+        /* 页码随路由回填（syncUrl 写入）：返回 / 刷新都停在离开时的那一页 */
+        applied = true;
+        state.page = Math.max(1, parseInt(v, 10) || 1);
+        return;
+      }
       if (k === "sort") {
         // 排序可分享，但仅本次生效 —— 分享链接不应永久改写接收者的排序偏好
         if (["pub", "pub_asc", "rand"].indexOf(v) === -1) return;

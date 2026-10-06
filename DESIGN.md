@@ -106,8 +106,10 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   （点此查看仓库）」，整条为指向仓库的链接）→ lede → meta-row（N 篇 · 标签 · 期刊 · 年份）
 - 筛选维度三行：**标签 / 期刊 chips（多选模型）** + **时间区间**（时间 = online 发表
   日期）+ 排序（发表 新→旧【默认】、旧→新、**随机**——2026-10 由「被引 多→少」改来：
-  站点不再携带被引数；每条目挂随机键做稳定洗牌，翻页 / 筛选不重排，点「随机」或重新
-  访问页面才重新洗牌，`?sort=rand` 可分享）
+  站点不再携带被引数；**随机键 = hash(文献id + 会话种子)**，种子存 sessionStorage
+  `mbd-rseed`：同一会话内详情页返回 / 刷新 / 翻页 / 筛选都不重排，点「随机」换新
+  种子重洗，新开会话才是全新顺序。此前 Math.random 每次加载全新键，从详情页返回
+  Home 随机顺序全变（2026-10-05 实际踩坑，GSP 路由 + 会话种子同修））
 - **chips 多选语义（GeoSciPlot 同源，2026-10 重做）**：默认全选（构建期
   `aria-pressed="true"`），点击某枚=剔除，行尾固定两枚虚线胶囊「全选」「反选」；计数
   徽标 `<i class="n">` 为 chip 内 mini 胶囊（`--line` 底、`min-width:22px` 定宽、
@@ -130,8 +132,12 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 - 瀑布流 **CSS multi-columns**：4 列、列距 18px，≤1100px 3 列、≤760px 2 列（列距 12px）；
   `break-inside:avoid` 防卡片跨列截断；hover 仅边框变 accent（无阴影，克制工程感）；
   **首屏 30 张由 Python 静态输出**（爬虫/AI 引擎友好），翻页与筛选由 JS 重渲染，两者输出必须完全一致（构建期 `sort_items` 与 JS `cmp` 同序；封面字段 `cv` 构建期写死带 `?v=`，静态与 JS 渲染同源）
-- 分页 20/30/50；页码窗口随视口收窄；筛选/排序状态可记 localStorage（`mbd-per/mbd-sort2/mbd-filters`）；URL 参数 `?q=&tag=A|B|C&journal=A|B&from=&to=` 可分享（`encodeURIComponent`，
-  多值 `|` 分隔，**旧单值链接天然兼容**；全部选中时该参数无意义，分享链接按选中集还原）
+- 分页 20/30/50；页码窗口随视口收窄；筛选/排序状态可记 localStorage（`mbd-per/mbd-sort2/mbd-filters`）；URL 参数 `?q=&tag=A|B|C&journal=A|B&from=&to=&sort=&page=` 可分享（`encodeURIComponent`，
+  多值 `|` 分隔，**旧单值链接天然兼容**；全部选中时该参数无意义，分享链接按选中集还原）。
+  **GSP 同款双向路由（2026-10-05 起）**：render 末尾 `syncUrl()` 把全部状态 replaceState
+  进 URL（不新增历史）并镜像到 sessionStorage `mbd-back`，URL 变化时也回读
+  （含 `page`）——返回 / 刷新 / 分享都停在离开时的筛选、排序与页码；
+  详情页「返回全部」按 `mbd-back` 跳回（直链打开保持 `../` 兜底）
 
 ### 3.2 详情页 `/{id}/`（公众号推文式分节阅读，2026-10 对齐「浩瀚地学」文献精选排版）
 
