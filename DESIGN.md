@@ -445,10 +445,11 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
                                      // ② 外链：完整 http(s) URL（周报图表图直显，
                                      //    不落盘；探测不到本地文件也不会被清除，
                                      //    前端 __imgFallback 提供多源降级）
-    "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/BlogImg@main/blog/thumb/{id}.webp",
-                                     // 缩略外链（可选，2026-10-05 新增）：图床上的 webp
-                                     // 缩略图，**卡片优先引用**（详情页/og:image 保持原图）；
-                                     // 由 scripts/prepare_thumbs.py 生成并写回；
+    "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/{id}.webp",
+                                     // 缩略外链（可选，2026-10-05 新增）：本仓库 images/
+                                     // thumb/ 的 webp 缩略图（经 jsDelivr），**卡片优先引用**
+                                     // （详情页/og:image 保持原图）；由
+                                     // scripts/prepare_thumbs.py 生成并写回；
                                      // 缺失时卡片回退 cover（行为与历史版本一致）
     "cover_thumb_w": 480, "cover_thumb_h": 327,
                                      // 缩略图像素尺寸（prepare_thumbs 写回）：卡片
@@ -480,21 +481,20 @@ build_site.py：整体拷到 site/assets/covers/（镜像式，删除不残留�
 - **原图不压缩/转码**：零第三方依赖约束下，站点构建（build_site.py）与管理后台
   （admin.py）不引 Pillow，原图原样入库（20MB 上限兜底，周报图表原图常超 10MB）；
   体积优化交给**缩略图管线**（下条）
-- **缩略图管线（2026-10-05 新增，学 GeoSciPlot scripts/prepare.py）**：
-  `scripts/prepare_thumbs.py` 把外链封面压缩成 webp（**长边 ≤480 · quality 78 ·
-  LANCZOS · EXIF 转正 · 透明垫白**，实测 2MB PNG → 30-60KB），存图床仓库
-  **zbhgis/BlogImg**（本地克隆 `E:/AAAproject/BlogImg`）的 `blog/thumb/{id}.webp`
-  并 `git push`，把缩略外链与像素尺寸（`cover_thumb_w/h`，供卡片预留位）写回
-  papers.json。**Pillow 仅此工具需要**
-  （site 构建/管理后台仍零依赖）；增量运行（跳过已有 cover_thumb）、`--force` 全量、
-  `--push` 提交推送、`--git-proxy` 给 push 挂本地代理（github 直连不通时）。
-  卡片引用顺序：`cover_thumb` → `cover`（缩略图加载失败先回退原图外链 data-full，
-  再走多源降级，最后占位块）；详情页 / og:image / JSON-LD 始终原图。
-  **已并入发布任务自动执行（2026-10-05）**：`pipeline_after_content` 第一步以
-  `--push --quiet` 调用本脚本（超时 580s），在 build 之前补齐新封面缩略图；
-  **推送成功才写 cover_thumb**（否则站点会引用 CDN 上不存在的文件）；push 直连
-  失败自动改走内置兜底代理重试；失败不阻断发布，下次发布自动重试。
-  手动运行仅作应急/全量重建：`python scripts/prepare_thumbs.py --push`
+- **封面图片本地化管线（2026-10-05 起，学 GeoSciPlot images/ 存储）**：原图 + 缩略图
+  全部收进**本仓库**（此前缩略图推 BlogImg 图床，已改）：
+  `images/full/{id}.{ext}`（原图逐字节复制，魔数嗅探扩展名）+
+  `images/thumb/{id}.webp`（**长边 ≤480 · quality 78 · LANCZOS · EXIF 转正 · 透明垫白**，
+  实测 2MB PNG → 30-60KB）。`scripts/prepare_thumbs.py` 增量运行：外链封面下载原图
+  入库、缩略图优先复用旧图床克隆（`E:/AAAproject/BlogImg/blog/thumb/`，仅作历史备份）、
+  并把 `cover` / `cover_thumb` / `cover_thumb_w/h` 改写为本仓库 jsDelivr 链接
+  （`cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/...`）。**Pillow 仅此工具需要**
+  （site 构建/管理后台仍零依赖）；脚本不做 git 操作——images/ 由发布流程的
+  `git add -A` 统一提交，jsDelivr 对新路径即时生效。
+  **已并入发布任务自动执行**：`pipeline_after_content` 第一步以 `--quiet` 调用
+  （超时 580s），在 build 之前本地化新封面；失败不阻断发布（卡片回退原图外链），
+  下次发布自动重试。手动运行仅作应急/全量重建：`python scripts/prepare_thumbs.py`
+  ⚠ 同路径重传封面（--force/换图）受 jsDelivr 缓存影响可能滞后 12h+ 才更新
 
 ## 5. DOI 抓取管线（fetch_doi.py）
 
@@ -532,10 +532,11 @@ build_site.py：整体拷到 site/assets/covers/（镜像式，删除不残留�
 
 - 数据与索引随 GitHub 仓 `zbhgis/MacroBiodiv`；封面图存 `assets_src/covers/` 同样入库，
   构建时拷入 `site/assets/covers/`，生产包为 HTML/JS + 封面图片
-- **图片流量不经站点服务器（2026-10-05 起）**：卡片优先引用图床缩略外链
-  （`zbhgis/BlogImg@main/blog/thumb/{id}.webp`），详情页大图为原图外链——
-  nginx 只出 HTML/JS/JSON 与本地封面兜底文件；缩略图由
-  `scripts/prepare_thumbs.py --push` 维护（见「封面图管线」小节），部署本身零图片改动
+- **图片流量不经站点服务器（2026-10-05 起）**：卡片优先引用本仓库缩略外链
+  （`zbhgis/MacroBiodiv@main/images/thumb/{id}.webp`，经 jsDelivr），详情页大图为
+  本仓库原图外链——nginx 只出 HTML/JS/JSON 与本地封面兜底文件；封面图片由
+  `scripts/prepare_thumbs.py` 增量收进本仓库 `images/`（随发布提交推送），
+  详见「封面图管线」小节
 - nginx：`deploy/nginx-macrobiodiv.conf`（webroot /var/www/macrobiodiv，/api/ 反代主站
   FastAPI 做浏览统计；安全响应头 nosniff / SAMEORIGIN / Referrer-Policy；
   /assets/ 因带 ?v= 版本号放行 30d 长缓存）；DNS / 证书步骤见 `deploy/部署操作手册.md`
@@ -549,7 +550,7 @@ build_site.py：整体拷到 site/assets/covers/（镜像式，删除不残留�
 | 纯标准库 + 静态站，无框架 | 与 GeoSciPlot 同构，零运维，服务器只跑 nginx |
 | 首页卡片瀑布流（CSS multi-columns，2026-10 由等宽 grid 改入） | 封面升级为卡片常规要素（封面+标题+类型+期刊），自然比例错落成瀑布流，与 GeoSciPlot 保持同源；无封面用期刊缩写占位块兜底版式 |
 | 封面存 assets_src/covers + 探测式写库；周报图表封面走外链（2026-10） | site/ 是构建产物不入库；本地封面由服务端按磁盘文件探测，杜绝客户端伪造路径与状态漂移；周报图表图量大会撑爆仓库 → cover 存 jsdelivr URL 外链直显（探测保 URL 不清除），前端多源降级 |
-| 封面原图不压缩/转码，缩略图走图床管线（2026-10-05 起） | 零第三方约束限定在站点构建与管理后台（不引 Pillow），压缩交给独立工具 `scripts/prepare_thumbs.py`（Pillow 仅此工具需要）；原图 20MB 上限兜底，缩略图长边 480 webp 存 BlogImg 图床，卡片引用缩略外链（首屏图片流量 60MB → 0.7MB），缺失时回退原图直显 |
+| 封面原图不压缩/转码，原图+缩略图本地化进本仓库 images/（2026-10-05 起，GeoSciPlot images/ 同款） | 零第三方约束限定在站点构建与管理后台（不引 Pillow），压缩交给独立工具 `scripts/prepare_thumbs.py`（Pillow 仅此工具需要）；原图逐字节复制存 images/full、缩略图长边 480 webp 存 images/thumb，引用走本仓库 jsDelivr 链接（首屏图片流量 60MB → 0.7MB），缺失时回退原图直显 |
 | 首屏静态输出 + JS 重渲染双轨 | 爬虫/AI 引擎可见 + 交互灵活；两者排序逻辑必须一致 |
 | 文章图片外链直显 + 前端多源降级（2026-10 定） | 几千张规模：入库/本地化会把仓库或部署包撑到 GB 级；外链零存储负担，可靠性靠 cdn → fastly → gcore → raw 逐源自动切换 |
 | 菜单栏 active 构建期静态判定 | `path` 在生成时已知，无需 JS 参与；静态首屏与 JS 渲染天然一致 |

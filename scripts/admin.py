@@ -678,11 +678,11 @@ def do_sync_server() -> dict:
 def pipeline_after_content(log: list[dict], message: str, push: bool, sync: bool) -> dict:
     """内容变更后的公共收尾：封面缩略图 → 生成站点 → git 提交推送 →（可选）同步服务器。
     所有步骤用 step() 执行，前端能看到每一步的实时状态。"""
-    # 增量补封面缩略图（下载新封面 → webp → 推图床 → 写 cover_thumb）。
-    # 必须在 build 之前：新缩略外链要进本次构建产物。
+    # 增量本地化封面（下载原图入本仓库 images/ → 压缩缩略图 → cover/cover_thumb
+    # 改写为本仓库 jsDelivr 链接）。必须在 build 之前：新引用要进本次构建产物。
     # 失败不阻断发布 —— 缺缩略图的卡片自动回退原图外链，下次发布自动重试
-    ok_t, out_t = step(log, "封面缩略图（增量 → 图床）",
-                       [PYTHON, "scripts/prepare_thumbs.py", "--push", "--quiet"], timeout=580)
+    ok_t, out_t = step(log, "封面图片本地化（增量 → 本仓库 images/）",
+                       [PYTHON, "scripts/prepare_thumbs.py", "--quiet"], timeout=580)
     if not ok_t:
         log.append({"step": "封面缩略图（未阻断发布）", "ok": False,
                     "out": "缺缩略图的卡片回退原图外链；下次发布会自动重试\n" + out_t[:300]})
