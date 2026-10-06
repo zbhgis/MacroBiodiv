@@ -420,6 +420,11 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
     // ── API 自动字段（重新抓取会更新）──
     "title": "...", "subtitle": "", "authors": ["Given Family", ...],
     "journal": "...", "journal_short": "...", "publisher": "...",
+                                     // journal_short = 徽章缩写（Crossref
+                                     // short-container-title）。各出版社点号风格不一
+                                     // （Nat. Clim. Chang. vs Nat Commun），已统一为
+                                     // **无点 NLM 风格**（数据迁移 + journal_badge 显示层
+                                     // 兜底去点，新入库条目自动规整）
     "type": "journal-article",       // Crossref 粗类型
     "oa_type": "article",            // OpenAlex 体裁提示（喂给 LLM）
     "year": "2023", "published": "2023-03-15",   // 时间口径 = online 优先

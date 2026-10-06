@@ -119,7 +119,11 @@ def authors_preview(authors: list, n: int = 3) -> str:
 
 
 def journal_badge(p: dict) -> str:
-    return p.get("journal_short") or p.get("journal") or ""
+    """期刊徽章缩写：优先 journal_short（Crossref short-container-title）。
+    各出版社入库的点号风格不一（Nat. Clim. Chang. vs Nat Commun），显示层统一
+    去点（NLM 风格，与全站多数一致）；数据层已做一次迁移，这里兜底新入库条目。"""
+    s = (p.get("journal_short") or p.get("journal") or "").strip()
+    return s.replace(".", "") if s else ""
 
 
 def abstract_disp(p: dict, limit: int = 200) -> str:
