@@ -2011,8 +2011,6 @@ def build_stats_page(cfg: dict, items: list) -> str:
     body = f"""<header class="site">
   <p class="kicker">{esc(cfg['title'].upper())} · STATS</p>
   <h1 class="spage-title">全站统计</h1>
-  <p class="lede">这个文献库的一瞥——收录了多少文献、来自哪些期刊、大家都在读什么。
-  热读榜按访客浏览量实时计入（不含每周速递）。</p>
 </header>
 
 <section class="st-hero" aria-label="收录总览">
