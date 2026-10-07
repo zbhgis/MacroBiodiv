@@ -84,14 +84,16 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 - 右：导航组 `.mnav-links`（**与主站 v3-nav 同源**：15px、`6px 10px` 内边距、前置 **14px
   stroke 图标**、hover 变 text 且下划线 scaleX 0→1、`data-active=true` → accent 常亮）。
   现有项：**每周速递（纸飞机 → `/weekly/`，按 `path` 构建期标 `data-active` + aria-current）/
-  全站统计（柱状图 → `/statistics/`，同款 active 检测）/ 更多▾**。
+  全站统计（柱状图 → `/statistics/`，同款 active 检测）/ 关于本站（info 圈 → `/about/`，
+  同款 active 检测）/ 更多▾**。
   「更多」= 主站 v3-more 同款：触发钮为 button（text + 11px caret），hover 或
   focus-visible 展开 `.mnav-dd`（display 直切无动画、caret 旋转 180°；面板 `--bg` 实底 +
   描边 + 主站同款投影 `0 10px 28px rgba(0,0,0,.16)`，项 14px / `8px 11px` / 15px faint
   图标：zbhgis 地球 · GeoSciPlot 图片样式（方框+圆点+山形，与主站「更多」菜单同款 SVG），
   target=_blank）
 - ≤640px：桌面菜单隐藏，转主站同款 **details/summary 原生汉堡**（30px 方形 `.mnav-icon`，
-  hover/open 变 accent + accent-soft 底；面板复用 `.mnav-dd`，含三项 + 分隔线 + 两外链）
+  hover/open 变 accent + accent-soft 底；面板复用 `.mnav-dd`，含四项 + 分隔线 + 两外链，
+  各项同样按 `path` 标 active + aria-current）
   （历史：最初中间为「首页 / 全站搜索」+ 右一枚占位 icon 按钮；2026-10 改右侧三项导航组，
   随后整栏与主站 zbhgis.com 精确对齐并加图标）
 - 新增 token：`--header-bg`（暗 `#0d1117e6` / 亮 `#ffffffe6`）、`--accent-soft`
@@ -342,6 +344,16 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   gh/用户/仓库@分支/路径 两段式解析，失败按 cdn → fastly → gcore → raw.githubusercontent
   逐源切换（`data-orig-src` 记原始 URL、`data-src-try` 记游标）；非 jsdelivr 图不处理
 - sitemap 追加 `/weekly/` 与各文章页；og:type=article + 正文首图 og:image
+
+### 3.4.1 关于本站 `/about/`（2026-10-07 新增）
+
+- 内容源 **`content/about.md`**（`render_md.parse_md` 渲染，与周报同一套迷你渲染器）——
+  改文案只需编辑该 md 重新构建；缺文件 / 缺渲染器时页面只出标题不报错
+- 版式：`.spage-title` 大标题 + `.about-wrap`（760px 窄栏）内 `.wk-content` prose
+  （复用周报正文排版：md-h1 降级剥离首个 `#` 标题避免与大标题重复、粗斜体、链接 accent）
+- 菜单：桌面导航与 ≤640px 汉堡均在「全站统计」后加「关于本站」（lucide info 圈图标），
+  按 `path.startswith("/about")` 构建期标 `data-active` + aria-current
+- 收录：sitemap `/about/` + llms.txt 核心页面一行；过期清理器 keep-list 加 `"about"`
 
 ### 3.5 管理后台 `scripts/admin_ui.html`（127.0.0.1:5201）
 

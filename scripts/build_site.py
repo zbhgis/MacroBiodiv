@@ -679,6 +679,8 @@ html[data-theme=light] .st-tc3{--tc:#8250df}html[data-theme=light] .st-tc4{--tc:
 @media (prefers-reduced-motion:reduce){.st-cloud .st-w{animation:none}}
 .st-cta{margin:26px 0 0;font-size:var(--fs-sm);color:var(--dim)}
 .st-cta a{color:var(--accent)}
+/* 关于本站页（/about/）：窄栏 prose，排版复用周报正文 .wk-content */
+.about-wrap{max-width:760px;margin:0 auto;padding:34px 20px 20px}
 /* ── 统计页移动端（≤640px）：修复横溢与布局失衡 ——
    ① 日期筛选组独占一行、日期框互相收缩（此前固定宽导致 387>380 横向滚动）；
    ② 环形图改为上下结构居中（此前左对齐留大片空白）；
@@ -1405,10 +1407,13 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
     #    菜单项与下拉项均带主站同款 14/15px stroke 图标；≤640px 转 details 汉堡 ──
     is_weekly = path.startswith("/weekly")
     is_stats = path.startswith("/statistics")
+    is_about = path.startswith("/about")
     cur_w = ' aria-current="page"' if is_weekly else ''
     cur_s = ' aria-current="page"' if is_stats else ''
+    cur_a = ' aria-current="page"' if is_about else ''
     ico_send = ('<svg class="mnav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg>')
     ico_chart = ('<svg class="mnav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 20V10M12 20V4M6 20v-4"/></svg>')
+    ico_info = ('<svg class="mnav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>')
     ico_globe = ('<svg class="mnav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>')
     # GeoSciPlot 图标与主站「更多」菜单同款（图片样式：方框 + 圆点 + 山形）
     ico_geosci = ('<svg class="mnav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>')
@@ -1418,6 +1423,7 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
 <ul class="mnav-links">
 <li><a class="mnav-link" data-active="{str(is_weekly).lower()}" href="/weekly/"{cur_w}>{ico_send}每周速递</a></li>
 <li><a class="mnav-link" data-active="{str(is_stats).lower()}" href="/statistics/"{cur_s}>{ico_chart}全站统计</a></li>
+<li><a class="mnav-link" data-active="{str(is_about).lower()}" href="/about/"{cur_a}>{ico_info}关于本站</a></li>
 <li class="mnav-more"><button type="button" class="mnav-link mnav-more-trigger" aria-haspopup="true" title="更多站点">更多<svg class="mnav-more-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
 <ul class="mnav-dd">
 <li><a href="https://zbhgis.com" rel="noopener" target="_blank">{ico_globe}zbhgis</a></li>
@@ -1428,7 +1434,8 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
 <summary class="mnav-icon" title="菜单" aria-label="打开菜单"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
 <ul class="mnav-dd">
 <li><a href="/weekly/"{cur_w}>{ico_send}每周速递</a></li>
-<li><a href="/statistics/">{ico_chart}全站统计</a></li>
+<li><a href="/statistics/"{cur_s}>{ico_chart}全站统计</a></li>
+<li><a href="/about/"{cur_a}>{ico_info}关于本站</a></li>
 <li class="mnav-dd-sep"></li>
 <li><a href="https://zbhgis.com" rel="noopener" target="_blank">{ico_globe}zbhgis</a></li>
 <li><a href="https://geosciplot.zbhgis.com" rel="noopener" target="_blank">{ico_geosci}GeoSciPlot</a></li>
@@ -2069,6 +2076,29 @@ def _month_label(date: str) -> str:
     return f"{m.group(1)}年{int(m.group(2))}月" if m else ""
 
 
+def build_about(cfg: dict) -> str:
+    """关于本站页（/about/）：内容源 content/about.md（render_md 渲染），
+    窄栏 prose 版式复用周报正文 .wk-content 排版；缺文件时只出标题不报错。"""
+    src = ROOT / "content" / "about.md"
+    doc = ""
+    if src.exists():
+        try:
+            from render_md import parse_md
+            _, doc, _, _ = parse_md(src.read_text(encoding="utf-8"))
+        except ImportError:
+            print("· 关于本站：缺 scripts/render_md.py，正文跳过")
+    # 正文首个 `# ` 标题与页面大标题重复：剥离（与 build_weekly 同款处理）
+    doc = re.sub(r'<h2 id="doc-1" class="md-h1">.*?</h2>\n*', "", doc, count=1)
+    body = f"""<header class="site">
+  <p class="kicker">{esc(cfg['title'].upper())} · ABOUT</p>
+  <h1 class="spage-title">关于本站</h1>
+</header>
+<div class="about-wrap">
+<article class="wk-content">{doc}</article>
+</div>"""
+    return page_shell(cfg, f"关于本站 · {cfg['title']}", body, depth=1, path="/about/")
+
+
 def build_weekly(cfg: dict) -> list[str]:
     """构建 /weekly/ 列表页与各文章页；返回（供 sitemap 的）URL 路径列表。"""
     if not WEEKLY_SRC.is_dir():
@@ -2270,7 +2300,7 @@ def main() -> int:
     if SITE.exists():
         trash = ROOT / "site_trash"
         for d in SITE.iterdir():
-            if (d.is_dir() and d.name not in ("assets", "search", "weekly", "statistics")
+            if (d.is_dir() and d.name not in ("assets", "search", "weekly", "statistics", "about")
                     and (d / "index.html").exists()):
                 trash.mkdir(parents=True, exist_ok=True)
                 dest = trash / (d.name + "-" + str(int(time.time())))
@@ -2359,7 +2389,7 @@ def main() -> int:
         # 否则每次重新构建全站都声称"今天改过"，引擎会学会忽略这个字段
         home_lastmod = max((p.get("added") or "" for p in items), default="") or today
         urls = [("/", home_lastmod),
-                ("/search/", today), ("/statistics/", today)]
+                ("/search/", today), ("/statistics/", today), ("/about/", today)]
         urls += [("/" + p["id"] + "/", (p.get("added") or "").split("T")[0] or today) for p in items]
         urls += [(u, today) for u in weekly_urls]
         sm = ['<?xml version="1.0" encoding="UTF-8"?>',
@@ -2384,6 +2414,7 @@ def main() -> int:
 - [全站搜索]({base}/search/): 标题 / 作者 / DOI / 期刊 / 摘要全文检索
 - [每周速递]({base}/weekly/): Nature / Science / Cell 系列大尺度生物多样性研究每周精选（{n_weekly} 期）
 - [全站统计]({base}/statistics/): 关键词 / 期刊 / 年份分布
+- [关于本站]({base}/about/): 站点定位、数据来源与说明
 
 ## 文献（{len(items)} 篇）
 
@@ -2441,6 +2472,9 @@ def main() -> int:
     stats_dir.mkdir(parents=True, exist_ok=True)
     (stats_dir / "index.html").write_text(build_stats_page(cfg, items), encoding="utf-8")
     build_stats_data(items)
+    about_dir = SITE / "about"
+    about_dir.mkdir(parents=True, exist_ok=True)
+    (about_dir / "index.html").write_text(build_about(cfg), encoding="utf-8")
     for i, p in enumerate(items):
         d = SITE / p["id"]
         d.mkdir(parents=True, exist_ok=True)
