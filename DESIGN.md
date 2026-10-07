@@ -43,7 +43,10 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   `--fs-h2:22px`（页面级标题）；**放大档** `html[data-fs=lg]` 只覆盖变量（14.5/16/17/19/24），
   布局零改动。**菜单栏 .mnav 与大标题 clamp 为固定框架，保持 px 不参与调节**；
   FAB「A」按钮切换（标准/放大两档），偏好存 localStorage `mbd-fs`，head 内联脚本
-  渲染前置位防闪烁；原 10–12.5px 的 mono 微字号就近并入 xs 档（视觉整体 +2px 左右）
+  渲染前置位防闪烁；原 10–12.5px 的 mono 微字号就近并入 xs 档（视觉整体 +2px 左右）。
+  **display 级标题行高**：`.home-title` / `.spage-title` 均 `line-height:1.08`（GSP 同源；
+  2026-10-07 修复 .spage-title 漏带行高导致的跨站标题盒高差 18.6px —— GSP 有全局
+  `h1{line-height:1.08}`，本站该规则当年因特异度事故收进 .home-title 时漏了它）
 - **形状分层（2026-10 与 GeoSciPlot 全面对齐）**：①「控件」一律胶囊
   `border-radius:999px` + `--fs-sm`——搜索框（连体壳：外壳 999px、内部按钮只圆右半
   `0 999px 999px 0` + `border-left` 内分隔 + `:focus-within` 整框亮 accent）、

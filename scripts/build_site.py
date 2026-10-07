@@ -464,7 +464,7 @@ html[data-theme=light] .rst-dot-orange{background:#bc4c00;border-color:#bc4c00}
 /* ── 全站搜索独立页（/search/）：版式参考主站 zbhgis.com 的 /search
    （kicker + 大标题 + 结果行）；文献没有缩略图，结果行就是标题 + 元信息；
    颜色一律取自主题变量，明暗两套自动跟随 ── */
-.spage-title{font-size:clamp(30px,4.5vw,44px);letter-spacing:-.02em;margin:18px 0 0}
+.spage-title{font-size:clamp(30px,4.5vw,44px);line-height:1.08;letter-spacing:-.02em;margin:18px 0 0}
 .spage-q{display:block;width:100%;max-width:520px;margin:24px 0 0;padding:10px 16px;border:1px solid var(--line2);border-radius:999px;background:transparent;color:var(--text);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-md)}
 .spage-q:focus{outline:none;border-color:var(--accent)}
 .spage-count{margin:14px 0 2px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--faint)}
