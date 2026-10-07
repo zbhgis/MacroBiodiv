@@ -244,8 +244,9 @@ header.site{padding:72px 0 0}
   body{padding-bottom:calc(14px + 36px + 16px + env(safe-area-inset-bottom))}
 }
 .tbtn .ic-sun{display:inline}.tbtn .ic-moon{display:none}
-:root[data-theme=light] .tbtn .ic-sun{display:inline}:root[data-theme=light] .tbtn .ic-moon{display:none}
-:root[data-theme=dark] .tbtn .ic-sun{display:none}:root[data-theme=dark] .tbtn .ic-moon{display:inline}
+/* 图标 = 点击后要切换到的主题（GitHub / GSP 同款口径）：暗色亮出太阳、亮色亮出月亮 */
+:root[data-theme=dark] .tbtn .ic-sun{display:inline}:root[data-theme=dark] .tbtn .ic-moon{display:none}
+:root[data-theme=light] .tbtn .ic-sun{display:none}:root[data-theme=light] .tbtn .ic-moon{display:inline}
 .kicker{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0}
 /* 仅首页 header 的 logo+标题行需要 flex —— 用专用类而非元素/层叠选择器：
    search/statistics 的 h1.spage-title 也在 header.site 内，全局 h1 或
@@ -255,7 +256,6 @@ h1 img.logo{height:clamp(44px,5.4vw,58px);width:auto;flex:none;border-radius:12p
 .lede{font-size:var(--fs-base);color:var(--dim);max-width:52ch;margin:20px 0 0}
 .gh-note{display:inline-flex;align-items:center;gap:9px;margin:18px 0 0;padding:9px 16px;border:1px solid var(--accent);border-left-width:3px;border-radius:6px;background:var(--card);font-size:var(--fs-sm);color:var(--text)}
 .gh-note svg{width:16px;height:16px;flex:none;color:var(--accent)}
-.meta-row{margin:28px 0 0;padding:14px 0;border-top:1px solid var(--line);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--dim)}
 .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:22px 0 6px}
 .search{flex:1 1 260px;max-width:380px;padding:8px 12px;border:1px solid var(--line2);border-radius:999px;background:transparent;color:var(--text);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-sm)}
 /* 搜索框 + 搜索按钮（连体胶囊）：外壳 999px，内部按钮只圆右半，focus-within 点亮 accent 边 */
@@ -679,6 +679,19 @@ html[data-theme=light] .st-tc3{--tc:#8250df}html[data-theme=light] .st-tc4{--tc:
 @media (prefers-reduced-motion:reduce){.st-cloud .st-w{animation:none}}
 .st-cta{margin:26px 0 0;font-size:var(--fs-sm);color:var(--dim)}
 .st-cta a{color:var(--accent)}
+/* ── 统计页移动端（≤640px）：修复横溢与布局失衡 ——
+   ① 日期筛选组独占一行、日期框互相收缩（此前固定宽导致 387>380 横向滚动）；
+   ② 环形图改为上下结构居中（此前左对齐留大片空白）；
+   ③ 条形图标签列收窄（84–190px → 64–110px），把宽度还给条形 ── */
+@media (max-width:640px){
+  .st-filter{max-width:100%}
+  .st-fgroup{min-width:0;flex:1 1 100%}
+  .st-fgroup .dateinp{width:auto;min-width:0;flex:1 1 100px}
+  .st-donut{flex-direction:column;align-items:stretch;gap:12px}
+  .st-donut svg{width:176px;height:176px;margin:0 auto}
+  .st-legend{width:100%;min-width:0}
+  .st-row{grid-template-columns:minmax(64px,110px) 1fr 30px;gap:8px}
+}
 /* 字号切换按钮（FAB 内）：A 字标，放大档点亮 */
 .tbtn-fs{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:16px;font-weight:600}
 .tbtn-fs.on{color:var(--accent);border-color:var(--accent)}
@@ -968,7 +981,6 @@ JS = """\
   reshuffle();       // 会话种子键：同会话内稳定，详情页返回 / 刷新 / 翻页不重排
   var q = document.getElementById("q");
   var empty = document.getElementById("empty");
-  var count = document.getElementById("count");
   var info = document.getElementById("pageinfo");
   var prev = document.getElementById("prev");
   var next = document.getElementById("next");
@@ -1108,11 +1120,6 @@ JS = """\
     if (prev) prev.disabled = state.page <= 1;
     if (next) next.disabled = state.page >= pages;
     paintNums(state.page, pages);
-    if (count) {
-      var filtered = state.q || state.tag || state.journal || state.from || state.to;
-      count.textContent = filtered ? "匹配 " + list.length + " / " + ITEMS.length + " 篇"
-                                   : "共 " + ITEMS.length + " 篇";
-    }
     if (empty) empty.style.display = list.length ? "none" : "block";
     syncFilterBtn();
     syncUrl();
@@ -1685,7 +1692,6 @@ def card_html(p: dict) -> str:
 
 
 def build_index(cfg: dict, items: list) -> str:
-    years = flat([p.get("year") for p in items if p.get("year")])
     tag_counter: Counter = Counter()
     journal_counter: Counter = Counter()
     for p in items:
@@ -1711,7 +1717,6 @@ def build_index(cfg: dict, items: list) -> str:
   <h1 class="home-title"><img class="logo" src="assets/logo.png?v={BUILD_VER}" alt="MacroBiodiv logo">{esc(cfg['title'])}</h1>
   <a class="gh-note" href="https://github.com/{esc(cfg.get('owner') or 'OWNER')}/{esc(cfg['repo'])}" rel="noopener" target="_blank" title="在 GitHub 查看数据与索引">{ghsvg}<span>文献数据存储于 <b>GitHub</b>，访问需具备 <b>GitHub</b> 访问能力（点此查看仓库）</span></a>
   <p class="lede">{esc(cfg['lede'])}</p>
-  <div class="meta-row"><span id="count">共 {len(items)} 篇</span> · {'%d 个标签 · ' % len(tag_counter) if tag_counter else ''}{len(journal_counter)} 本期刊 · {len(years)} 个年份 · 点击卡片查看详情</div>
 </header>
 
 <div class="toolbar">

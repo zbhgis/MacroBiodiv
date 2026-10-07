@@ -104,6 +104,15 @@ def _date_str(parts: list | None) -> str:
     return f"{p[0]:04d}-{p[1]:02d}-{p[2]:02d}"
 
 
+def _parts_lt(a: list | None, b: list | None) -> bool:
+    """date-parts 早于比较：[[2026,3,2]] < [[2026,4]] → True（补齐后元组逐位比较）。"""
+    if not a or not b:
+        return False
+    ta = tuple(int(x) for x in a[0] if x is not None)
+    tb = tuple(int(x) for x in b[0] if x is not None)
+    return bool(ta and tb and ta < tb)
+
+
 def fetch_crossref(doi: str) -> dict:
     d = _get_json(f"https://api.crossref.org/works/{doi}?mailto={MAILTO}")["message"]
 
@@ -120,6 +129,12 @@ def fetch_crossref(doi: str) -> dict:
     # 时间一律以在线发表（online）为准 —— 同一篇文献有 print / online / issued 多个日期，
     # online 最早也最常被引用；无 online 记录时回落 published → issued
     online = d.get("published-online", {}).get("date-parts")
+    # Elsevier（Cell Press 系如 One Earth / Trends）不 deposit published-online，其
+    # published 只是期号封面月（比真实在线发表晚 2 周~1 月）；created（DOI 首次注册日）
+    # 实测即在线发表日（与 OpenAlex publication_date 逐日一致），早于 published 时取其兜底
+    created = d.get("created", {}).get("date-parts")
+    if not online and _parts_lt(created, published):
+        online = created
     pd_parts = online or published
     pd = _date_str(pd_parts)
     year = pd[:4] if pd else ""

@@ -103,7 +103,8 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 ### 3.1 首页 `/`
 
 - Header：logo + 大标题 → gh-note（「文献数据存储于 GitHub，访问需具备 GitHub 访问能力
-  （点此查看仓库）」，整条为指向仓库的链接）→ lede → meta-row（N 篇 · 标签 · 期刊 · 年份）
+  （点此查看仓库）」，整条为指向仓库的链接）→ lede（2026-10 移除其后原 meta-row 统计行
+  「N 篇 · 标签 · 期刊 · 年份 · 点击卡片查看详情」，GSP 同步删除——与筛选区/分页条信息重复）
 - 筛选维度三行：**标签 / 期刊 chips（多选模型）** + **时间区间**（时间 = online 发表
   日期）+ 排序（发表 新→旧【默认】、旧→新、**随机**——2026-10 由「被引 多→少」改来：
   站点不再携带被引数；**随机键 = hash(文献id + 会话种子)**，种子存 sessionStorage
@@ -428,7 +429,9 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
     "type": "journal-article",       // Crossref 粗类型
     "oa_type": "article",            // OpenAlex 体裁提示（喂给 LLM）
     "year": "2023", "published": "2023-03-15",   // 时间口径 = online 优先
-    "published_online": true,        // published 是否确为 online 日期
+                                     // （Elsevier/AAAS 无 published-online 时以
+                                     // created 即真实在线日兜底，见 §5 时间口径）
+    "published_online": true,        // published 是否确为 online 日期（created 兜底也算）
     "volume": "", "issue": "", "pages": "", "issn": "", "url": "",
     "abstract": "...", "cited_by": 246, "source": "crossref+openalex",
     // ── LLM 生成字段（重新翻译时重写）──
@@ -502,8 +505,12 @@ build_site.py：整体拷到 site/assets/covers/（镜像式，删除不残留�
    截断防全角标点混入，URL 侧再做一次 quote 兜底
 2. **分层**：Crossref（`works/{doi}`，mailto 礼貌池）主力 → OpenAlex（`works/doi:{doi}`）补
    摘要（还原倒排索引）/ 关键词 / 被引 / 体裁提示；**不抓出版社页面**（Cloudflare 反爬，稳定优先）
-3. **时间口径**：`published-online` → `published` → `issued`（一篇文献有多个日期，全站统一
-   以 online 为准；无 online 记录时回落并以 `published_online` 标记如实呈现）
+3. **时间口径**：`published-online` → `created`（早于 published 时）→ `published` → `issued`
+   （一篇文献有多个日期，全站统一以 online 为准）。Elsevier（Cell Press 系 One Earth /
+   Trends）与 AAAS（Science Advances）不给 Crossref deposit `published-online`，其
+   `published` 只是期号封面月（比真实在线发表晚 2 周~1 月）——此时以 `created`（DOI 首次
+   注册日，实测与 OpenAlex publication_date 逐日一致，即真实在线日）兜底，并照实标
+   `published_online`；`created` 不早于 `published` 时维持原回落
 4. **关键词**：OpenAlex keywords（基于标题 / 摘要抽取的词表，与作者关键词高度重合，
    截前 10 个防长尾）自动采集，Crossref subject（出版社学科分类，多数不填）兜底；
    管理端可手动修改 —— keywords 仍属手动字段，重新抓取只在空缺时回填、绝不覆盖
@@ -520,7 +527,10 @@ build_site.py：整体拷到 site/assets/covers/（镜像式，删除不残留�
   `article_type`（按出版社惯例：Nature 系 Perspective/News & Views、Science 系 Research
   Article/Report、Cell 系 Spotlight……，元数据体裁作提示，拿不准选保守通用体裁）
 - 固定 prompt 原则：忠实完整、术语以「术语在线」规范为锚（`_GLOSSARY` 锚点表）、
-  拉丁学名/单位/同位素/引用标记保留原样、缩写首现「中文全称（缩写）」、标题不加句号
+  拉丁学名/单位/同位素/引用标记保留原样、缩写首现「中文全称（缩写）」、标题不加句号；
+  **短摘要禁止扩写**（2026-10 加）：摘要只有一两句（如 Science 系编辑导读）时只译字面，
+  严禁凭对论文的了解补写背景/方法/结论，审校同权裁剪——模型常认得知名论文，短输入下
+  会凭训练语料复述其真实内容，产出远超原文信息量的译文
 - 输出：严格 JSON + `_extract_json` 容错（剥围栏）+ 解析失败自动重试一次；
   `max_tokens: 16384`（推理模型思考链计入输出配额，实测可吃 1000+ tokens）
 - **限流与回退分层**（详见 README 表格）：请求节流 → 429 指数退避 + Retry-After →
