@@ -5,6 +5,7 @@
     1. Crossref  api.crossref.org/works/{doi}   → 标题 / 作者 / 期刊 / 年月 / 卷期页 / 摘要(若有)
     2. OpenAlex  api.openalex.org/works/doi:{doi} → 补摘要(还原倒排索引) / 关键词 / 被引
     3. nature.com/articles/{后缀}（仅 10.1038）→ 双源皆无摘要时取页面 dc.description
+    4. 学术聚合 API（Semantic Scholar → Europe PMC → PubMed）→ 仍无摘要时的通用兜底
 
 输出统一为「规范记录」字典（papers.json 单条去掉手动字段后的样子）。
 无第三方依赖，仅标准库。
@@ -228,6 +229,51 @@ def fetch_nature_abstract(doi: str) -> str:
     return text if len(text) >= 40 else ""     # 过短视为取错（如 cookie 提示残留）
 
 
+def _get_text(url: str) -> str:
+    req = urllib.request.Request(quote(url, safe=":/?&="), headers={"User-Agent": UA})
+    with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+        return r.read().decode("utf-8", "replace")
+
+
+def fetch_aggregator_abstract(doi: str) -> tuple[str, str]:
+    """英文摘要第四兜底：学术聚合 API 三连——Semantic Scholar → Europe PMC → PubMed。
+    覆盖面广但有收录滞后（新论文常要数周才进索引）。任何一步失败都静默落到下一家，
+    全失败返回 ("", "")。注意走 _get_text（不 re-quote）——查询串里的 %22 与 [] 
+    会被 quote 二次编码坏掉。返回 (摘要, 来源标记)：+s2 / +epmc / +pubmed。"""
+    try:                                        # ① Semantic Scholar（摘要为独立字段，最干净）
+        ab = (json.loads(_get_text(f"https://api.semanticscholar.org/graph/v1/"
+                                   f"paper/DOI:{doi}?fields=abstract")).get("abstract") or "").strip()
+        if ab:
+            return ab, "s2"
+    except Exception:
+        pass
+    time.sleep(1.0)                             # S2 匿名限速 ≈1 次/秒，失败也缓一下
+    try:                                        # ② Europe PMC（abstractText 偶带内联标签）
+        s = json.loads(_get_text("https://www.ebi.ac.uk/europepmc/webservices/rest/"
+                                 f"search?query=DOI:%22{doi}%22&format=json&resultType=core"))
+        hits = s.get("resultList", {}).get("result", [])
+        if hits:
+            ab = re.sub(r"<[^>]+>", "", hits[0].get("abstractText") or "").strip()
+            if ab:
+                return ab, "epmc"
+    except Exception:
+        pass
+    try:                                        # ③ PubMed（esearch 找 PMID → efetch 取 XML）
+        s = json.loads(_get_text("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
+                                 f"esearch.fcgi?db=pubmed&term={doi}[doi]&retmode=json"))
+        ids = s.get("esearchresult", {}).get("idlist", [])
+        if ids:
+            xml = _get_text("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
+                            f"efetch.fcgi?db=pubmed&id={ids[0]}&rettype=abstract&retmode=xml")
+            ab = " ".join(re.sub(r"<[^>]+>", "", x).strip()
+                          for x in re.findall(r"<AbstractText[^>]*>(.*?)</AbstractText>", xml, re.S))
+            if ab:
+                return ab, "pubmed"
+    except Exception:
+        pass
+    return "", ""
+
+
 def fetch_paper(doi: str) -> dict:
     """抓取并合并成规范记录。Crossref 缺失时整体回落 OpenAlex。"""
     doi = normalize_doi(doi)
@@ -280,6 +326,12 @@ def fetch_paper(doi: str) -> dict:
         if ab:
             rec["abstract"] = ab
             rec["source"] = (rec.get("source") or "") + "+nature"
+    # 英文摘要第四兜底（学术聚合 API）：S2 → Europe PMC → PubMed
+    if not rec.get("abstract"):
+        ab, src = fetch_aggregator_abstract(doi)
+        if ab:
+            rec["abstract"] = ab
+            rec["source"] = (rec.get("source") or "") + "+" + src
     return _finalize(rec)
 
 

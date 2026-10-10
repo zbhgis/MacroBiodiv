@@ -525,7 +525,11 @@ build_site.py：整体拷到 site/assets/covers/（镜像式，删除不残留�
    摘要（还原倒排索引）/ 关键词 / 被引 / 体裁提示；**不抓出版社页面**（Cloudflare 反爬，稳定优先）；
    **唯一例外**：`10.1038`（Nature 系）在双源皆无摘要时抓 `nature.com/articles/{后缀}` 页面的
    `<meta name="dc.description">`（2026-10-10 实测可直接 GET，成功后 source 标 `+nature`；
-   npj 系新刊普遍不向 Crossref deposit 摘要）——其余出版社页面结构各异且反爬风险高，不通用化
+   npj 系新刊普遍不向 Crossref deposit 摘要）——其余出版社页面结构各异且反爬风险高，不通用化；
+   **第四层**：学术聚合 API 三连（Semantic Scholar → Europe PMC → PubMed，2026-10-10）——
+   兜住「出版方不 deposit 但已被学术索引收录」的（source 标 `+s2/+epmc/+pubmed`）；
+   注意走 `_get_text`（不 re-quote），否则查询串里的 `%22`/`[]` 被二次编码坏掉；
+   仍有滞后的（如 One Earth / Science 当月新文）各家都无，等索引收录或人工补
 3. **时间口径**：`published-online` → `created`（早于 published 时）→ `published` → `issued`
    （一篇文献有多个日期，全站统一以 online 为准）。Elsevier（Cell Press 系 One Earth /
    Trends）与 AAAS（Science Advances）不给 Crossref deposit `published-online`，其
