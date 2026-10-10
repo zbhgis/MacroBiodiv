@@ -971,6 +971,19 @@ def do_weekly_import(name: str, content: str, log: list) -> dict:
                     dirty = True
                     log.append({"step": f"{label} 补封面", "ok": True,
                                 "out": f"封面 ← 外链（{p['images'][0].rsplit('/', 1)[-1]}）"})
+                # 已在库但中文空缺（可能此前经「添加文献」入库、LLM 未跑成）→
+                # 用周报自带中文回填标题/摘要。幂等：只补空缺，绝不覆盖已有译文
+                got = []
+                if str(p.get("title_zh") or "").strip() and not str(ex.get("title_zh") or "").strip():
+                    ex["title_zh"] = p["title_zh"]
+                    got.append("标题")
+                if str(p.get("abstract_zh") or "").strip() and not str(ex.get("abstract_zh") or "").strip():
+                    ex["abstract_zh"] = p["abstract_zh"]
+                    got.append("摘要")
+                if got:
+                    dirty = True
+                    log.append({"step": f"{label} 补中文", "ok": True,
+                                "out": "从周报回填：" + "、".join(got)})
                 log.append({"step": label, "ok": True, "out": f"DOI 已在文献库，跳过（{doi}）"})
                 skipped += 1
                 continue

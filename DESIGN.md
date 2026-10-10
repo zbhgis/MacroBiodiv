@@ -405,6 +405,9 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   （`render_md.parse_weekly_papers`，见 §3.4），新 DOI 走 Crossref+OpenAlex 抓取入库，
   **周报自带中文直接预填**（标题行首个 CJK 起为中文段 → title_zh；摘要节 → abstract_zh；
   「文献N」注记体裁 → article_type，不走大模型，空缺事后用「翻译缺中文的」回补）；
+  **已在库的 DOI 也不白过**（2026-10-10 补）：中文空缺（如先前经「添加文献」入库、
+  LLM 未跑成）→ 重传同一期时自动从周报回填标题/摘要——只补空缺绝不覆盖已有译文
+  （与封面升级同属「重传自愈」），周报标「无」的不生成；
   ③ 封面：图表图**外链直显**（2026-10 由「下载落盘」改为 cover 字段存完整 jsdelivr URL，
   不下载不入库 —— 可靠性靠前端 `__imgFallback` 多源降级：cdn → fastly → gcore →
   raw.githubusercontent；**图表为无 → 站点 logo 兜底**，`assets_src/logo.png` 复制为
