@@ -6,7 +6,7 @@
 
 <p align="center">宏观生物多样性文献库 —— Nature / Science / Cell 系列大尺度研究，每周精选。</p>
 
-<p align="center"><a href="https://macrobiodiv.zbhgis.com">macrobiodiv.zbhgis.com</a> · <a href="usage.md">维护文档</a> · <a href="DESIGN.md">设计文档</a> · <a href="https://github.com/zbhgis/GeoSciPlot">GeoSciPlot</a>（同作者姐妹项目）</p>
+<p align="center"><a href="https://macrobiodiv.zbhgis.com">macrobiodiv.zbhgis.com</a> · <a href="usage.md">维护文档</a> · <a href="DESIGN.md">设计文档</a></p>
 
 ## 这是什么
 
