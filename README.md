@@ -38,15 +38,8 @@ cd site && python -m http.server 7332   # 打开 http://127.0.0.1:7332
 内容管理与发布走本地管理界面（粘贴 DOI / 上传周报 → 自动抓取与中文化 → 一键发布静态站），
 发布流水线、踩坑清单、服务器部署与大模型配置见 **[usage.md](usage.md)**。
 
-## 项目文档
+## 许可
 
-- [usage.md](usage.md) —— 维护者操作手册（管理后台 / 发布流水线 / 部署 / LLM 配置）
-- [DESIGN.md](DESIGN.md) —— 设计决策与实现规范（改动须同步更新）
-- [AGENTS.md](AGENTS.md) —— 维护会话约定
-
-## 鸣谢
-
-站点架构与样式移植自 [GeoSciPlot](https://github.com/zbhgis/GeoSciPlot)（同作者）；
+代码 MIT；文献元数据来自 [Crossref](https://www.crossref.org/) 与 [OpenAlex](https://openalex.org/)，
+版权归原出版方。站点架构与样式移植自 [GeoSciPlot](https://github.com/zbhgis/GeoSciPlot)（同作者姐妹项目），
 DOI 抓取策略参考 [doi2md](https://github.com/zbhgis/doi2md)。
-文献元数据来自 [Crossref](https://www.crossref.org/) 与 [OpenAlex](https://openalex.org/)，
-版权归原出版方。
