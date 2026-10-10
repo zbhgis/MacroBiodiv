@@ -79,6 +79,11 @@ button.danger{color:var(--bad);border-color:var(--bad)}
 button:disabled{opacity:.45;cursor:not-allowed}
 button.tiny{padding:4px 9px;font-size:11px}
 .log{margin-top:12px}
+/* 后台任务进度区：全局唯一（原在「添加文献」底部，任何标签页都看不到）——
+   移到标签页上方并 sticky 置顶，长列表滚动时也始终可见；空态整体隐藏 */
+#jobZone{position:sticky;top:10px;z-index:30;margin:14px 0;padding:10px 12px;border:1px solid var(--line2);border-radius:8px;background:var(--card);box-shadow:0 6px 18px rgba(0,0,0,.18)}
+#jobZone:has(#log:empty){display:none}
+#jobZone .log{margin-top:6px;max-height:34vh;overflow-y:auto}
 .step{display:flex;gap:10px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--line);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px}
 .step .mark{width:14px;flex:none}
 .step .nm{color:var(--text)}
@@ -169,6 +174,11 @@ details pre{margin:8px 0 0;padding:10px;border:1px solid var(--line);border-radi
     </div>
   </div>
 
+  <div id="jobZone">
+    <p class="note" style="margin:0"><b>后台任务进度</b><span class="note">（所有标签页共用 · 滚动时置顶跟随）</span></p>
+    <div class="log" id="log"></div>
+  </div>
+
   <div class="tabs">
     <button class="tab active" data-tab="add">添加文献</button>
     <button class="tab" data-tab="weekly">每周速递</button>
@@ -207,7 +217,6 @@ details pre{margin:8px 0 0;padding:10px;border:1px solid var(--line);border-radi
         <button id="btnPush">仅执行 git push</button>
       </div>
     </div>
-    <div class="log" id="log"></div>
   </div>
 
   <div class="tabpage" id="tab-weekly" style="display:none">
@@ -922,7 +931,7 @@ function publish() {
   askConfirm(summary + "\n\n确认开始？", function () {
     var btn = document.getElementById("btnPublish");
     btn.disabled = true;
-    btn.textContent = "发布中…（下方看实时进度）";
+    btn.textContent = "发布中…（上方看实时进度）";
     document.getElementById("log").scrollIntoView({ behavior: "smooth", block: "nearest" });
     runJob("/api/publish", { items: items, message: document.getElementById("msg").value,
                              push: flags.push, sync: flags.sync }, function (res) {
@@ -1065,7 +1074,7 @@ function mWire() {
         + "\n\n将从 papers.json 移除并同步 GitHub / 服务器，封面文件一并删除。", function () {
         var btn = document.getElementById("btnDelSel");
         btn.disabled = true;
-        btn.textContent = "删除中…（下方看实时进度）";
+        btn.textContent = "删除中…（上方看实时进度）";
         runJob("/api/delete", { ids: ids,
                                 push: document.getElementById("doPush").checked,
                                 sync: document.getElementById("doSync").checked }, function (res) {
@@ -1334,7 +1343,7 @@ function openEdit(node, it) {
 document.getElementById("btnSync").addEventListener("click", function () {
   var btn = document.getElementById("btnSync");
   btn.disabled = true;
-  btn.textContent = "同步中…（下方看实时进度）";
+  btn.textContent = "同步中…（上方看实时进度）";
   runJob("/api/sync-server", {}, function () {
     btn.disabled = false;
     btn.textContent = "同步站点到服务器";
@@ -1496,7 +1505,7 @@ function wkUploadOne(file, done) {
           + "（周报页 " + pv.slug + " 随构建收录）"];
       (pv.warnings || []).forEach(function (w) { lines.push("⚠ " + w); });
       lines.push("· 任务在后台执行（每篇含抓取与封面下载，需数分钟），期间请勿关闭本页面或管理后台程序；"
-        + "完成后下方日志显示「收录完成」。若个别封面下载失败会自动用 logo 兜底并在文献管理中标出，重传本文件即可补图。");
+        + "完成后上方日志显示「收录完成」。若个别封面下载失败会自动用 logo 兜底并在文献管理中标出，重传本文件即可补图。");
       askConfirm(lines.join("\n") + "\n\n确认开始？", function () {
         runJob("/api/weekly", { name: pv.file, content: content,
                                 push: document.getElementById("doPush").checked,
