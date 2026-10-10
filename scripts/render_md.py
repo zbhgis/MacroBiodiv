@@ -176,6 +176,10 @@ def parse_weekly_papers(text: str) -> list[dict]:
                     break
                 lines.append(ln.strip())
             abstract = "\n".join(x for x in lines if x)
+        # 周报用「无」标记原文没有摘要（短文类常见）—— 视作空缺，否则会被当成
+        # 正文写进 abstract_zh，详情页把占位符显示成摘要（2026-10-10 暴露）
+        if re.sub(r"[。.\s]", "", abstract) in ("无", "暂无"):
+            abstract = ""
         # 注记体裁 → article_type 预填：小写英文词首字母大写（review→Review，
         # perspectives→Perspectives），首字母已大写的原样保留（Letter/Spotlight）
         genre = (genre or "").strip()

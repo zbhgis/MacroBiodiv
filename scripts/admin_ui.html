@@ -245,6 +245,7 @@ details pre{margin:8px 0 0;padding:10px;border:1px solid var(--line);border-radi
       </label>
       <span class="note" id="wkSelNote">未勾选任何期次</span>
       <button id="btnWkDelSel" class="danger" disabled style="margin-left:auto">删除所选</button>
+      <button id="btnWkBackfillZh" style="margin-left:12px">从周报补全中文</button>
     </div>
     <div id="wkList"><p class="note">读取中…</p></div>
     <div id="wkPager" class="mpager"></div>
@@ -1592,6 +1593,24 @@ function wkUploadOne(file, done) {
         wkSelUpdate();
         if (res && res.hint) toast(res.hint);
         loadWeekly(); loadStatus();
+      }, "wkLog");
+    });
+  });
+
+  /* 从周报补全缺失中文 */
+  document.getElementById("btnWkBackfillZh").addEventListener("click", function () {
+    askConfirm("将从所有周报 md 中扫描并回填库里缺失的中文标题 / 摘要。\n"
+      + "只填空缺，绝不覆盖已有译文。确认执行？", function () {
+      var btn = document.getElementById("btnWkBackfillZh");
+      btn.disabled = true;
+      btn.textContent = "回填中…";
+      runJob("/api/weekly-backfill-zh", {}, function (res) {
+        btn.disabled = false;
+        btn.textContent = "从周报补全中文";
+        if (res && res.filled !== undefined) {
+          toast("已回填 " + res.filled + " 篇条目的中文");
+        }
+        loadWeekly();
       }, "wkLog");
     });
   });

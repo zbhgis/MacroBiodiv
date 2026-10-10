@@ -388,9 +388,13 @@ def do_fetch(dois: list) -> dict:
                     hint = record.get("oa_type") or record.get("type") or ""
                     res = llm.translate_paper(record.get("title", ""), record.get("abstract", ""),
                                               budget=200, type_hint=hint)
-                    record["title_zh"] = res["title_zh"]
-                    record["abstract_zh"] = res["abstract_zh"]
-                    record["article_type"] = res.get("article_type", "")
+                    # 覆写保护：模型偶尔丢字段，空结果不落盘，保留初始空值等待周报回填
+                    if res.get("title_zh"):
+                        record["title_zh"] = res["title_zh"]
+                    if res.get("abstract_zh"):
+                        record["abstract_zh"] = res["abstract_zh"]
+                    if res.get("article_type"):
+                        record["article_type"] = res["article_type"]
                     rec["translated"] = True
                     rec["passes"] = res.get("passes", 1)
                     rec["tnote"] = res.get("note", "")
@@ -1039,6 +1043,61 @@ def do_weekly_and_finish(name: str, content: str, message: str, push: bool, sync
     return pipeline_after_content(log, message or f"weekly: 收录《{res.get('title', name)}》", push, sync)
 
 
+def do_weekly_backfill_chinese() -> dict:
+    """从所有周报 md 补全库里缺失的中文（title_zh / abstract_zh）。
+    幂等：只填空缺，绝不覆盖已有译文。返回回填成功的条目数及日志。"""
+    log: list[dict] = []
+    if not WEEKLY_SRC.is_dir():
+        return {"ok": False, "log": [{"step": "扫描周报", "ok": False, "out": "content/weekly/ 目录不存在"}]}
+
+    # 收集所有周报里的文献信息：{doi_lower: {title_zh, abstract_zh}}
+    weekly_map: dict[str, dict] = {}
+    for p in sorted(WEEKLY_SRC.glob("*.md")):
+        try:
+            txt = p.read_text(encoding="utf-8", errors="replace")
+            parsed = parse_weekly_papers(txt)
+        except Exception as e:
+            log.append({"step": f"解析 {p.name}", "ok": False, "out": str(e)[:120]})
+            continue
+        for it in parsed:
+            doi = normalize_doi(it["doi_line"] or "").lower()
+            if not doi:
+                continue
+            entry = weekly_map.setdefault(doi, {})
+            if str(it.get("title_zh") or "").strip() and not entry.get("title_zh"):
+                entry["title_zh"] = it["title_zh"]
+            if str(it.get("abstract_zh") or "").strip() and not entry.get("abstract_zh"):
+                entry["abstract_zh"] = it["abstract_zh"]
+
+    if not weekly_map:
+        return {"ok": True, "log": [{"step": "扫描周报", "ok": True, "out": "未解析到任何文献"}], "filled": 0}
+
+    filled_n = 0
+    with DATA_LOCK:
+        papers = load_papers()
+        by_id = {str(i.get("id") or ""): i for i in papers["items"]}
+        for it in papers["items"]:
+            doi = str(it.get("doi") or "").lower()
+            we = weekly_map.get(doi)
+            if not we:
+                continue
+            got = []
+            if not str(it.get("title_zh") or "").strip() and we.get("title_zh"):
+                it["title_zh"] = we["title_zh"]
+                got.append("标题")
+            if not str(it.get("abstract_zh") or "").strip() and we.get("abstract_zh"):
+                it["abstract_zh"] = we["abstract_zh"]
+                got.append("摘要")
+            if got:
+                filled_n += 1
+                log.append({"step": f"补中文 {it.get('id')}", "ok": True,
+                            "out": f"{doi[:36]} ← {'、'.join(got)}"})
+        save_papers(papers)
+
+    log.append({"step": "汇总", "ok": True, "out": f"共回填 {filled_n} 篇条目的中文"})
+    return {"ok": True, "log": log, "filled": filled_n}
+
+
 def do_weekly_delete(names) -> dict:
     """批量删除周报期次：names（列表；兼容单个文件名字符串）逐个删除落盘文件。
     只删周报页（content/weekly/*.md），已生成的文献卡片保留（在文献管理里单独删）。
@@ -1183,6 +1242,9 @@ class Handler(BaseHTTPRequestHandler):
             self._json({"job": start_job("weekly", body)})
         elif path == "/api/weekly-delete":
             self._json({"job": start_job("weekly-delete", body)})
+        elif path == "/api/weekly-backfill-zh":
+            res = do_weekly_backfill_chinese()
+            self._json(res)
         elif path == "/api/cover":
             fid = (body.get("id") or "").strip()
             if body.get("remove"):
