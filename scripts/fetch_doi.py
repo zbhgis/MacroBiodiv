@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """DOI 元数据抓取 —— 按 DOI 获取文献基本信息（Crossref 主力 + OpenAlex 补充）。
 
-分层策略（参考 doi2md，只取基本信息、不抓出版社页面，避开 Cloudflare 反爬）：
+分层策略（参考 doi2md，只取基本信息；出版社页面仅限 nature.com 的摘要 meta 兜底）：
     1. Crossref  api.crossref.org/works/{doi}   → 标题 / 作者 / 期刊 / 年月 / 卷期页 / 摘要(若有)
     2. OpenAlex  api.openalex.org/works/doi:{doi} → 补摘要(还原倒排索引) / 关键词 / 被引
+    3. nature.com/articles/{后缀}（仅 10.1038）→ 双源皆无摘要时取页面 dc.description
 
 输出统一为「规范记录」字典（papers.json 单条去掉手动字段后的样子）。
 无第三方依赖，仅标准库。
@@ -23,6 +24,8 @@ import urllib.request
 
 MAILTO = "zbhgis@example.com"          # Crossref 礼貌池（更快更稳）
 UA = f"MacroBiodivAdmin/1.0 (mailto:{MAILTO})"
+BROWSER_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+              "(KHTML, like Gecko) Chrome/126.0 Safari/537.36")   # nature.com 摘要兜底用
 TIMEOUT = 30
 
 # quote 的旧绑定（_get_json 里用 urllib.parse.quote）
@@ -200,6 +203,31 @@ def fetch_openalex(doi: str) -> dict:
     }
 
 
+def fetch_nature_abstract(doi: str) -> str:
+    """英文摘要第三兜底：Nature 系（10.1038）在 Crossref / OpenAlex 都缺摘要时，
+    抓 nature.com 文章页的 <meta name="dc.description">（实测可直接 GET，无反爬；
+    部分新刊 / npj 子刊不向 Crossref deposit 摘要，OpenAlex 亦无）。仅限 10.1038
+    前缀——URL 规律 nature.com/articles/{DOI 后缀}；其余出版社页面结构各异且
+    反爬风险高，不做通用抓取。任何失败都返回空串（不阻断抓取流程）。"""
+    if not doi.lower().startswith("10.1038/"):
+        return ""
+    suffix = doi[len("10.1038/"):]
+    url = f"https://www.nature.com/articles/{suffix}"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": BROWSER_UA})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            html = r.read().decode("utf-8", "replace")
+    except (urllib.error.URLError, OSError, TimeoutError):
+        return ""
+    m = re.search(r'<meta\s+name="dc\.description"\s+content="([^"]*)"', html)
+    if not m:
+        m = re.search(r'<meta\s+content="([^"]*)"\s+name="dc\.description"', html)
+    if not m:
+        return ""
+    text = _html.unescape(re.sub(r"<[^>]+>", "", m.group(1))).strip()
+    return text if len(text) >= 40 else ""     # 过短视为取错（如 cookie 提示残留）
+
+
 def fetch_paper(doi: str) -> dict:
     """抓取并合并成规范记录。Crossref 缺失时整体回落 OpenAlex。"""
     doi = normalize_doi(doi)
@@ -228,25 +256,30 @@ def fetch_paper(doi: str) -> dict:
                "pages": "", "issn": "", "url": f"https://doi.org/{doi}", "abstract": "",
                "published_online": True, "source": "openalex"}
         rec.update({k: v for k, v in oa.items() if v})
-        return _finalize(rec)
-
-    rec = dict(cr)
-    if oa:
-        if not rec.get("abstract"):
-            rec["abstract"] = oa.get("abstract", "")
-        rec["cited_by"] = oa.get("cited_by", 0)
-        rec["oa_type"] = oa.get("oa_type", "")     # 体裁提示（供 LLM 判定文章类型）
-        # 关键词：OpenAlex 词表为主（作者关键词粒度）；Crossref subject 兜底
-        rec["keywords"] = (oa.get("keywords") or rec.get("keywords") or [])[:10]
-        if not rec.get("journal"):
-            rec["journal"] = oa.get("journal", "")
-        if not rec.get("year") and oa.get("year"):
-            rec["year"] = oa["year"]
-        if not rec.get("published") and oa.get("published"):
-            rec["published"] = oa["published"]
-        if not rec.get("title") and oa.get("title"):
-            rec["title"] = oa["title"]
-        rec["source"] = "crossref+openalex"
+    else:
+        rec = dict(cr)
+        if oa:
+            if not rec.get("abstract"):
+                rec["abstract"] = oa.get("abstract", "")
+            rec["cited_by"] = oa.get("cited_by", 0)
+            rec["oa_type"] = oa.get("oa_type", "")     # 体裁提示（供 LLM 判定文章类型）
+            # 关键词：OpenAlex 词表为主（作者关键词粒度）；Crossref subject 兜底
+            rec["keywords"] = (oa.get("keywords") or rec.get("keywords") or [])[:10]
+            if not rec.get("journal"):
+                rec["journal"] = oa.get("journal", "")
+            if not rec.get("year") and oa.get("year"):
+                rec["year"] = oa["year"]
+            if not rec.get("published") and oa.get("published"):
+                rec["published"] = oa["published"]
+            if not rec.get("title") and oa.get("title"):
+                rec["title"] = oa["title"]
+            rec["source"] = "crossref+openalex"
+    # 英文摘要第三兜底（Nature 系专供）：双源皆空时抓 nature.com 文章页
+    if not rec.get("abstract"):
+        ab = fetch_nature_abstract(doi)
+        if ab:
+            rec["abstract"] = ab
+            rec["source"] = (rec.get("source") or "") + "+nature"
     return _finalize(rec)
 
 

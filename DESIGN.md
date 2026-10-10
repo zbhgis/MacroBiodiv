@@ -522,7 +522,10 @@ build_site.py：整体拷到 site/assets/covers/（镜像式，删除不残留�
 1. **规范化**：从任意文本提取 DOI（`10.x/...`，剥 doi.org 前缀），按「DOI 只含 ASCII」
    截断防全角标点混入，URL 侧再做一次 quote 兜底
 2. **分层**：Crossref（`works/{doi}`，mailto 礼貌池）主力 → OpenAlex（`works/doi:{doi}`）补
-   摘要（还原倒排索引）/ 关键词 / 被引 / 体裁提示；**不抓出版社页面**（Cloudflare 反爬，稳定优先）
+   摘要（还原倒排索引）/ 关键词 / 被引 / 体裁提示；**不抓出版社页面**（Cloudflare 反爬，稳定优先）；
+   **唯一例外**：`10.1038`（Nature 系）在双源皆无摘要时抓 `nature.com/articles/{后缀}` 页面的
+   `<meta name="dc.description">`（2026-10-10 实测可直接 GET，成功后 source 标 `+nature`；
+   npj 系新刊普遍不向 Crossref deposit 摘要）——其余出版社页面结构各异且反爬风险高，不通用化
 3. **时间口径**：`published-online` → `created`（早于 published 时）→ `published` → `issued`
    （一篇文献有多个日期，全站统一以 online 为准）。Elsevier（Cell Press 系 One Earth /
    Trends）与 AAAS（Science Advances）不给 Crossref deposit `published-online`，其

@@ -155,7 +155,8 @@ IndexNow key 文件 200、随机坏路径返回**真 404**（不是首页）。
 ## 数据来源与口径
 
 - 元数据抓取自 **Crossref**（主力）与 **OpenAlex**（摘要兜底 / 关键词 / 被引 / 体裁提示），
-  不抓出版社页面
+  不抓出版社页面——唯一例外：`10.1038`（Nature 系）双源皆无摘要时，抓 nature.com 文章页
+  的摘要 meta（部分 npj 子刊不向 Crossref 存摘要）
 - **时间以在线发表（online）日期为准**：同一篇文献的 print / online / issued 日期可能不同，
   全站（徽章 / 筛选 / 排序）统一取 online；Elsevier / AAAS 等不提供 online 记录时，以
   Crossref 的 DOI 注册日（即真实在线日）兜底，并以标记如实呈现
