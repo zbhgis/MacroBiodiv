@@ -41,5 +41,4 @@ cd site && python -m http.server 7332   # 打开 http://127.0.0.1:7332
 ## 许可
 
 代码 MIT；文献元数据来自 [Crossref](https://www.crossref.org/) 与 [OpenAlex](https://openalex.org/)，
-版权归原出版方。站点架构与样式移植自 [GeoSciPlot](https://github.com/zbhgis/GeoSciPlot)（同作者姐妹项目），
-DOI 抓取策略参考 [doi2md](https://github.com/zbhgis/doi2md)。
+版权归原出版方。DOI 抓取策略参考 [doi2md](https://github.com/zbhgis/doi2md)。
