@@ -111,6 +111,11 @@ details pre{margin:8px 0 0;padding:10px;border:1px solid var(--line);border-radi
 .minfo .t{color:var(--text);font-size:13px;line-height:1.55;font-family:ui-sans-serif,system-ui,"PingFang SC","Microsoft YaHei",sans-serif;font-weight:600}
 .minfo .talt{color:var(--dim);font-size:12px;margin-top:2px;font-family:ui-sans-serif,system-ui,"PingFang SC","Microsoft YaHei",sans-serif}
 .mact{display:flex;flex-direction:column;gap:8px}
+/* 文献管理翻页（每页 20 条）：当前页 accent 亮起 */
+#mPager{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+#mPager button.on{border-color:var(--accent);color:var(--accent)}
+#mPager button[disabled]{opacity:.45;cursor:default}
+#mPager .pgnote{font-size:11px;color:var(--faint);margin-left:auto}
 .editform{grid-column:1/-1;border-top:1px dashed var(--line2);padding-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:9px 12px}
 @media (max-width:700px){.editform{grid-template-columns:1fr}}
 .editform .full{grid-column:1/-1}
@@ -261,6 +266,7 @@ details pre{margin:8px 0 0;padding:10px;border:1px solid var(--line);border-radi
       <button id="btnDelSel" class="danger" disabled style="margin-left:auto">删除所选</button>
     </div>
     <div id="manageList"><p class="note">读取中…</p></div>
+    <div id="mPager"></div>
   </div>
 
   <h2>说明</h2>
@@ -1072,14 +1078,52 @@ function mWire() {
     });
   }
 }
+/* 文献管理翻页：每页 20 条；筛选条件变化自动回第 1 页（mFilterSig 比对） */
+var MP_PER = 20, mPage = 1, mFilterSig = "";
 function mRender() {
   var list = mFiltered();
+  var sig = JSON.stringify([mFilter.q, mFilter.tag, mFilter.journal, mFilter.from, mFilter.to]);
+  if (sig !== mFilterSig) { mPage = 1; mFilterSig = sig; }
+  var maxP = Math.max(1, Math.ceil(list.length / MP_PER));
+  if (mPage > maxP) mPage = maxP;
   var c = document.getElementById("mCount");
   if (c) c.textContent = (mFilter.q || mFilter.tag !== "*" || mFilter.journal !== "*" || mFilter.from || mFilter.to)
     ? "匹配 " + list.length + " / " + mItems.length + " 篇" : "共 " + mItems.length + " 篇";
-  renderManage(list);
+  renderManage(list.slice((mPage - 1) * MP_PER, mPage * MP_PER));
+  mRenderPager(list.length, maxP);
   mSelUpdate();
 }
+function mRenderPager(total, maxP) {
+  var box = document.getElementById("mPager");
+  if (!box) return;
+  box.innerHTML = "";
+  if (maxP <= 1) return;                       // 单页不显示页码条
+  var mk = function (label, p, dis, cls) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = cls || "tiny";
+    b.textContent = label;
+    if (dis) b.disabled = true; else b.setAttribute("data-p", p);
+    if (p === mPage && !cls) { b.classList.add("on"); b.setAttribute("aria-current", "page"); }
+    return b;
+  };
+  box.appendChild(mk("‹ 上一页", mPage - 1, mPage <= 1));
+  for (var n = 1; n <= maxP; n++) box.appendChild(mk(String(n), n, false));
+  box.appendChild(mk("下一页 ›", mPage + 1, mPage >= maxP));
+  var note = document.createElement("span");
+  note.className = "pgnote";
+  note.textContent = "第 " + mPage + " / " + maxP + " 页 · 每页 " + MP_PER + " 篇";
+  box.appendChild(note);
+}
+/* 页码条事件（委托）：翻页 / 跳页 */
+document.getElementById("mPager").addEventListener("click", function (e) {
+  var b = e.target.closest("[data-p]");
+  if (!b) return;
+  mPage = +b.getAttribute("data-p");
+  mRender();
+  var list = document.getElementById("manageList");
+  if (list) list.scrollIntoView({ block: "start" });
+});
 /* ── 多选批量删除 ──
    勾选状态存 mSelected（id → 1），跨筛选 / 重渲染保留；列表刷新后剔除已不存在的 id，
    避免选中一个已被别处删除的条目。「全选」只作用于当前筛选结果。 */
