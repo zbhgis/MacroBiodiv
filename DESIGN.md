@@ -1,8 +1,9 @@
 # MacroBiodiv 设计文档
 
 > 本文档沉淀站点的设计决策与实现规范。**凡改动视觉样式、页面结构、交互、数据模型、
-> 抓取管线或 LLM 行为，必须同步更新本文档相应小节，并检查 README.md 是否需要跟着改。**
-> 使用/部署说明见 [README.md](README.md)；本文只讲「设计是什么、为什么这么设计」。
+> 抓取管线或 LLM 行为，必须同步更新本文档相应小节，并检查 usage.md（维护者手册）与
+> README.md（用户向简介）是否需要跟着改。**
+> 使用/部署说明见 [usage.md](usage.md)；本文只讲「设计是什么、为什么这么设计」。
 
 ## 1. 总体架构
 
@@ -414,6 +415,7 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   （`render_md.parse_weekly_papers`，见 §3.4），新 DOI 走 Crossref+OpenAlex 抓取入库，
   **周报自带中文直接预填**（标题行首个 CJK 起为中文段 → title_zh；摘要节 → abstract_zh；
   「文献N」注记体裁 → article_type，不走大模型，空缺事后用「翻译缺中文的」回补）；
+  **期次列表翻页**（2026-10-10）：每页 20 期，与文献管理共用 `renderPager`/`.mpager`；
   **已在库的 DOI 也不白过**（2026-10-10 补）：中文空缺（如先前经「添加文献」入库、
   LLM 未跑成）→ 重传同一期时自动从周报回填标题/摘要——只补空缺绝不覆盖已有译文
   （与封面升级同属「重传自愈」），周报标「无」的不生成；
@@ -611,7 +613,7 @@ build_site.py：整体拷到 site/assets/covers/（镜像式，删除不残留�
 ## 9. 维护约定
 
 - **改动即更新**：视觉样式、页面结构、交互、`papers.json` 字段、抓取管线、LLM 行为
-  有任何变化 → 更新本文档对应小节 + 检查 README.md；仓库根的 `AGENTS.md` 已约定
+  有任何变化 → 更新本文档对应小节 + 检查 usage.md / README.md；仓库根的 `AGENTS.md` 已约定
   后续维护会话自动遵守
 - 样式常量集中在 `scripts/build_site.py` 的 `CSS`/`JS` 字符串；与 GeoSciPlot 共享的部分
   （token、fab 队列、分页条、搜索页版式）修改前先比对原站，保持同源语言

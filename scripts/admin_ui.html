@@ -116,11 +116,11 @@ details pre{margin:8px 0 0;padding:10px;border:1px solid var(--line);border-radi
 .minfo .t{color:var(--text);font-size:13px;line-height:1.55;font-family:ui-sans-serif,system-ui,"PingFang SC","Microsoft YaHei",sans-serif;font-weight:600}
 .minfo .talt{color:var(--dim);font-size:12px;margin-top:2px;font-family:ui-sans-serif,system-ui,"PingFang SC","Microsoft YaHei",sans-serif}
 .mact{display:flex;flex-direction:column;gap:8px}
-/* 文献管理翻页（每页 20 条）：当前页 accent 亮起 */
-#mPager{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-#mPager button.on{border-color:var(--accent);color:var(--accent)}
-#mPager button[disabled]{opacity:.45;cursor:default}
-#mPager .pgnote{font-size:11px;color:var(--faint);margin-left:auto}
+/* 文献管理 / 每周速递列表翻页（每页 20 条）：当前页 accent 亮起，共用 .mpager */
+.mpager{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.mpager button.on{border-color:var(--accent);color:var(--accent)}
+.mpager button[disabled]{opacity:.45;cursor:default}
+.mpager .pgnote{font-size:11px;color:var(--faint);margin-left:auto}
 .editform{grid-column:1/-1;border-top:1px dashed var(--line2);padding-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:9px 12px}
 @media (max-width:700px){.editform{grid-template-columns:1fr}}
 .editform .full{grid-column:1/-1}
@@ -247,6 +247,7 @@ details pre{margin:8px 0 0;padding:10px;border:1px solid var(--line);border-radi
       <button id="btnWkDelSel" class="danger" disabled style="margin-left:auto">删除所选</button>
     </div>
     <div id="wkList"><p class="note">读取中…</p></div>
+    <div id="wkPager" class="mpager"></div>
     <div class="log" id="wkLog"></div>
   </div>
 
@@ -1087,7 +1088,8 @@ function mWire() {
     });
   }
 }
-/* 文献管理翻页：每页 20 条；筛选条件变化自动回第 1 页（mFilterSig 比对） */
+/* 文献管理翻页：每页 20 条；筛选条件变化自动回第 1 页（mFilterSig 比对）。
+   页码条渲染走共享的 renderPager（文献管理 / 每周速递共用，避免两处镜像漂移） */
 var MP_PER = 20, mPage = 1, mFilterSig = "";
 function mRender() {
   var list = mFiltered();
@@ -1099,40 +1101,49 @@ function mRender() {
   if (c) c.textContent = (mFilter.q || mFilter.tag !== "*" || mFilter.journal !== "*" || mFilter.from || mFilter.to)
     ? "匹配 " + list.length + " / " + mItems.length + " 篇" : "共 " + mItems.length + " 篇";
   renderManage(list.slice((mPage - 1) * MP_PER, mPage * MP_PER));
-  mRenderPager(list.length, maxP);
+  renderPager(document.getElementById("mPager"), mPage, maxP, function (p) {
+    mPage = p;
+    mRender();
+    var list = document.getElementById("manageList");
+    if (list) list.scrollIntoView({ block: "start" });
+  });
   mSelUpdate();
 }
-function mRenderPager(total, maxP) {
-  var box = document.getElementById("mPager");
+/* 页码条渲染（共享）：单页不显示；当前页 accent 高亮；点击经 box.__onGo 回调 */
+function renderPager(box, page, maxP, onGo) {
   if (!box) return;
   box.innerHTML = "";
-  if (maxP <= 1) return;                       // 单页不显示页码条
-  var mk = function (label, p, dis, cls) {
+  if (maxP <= 1) return;
+  var mk = function (label, p, dis) {
     var b = document.createElement("button");
     b.type = "button";
-    b.className = cls || "tiny";
+    b.className = "tiny";
     b.textContent = label;
-    if (dis) b.disabled = true; else b.setAttribute("data-p", p);
-    if (p === mPage && !cls) { b.classList.add("on"); b.setAttribute("aria-current", "page"); }
+    if (dis) b.disabled = true;
+    else {
+      b.setAttribute("data-p", p);
+      if (p === page) { b.classList.add("on"); b.setAttribute("aria-current", "page"); }
+    }
     return b;
   };
-  box.appendChild(mk("‹ 上一页", mPage - 1, mPage <= 1));
+  box.appendChild(mk("‹ 上一页", page - 1, page <= 1));
   for (var n = 1; n <= maxP; n++) box.appendChild(mk(String(n), n, false));
-  box.appendChild(mk("下一页 ›", mPage + 1, mPage >= maxP));
+  box.appendChild(mk("下一页 ›", page + 1, page >= maxP));
   var note = document.createElement("span");
   note.className = "pgnote";
-  note.textContent = "第 " + mPage + " / " + maxP + " 页 · 每页 " + MP_PER + " 篇";
+  note.textContent = "第 " + page + " / " + maxP + " 页 · 每页 20 条";
   box.appendChild(note);
+  box.__onGo = onGo;
 }
-/* 页码条事件（委托）：翻页 / 跳页 */
-document.getElementById("mPager").addEventListener("click", function (e) {
-  var b = e.target.closest("[data-p]");
-  if (!b) return;
-  mPage = +b.getAttribute("data-p");
-  mRender();
-  var list = document.getElementById("manageList");
-  if (list) list.scrollIntoView({ block: "start" });
-});
+function bindPager(boxId) {
+  var box = document.getElementById(boxId);
+  box.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-p]");
+    if (!b || !box.__onGo) return;
+    box.__onGo(+b.getAttribute("data-p"));
+  });
+}
+bindPager("mPager");
 /* ── 多选批量删除 ──
    勾选状态存 mSelected（id → 1），跨筛选 / 重渲染保留；列表刷新后剔除已不存在的 id，
    避免选中一个已被别处删除的条目。「全选」只作用于当前筛选结果。 */
@@ -1376,6 +1387,7 @@ var wkSiteUrl = "";
 /* 期次多选批量删除：与文献管理同款交互（期次列表无筛选，「全选」即全部期次）。
    勾选状态按文件名存 wkSelected，跨重渲染保留，刷新后剔除已不存在的期次。 */
 var wkSelected = {};
+var WK_PER = 20, wkPage = 1;                 // 期次列表翻页：每页 20 期
 function wkSelUpdate() {
   var names = Object.keys(wkSelected);
   var note = document.getElementById("wkSelNote");
@@ -1404,12 +1416,24 @@ function wkRender() {
   box.innerHTML = "";
   if (!wkIssues.length) {
     box.appendChild(el("p", "note", "还没有周报 —— 把第一期 md 拖到上方框里收录"));
+    renderPager(document.getElementById("wkPager"), 1, 0, null);
     wkSelUpdate();
     return;
   }
-  wkIssues.forEach(function (it) { box.appendChild(wkRow(it)); });
+  var maxP = Math.max(1, Math.ceil(wkIssues.length / WK_PER));
+  if (wkPage > maxP) wkPage = maxP;
+  wkIssues.slice((wkPage - 1) * WK_PER, wkPage * WK_PER).forEach(function (it) {
+    box.appendChild(wkRow(it));
+  });
+  renderPager(document.getElementById("wkPager"), wkPage, maxP, function (p) {
+    wkPage = p;
+    wkRender();
+    var list = document.getElementById("wkList");
+    if (list) list.scrollIntoView({ block: "start" });
+  });
   wkSelUpdate();
 }
+bindPager("wkPager");
 function wkRow(it) {
   var node = el("div", "mrow msel");
   // 行首勾选框：纳入批量删除（状态存 wkSelected，重渲染后按其回填）
