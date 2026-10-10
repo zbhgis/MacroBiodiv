@@ -4,216 +4,45 @@
 
 <h1 align="center">MacroBiodiv</h1>
 
-<p align="center">宏观生物多样性文献库 —— 粘贴 DOI 自动建站：抓取元数据、大模型中文化、卡片浏览、可搜索可订阅。</p>
+<p align="center">宏观生物多样性文献库 —— Nature / Science / Cell 系列大尺度研究，每周精选。</p>
 
-<p align="center"><a href="https://macrobiodiv.zbhgis.com">macrobiodiv.zbhgis.com</a> · <a href="DESIGN.md">设计文档</a> · <a href="https://github.com/zbhgis/GeoSciPlot">GeoSciPlot</a>（同作者姐妹项目）</p>
+<p align="center"><a href="https://macrobiodiv.zbhgis.com">macrobiodiv.zbhgis.com</a> · <a href="usage.md">维护文档</a> · <a href="DESIGN.md">设计文档</a> · <a href="https://github.com/zbhgis/GeoSciPlot">GeoSciPlot</a>（同作者姐妹项目）</p>
 
 ## 这是什么
 
-一个**纯 Python 标准库 + 纯静态站**的文献展示系统：本地管理界面里粘贴 DOI，
-自动抓取元数据（Crossref + OpenAlex）、调用你自己的大模型做中文翻译（初译 + 审校），
-同时可上传**封面图**（粘贴 / 拖拽 / 点选，与文献按顺序自动配对；也可直接贴**图片外链**，
-不落盘、前台直显），
-一键发布成可搜索、可筛选、可订阅的静态网站。无框架、无数据库、无服务端运行时。
+一个可检索、可筛选、可订阅的宏观生态与生物多样性文献库：
 
-## 维护者 · 日常维护
+- **文献卡片瀑布流**：封面顶图 + 文章类型 + 期刊徽章 + 标题（中文优先），4/3/2 列响应式
+- **全站搜索与三维筛选**：标题 / 作者 / DOI / 摘要全文检索，标签 / 期刊 / 年份多选筛选，
+  筛选与排序可经 URL 分享
+- **每周速递**：每周一批精选文献的深度速递（按月归档、可翻页），全文可搜
+- **详情页**：中文摘要主读 + 英文原文收合、GB/T 7714 引用条与 BibTeX 一键复制、
+  图片灯箱、文章目录、上一篇 / 下一篇
+- **全站统计**：收录总览、热读文献榜、发表动态、期刊与关键词分布
+- 明暗双主题、字号调节、Open Graph 分享卡片、Atom 订阅
 
-```bash
-python scripts/admin.py        # 本地管理界面（仅本机可访问，自动打开 127.0.0.1:5201）
-```
+文献元数据来自 [Crossref](https://www.crossref.org/) 与 [OpenAlex](https://openalex.org/)，
+中文摘要与文章类型由大模型辅助生成（初译 + 审校），部分摘要与标题人工校对。
 
-流程：**粘贴 DOI（+ 粘贴/拖入封面图）→ 自动抓取 → 大模型中文化（初译+审校）
-→ 补标签/备注 → 点发布**。
-
-### 发布流水线（点「发布」后自动执行）
-
-1. **封面缩略图增量补齐**：有新封面时自动下载 → 压 webp → 推图床
-   （`zbhgis/BlogImg`）→ 写回 `cover_thumb`；失败不阻断发布（卡片回退原图外链，
-   下次发布自动重试），无新封面时秒过；
-2. 写 `meta/papers.json` → `build_site.py` 构建静态站（robots/sitemap/llms.txt/404 页/
-   IndexNow key 文件一并产出）；
-3. `git add -A` → 提交 → 推送 GitHub（网络慢时超时放宽到 5 分钟）；
-4. **staging 原子换台同步服务器**（勾选"同步到服务器"时）：`site/` 整体 scp 到服务器
-   `.staging` 目录，成功后两连 `mv` 就位——发布期间旧版本完整在线，scp 失败线上原样
-   保留（旧的「清空 webroot → 逐文件 scp」有分钟级空窗，期间站点 403/资源 404，
-   2026-10-04 弃用）；
-5. 调用主站的 `ping-search.sh` 做 IndexNow 增量推送（key 文件随构建部署在本站根目录）。
-
-**每周速递上传联动**：上传周报 md 后自动两件事——md 落盘 `content/weekly/` 收进周报页；
-同时解析每篇「文献N」的 DOI 与图表图，新 DOI 抓取元数据生成主页卡片。周报页的
-标题取正文第一个一级标题、年月标签从标题的周区间提取（如 260309 → 2026年3月）、
-frontmatter 只用于「创建于」展示——md 带不带 frontmatter 都能正确处理。
-**中文摘要自动取自周报**：新文献直接预填标题/摘要/体裁；已在库但中文空缺的（如先前经
-「添加文献」入库、LLM 未跑成）重传同一期时自动回填——只补空缺，绝不覆盖已有译文，
-周报标注「无」的不生成（这类可事后用「翻译缺中文的」走 LLM 补齐）。
-
-### 发布前必查（踩坑清单）
-
-- **新增/更换了封面 → 先跑 `python scripts/prepare_thumbs.py --push --git-proxy http://127.0.0.1:7897`**
-  （增量，只为新封面生成缩略图并推图床；忘跑不会坏——线上卡片回退原图外链，只是每张 2MB 级）。
-- **`git add -A` 会收编工作区全部改动**：发布提交是全量的——先 `git status`
-  确认没有无关的半成品文件，或先把它们单独提交/清理。
-- **发布失败不影响线上**：build 失败 → 未提交未同步；scp 失败 → 线上保持旧版本且
-  残局自动清理。日志区每步状态可见：push 失败多半是网络波动，稍后手动 `git push`；
-  同步失败检查本机公钥是否在服务器 `authorized_keys`。
-- **nginx 配对关系**：构建产出的 `404.html` 依赖服务器 nginx 的
-  `error_page 404 /404.html` + `try_files ... =404`（留档在 `deploy/nginx-macrobiodiv.conf`，
-  与服务器现行版一致）——别改回 `/index.html` 兜底，那会把坏链变成 200 首页（软 404）。
-- **文档同步**：改构建逻辑/页面结构/数据模型后，按 AGENTS.md 约定同步 DESIGN.md
-  对应小节再提交。
-
-### 手工部署（应急/全量重传）
-
-```bash
-python scripts/build_site.py            # 生成 site/
-scp -r site/. root@47.98.133.104:/var/www/macrobiodiv/
-```
-
-> 注意手工 scp **不删除**服务器上已下线的旧文献目录（会累积失效页）——日常发布走
-> 管理界面（staging 换台自带清理 + 搜索推送）。
-
-### 发布后验证
-
-首页 200、任一文献详情页 200 且带 canonical、`/weekly/` 列表按月分组、
-IndexNow key 文件 200、随机坏路径返回**真 404**（不是首页）。
-全站无服务器编译——构建永远在本地做，服务器只放静态文件。
-
-## 站点功能
-
-- **顶部菜单栏**：与主站 zbhgis.com 同源的吸顶毛玻璃导航 —— 站点名居左，右侧带图标的
-  「每周速递 / 全站统计 / 关于本站 / 更多▾」（每周速递为周报栏目，全站统计指向 `/statistics/`，
-  关于本站指向 `/about/`（内容源 `content/about.md`），「更多」悬停展开
-  zbhgis 与 GeoSciPlot 外链，窄屏自动转汉堡菜单）；
-- **每周速递 `/weekly/`**：Nature / Science / Cell 系列大尺度生物多样性研究每周精选
-  （按月分组列表 + 文章页三栏版式：文章导航 / 正文 / 此页内容 TOC），布局与主站 zbhgis.com
-  博客同源；**列表翻页：每页最多 3 个月**（页码条切换、月份 chip 跳转、`#pN` 记位）；
-  内容为 `content/weekly/` 的 Markdown，标准库迷你渲染器转 HTML。
-  文章图片保持 jsdelivr 外链直显（懒加载，不占仓库体积），前端带**多源自动降级**：
-  单源加载失败按 cdn → fastly → gcore → GitHub 源站逐源切换，几千张规模也不怕单源抽风
-- **周报上传即收录**：管理后台「每周速递」上传周报 md 后自动两件事 —— md 落盘
-  `content/weekly/` 收进周报页；同时解析每篇「文献N」的 DOI 与图表图，新 DOI 抓取元数据
-  生成主页卡片（周报自带的中文标题 / 摘要 / 体裁注记直接预填），文献封面用图表图
-  **jsdelivr 外链直显**（前端多源自动降级，不落盘不入库），图表为无用站点 logo 兜底，
-  生成的卡片与手动添加的文献在「文献管理」统一管理
-- **文献卡片瀑布流**：封面通栏顶图（自然比例，无封面显示期刊缩写占位块；**卡片优先加载
-  图床缩略图**——发布时自动增量生成推送，加载前按真实比例显示「加载中」占位区，零抖动；
-  失败自动回退原图外链）+ 文章类型 + 期刊徽章 + 标题（中文优先），
-  CSS multi-columns 错落布局（4/3/2 列响应式，GeoSciPlot 同源样式）
-- **封面图**：管理界面识别粘贴 / 拖拽 / 点选的图片作为文章封面（PNG/JPEG/WebP/GIF，≤20MB），
-  可与 DOI 按顺序批量配对；前台展示在卡片顶图与详情页，并写入 og:image（分享出封面卡片）
-- **图片灯箱**：详情页与周报文章页点击图片即放大（零依赖纯前端模块，仅这两种页面加载）——
-  同容器多图切换（箭头 / 方向键 / 触摸滑动）、滚轮 / 双击 / 双指缩放、拖拽平移、Esc 或点空白关闭，
-  相邻图预加载秒开；链接内图片默认不劫持，`data-lightbox-src` 可指定高清版
-- **文章目录 TOC**：详情页与周报文章页右侧「此页内容」——桌面端 sticky 侧栏 + 移动端浮动按钮
-  与全高抽屉，滚动时自动高亮当前小节，点击平滑滚动并更新锚点；零依赖纯前端，
-  与图片灯箱同为仅文章页加载的独立模块
-- **全站统计 `/statistics/`**（访客向数据面板）：**hero 总览四卡**（文献/期刊/关键词数字滚动 +
-  文献被浏览总数）+ **热读文献 Top 5**（只统计文献卡片页，同浏览数随机排序，行内淡色底条 =
-  浏览量占比）+ **Online 发表动态面积图 / 文章类型环形图 / 期刊 Top 10 条形图 / 研究热词词云**
-  （关键词与标题·摘要双 tab）；可按期刊 / 类型 / 年份区间筛选后实时重算；
-  手写 SVG + vanilla JS，零依赖，构建期生成数据、客户端聚合渲染
-- **三维筛选 + 全站搜索**：标签 / 期刊 / 时间区间（标签与期刊为**多选 chips**：默认全选、
-  点击剔除、行尾「全选 / 反选」，入选之间 OR 命中）；标题 / 作者 / DOI / 期刊 / 关键词 / 摘要全文；
-  搜索同时覆盖**每周速递各期正文**（命中行带上下文片段与高亮）；分页 20/30/50
-- **筛选与排序均可通过 URL 分享**：`/?tag=海冰|冻土&journal=Nature|Science&sort=rand`
-  （多值 `|` 分隔，旧单值链接兼容；sort 仅本次生效，不改写访客偏好；
-  排序为 发表新→旧 / 旧→新 / 随机洗牌 —— 站点不再携带与展示被引数据）
-- **详情页**为公众号推文式分节版式（**1. 信息 / 2. 摘要 / 3. 图表 / 4. 引用**，对齐「浩瀚地学」
-  文献精选排版：窄栏阅读、居中标题块、左竖线节标题、字段行式信息区、图表淡蓝光晕）：
-  中文摘要为主阅读区、英文原题收合、GB/T 7714 引用条 + BibTeX 一键复制、上一篇/下一篇；
-  作者行最多两行，超出折叠为「展开全部 N 位作者」可随时展开 / 收起（如 161 位作者的大合作论文）
-- **渲染颜色切换**：文献详情页与每周速递文章页头部各有一排切换圆点
-  （透明斜杠圈 = 普通样式：系统色标题；蓝 / 绿 / 淡紫 / 橘实心圈 = 对应强调色渲染：
-  标题、节标题、正文链接、加粗字、徽章、胶囊等文字相关颜色整体换色，
-  亮色主题自动取深一档色值），点击刷新生效，偏好两种页面共享 —— 任一页切换，另一页同步跟随
-- **文章类型**按出版社惯例标注（Article / Research Article / Perspective / Comment / News & Views…），
-  大模型结合元数据体裁提示判定，管理界面可修改
-- **分享与收录**：Open Graph 卡片、ScholarlyArticle JSON-LD、robots.txt / sitemap.xml / Atom 订阅源
-- 右侧悬浮按钮队列：搜索 / Home / GitHub / 明暗主题 / 字号 A（标准/放大两档，覆盖全站字号变量）
-  / 回到顶部（与主站 zbhgis.com 同款）
-- 浏览计数走主站统计 API；明暗双主题
-
-## 大模型中文化
-
-抓取时自动翻译标题与摘要（**两重处理：初译 → 审校复核**），走 OpenAI 兼容接口：
-
-```powershell
-[Environment]::SetEnvironmentVariable("LLM_API_KEY", "sk-xxx", "User")
-[Environment]::SetEnvironmentVariable("LLM_BASE_URL", "https://token.sensenova.cn/v1", "User")
-[Environment]::SetEnvironmentVariable("LLM_MODEL_NAME", "sensenova-6.8-flash-lite", "User")
-```
-
-- 设置后**新开的终端**直接生效；已开着的进程自动从注册表兜底读取
-- 译文（中文标题 / 中文摘要）在管理界面可直接修改，修改稿视为定稿：
-  重新抓取不会覆盖，只有「重新翻译」会重写
-- 同时判定**文章类型**（按出版社惯例），可在界面修改
-- **限流与故障分层预案**（详见 [DESIGN.md](DESIGN.md) §6）：请求节流 → 429 指数退避 +
-  Retry-After → 断路器冷却 → 审校失败降级「仅初译」→ 初译失败留空正常发布 →
-  「翻译缺中文的」批量幂等补译。任何失败都不阻断抓取与发布
-- 固定 prompt 集中在 `scripts/llm.py`（`_TRANSLATOR_SYSTEM` / `_REVIEWER_SYSTEM`），
-  含术语锚点表 `_GLOSSARY`，换研究领域改这一处
-
-## 数据来源与口径
-
-- 元数据抓取自 **Crossref**（主力）与 **OpenAlex**（摘要兜底 / 关键词 / 被引 / 体裁提示），
-  不抓出版社页面——两个例外：`10.1038`（Nature 系）双源皆无摘要时抓 nature.com 文章页的
-  摘要 meta；仍无时走学术聚合 API（Semantic Scholar → Europe PMC → PubMed）——
-  当月最新非 OA 文可能尚未进任何索引，这类等收录后「重新抓取」即可补上
-- **时间以在线发表（online）日期为准**：同一篇文献的 print / online / issued 日期可能不同，
-  全站（徽章 / 筛选 / 排序）统一取 online；Elsevier / AAAS 等不提供 online 记录时，以
-  Crossref 的 DOI 注册日（即真实在线日）兜底，并以标记如实呈现
-- **关键词自动抓取、可手动改**：取 OpenAlex keywords 词表（基于标题 / 摘要抽取，
-  与作者关键词高度重合，截前 10 个），Crossref subject 兜底；管理界面可修改，
-  重新抓取只回填空缺、不覆盖已填值；详情页关键词胶囊点击直达全站搜索
-- 文献 id = DOI（小写）sha1 前 10 位；`meta/papers.json` 是唯一数据源
-
-## 本地运行
-
-**只想本地看看效果（任何人）**
+## 本地预览
 
 ```bash
 git clone https://github.com/zbhgis/MacroBiodiv.git
 cd MacroBiodiv
 python scripts/build_site.py            # 生成静态站（Python 3.9+，无第三方依赖）
-cd site && python -m http.server 7332   # 打开 http://127.0.0.1:7332，搜索页在 /search/
+cd site && python -m http.server 7332   # 打开 http://127.0.0.1:7332
 ```
 
-**维护者（需要仓库写权限）**
+## 维护
 
-```bash
-git clone https://github.com/zbhgis/MacroBiodiv.git
-cd MacroBiodiv
-python scripts/admin.py                 # 打开 http://127.0.0.1:5201
-```
-
-管理界面三个标签页：**添加文献**（粘贴 DOI → 抓取 → 补手动字段 → 发布）、
-**每周速递**（上传周报 md → 周报页收录 + 解析 DOI/图表自动生成文献卡片，
-期次列表支持勾选多选批量删）、**文献管理**（编辑 / 重抓 / 补译 / 删除，
-支持勾选多选批量删，「全选」作用于当前筛选结果；**列表翻页每页 20 条**，
-筛选变更自动回第 1 页，跨页勾选保留）；发布 = 写索引 → 构建站点
-→ git 提交推送 →（可选）同步服务器。
-
-命令行（不进管理界面也能用）：
-
-```bash
-python scripts/fetch_doi.py 10.1038/s41467-021-24264-9   # 试试抓取，输出 JSON
-python scripts/llm.py "英文标题"                          # 试试翻译
-python scripts/build_site.py                              # 重建站点
-python scripts/gen_logo.py                                # 由 assets_src/logo_source.png 重新派生 logo/favicon
-```
-
-## 服务器部署
-
-与 [GeoSciPlot](https://github.com/zbhgis/GeoSciPlot) 同一台机器、同一套流程：
-DNS 子域 A 记录 → acme.sh 签证书 → 挂载 `deploy/nginx-macrobiodiv.conf`
-（含安全响应头与静态资源长缓存）→ `cd site && scp -r ./* root@<服务器>:/var/www/macrobiodiv/`。
-逐步命令见 [`deploy/部署操作手册.md`](deploy/部署操作手册.md)。
+内容管理与发布走本地管理界面（粘贴 DOI / 上传周报 → 自动抓取与中文化 → 一键发布静态站），
+发布流水线、踩坑清单、服务器部署与大模型配置见 **[usage.md](usage.md)**。
 
 ## 项目文档
 
-- [DESIGN.md](DESIGN.md) —— 设计决策与实现规范（视觉体系 / 页面结构 / 数据模型 /
-  抓取管线 / LLM 行为 / 管理后台设计），**改动须同步更新**
-- [AGENTS.md](AGENTS.md) —— 维护会话约定（文档同步 / 设计基线 / 工程约定）
+- [usage.md](usage.md) —— 维护者操作手册（管理后台 / 发布流水线 / 部署 / LLM 配置）
+- [DESIGN.md](DESIGN.md) —— 设计决策与实现规范（改动须同步更新）
+- [AGENTS.md](AGENTS.md) —— 维护会话约定
 
 ## 鸣谢
 
