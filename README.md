@@ -86,7 +86,8 @@ IndexNow key 文件 200、随机坏路径返回**真 404**（不是首页）。
   zbhgis 与 GeoSciPlot 外链，窄屏自动转汉堡菜单）；
 - **每周速递 `/weekly/`**：Nature / Science / Cell 系列大尺度生物多样性研究每周精选
   （按月分组列表 + 文章页三栏版式：文章导航 / 正文 / 此页内容 TOC），布局与主站 zbhgis.com
-  博客同源；内容为 `content/weekly/` 的 Markdown，标准库迷你渲染器转 HTML。
+  博客同源；**列表翻页：每页最多 3 个月**（页码条切换、月份 chip 跳转、`#pN` 记位）；
+  内容为 `content/weekly/` 的 Markdown，标准库迷你渲染器转 HTML。
   文章图片保持 jsdelivr 外链直显（懒加载，不占仓库体积），前端带**多源自动降级**：
   单源加载失败按 cdn → fastly → gcore → GitHub 源站逐源切换，几千张规模也不怕单源抽风
 - **周报上传即收录**：管理后台「每周速递」上传周报 md 后自动两件事 —— md 落盘

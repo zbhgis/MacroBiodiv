@@ -496,6 +496,11 @@ mark{background:color-mix(in srgb,var(--accent) 24%,transparent);color:inherit;b
 .wk-lede{margin:18px 0 0;font-size:var(--fs-base);line-height:1.75;color:var(--dim);max-width:46ch}
 /* QuickNav 月份跳转 chip（v3-btn 同源） */
 .wk-quicknav{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 36px}
+/* 列表翻页（每页最多 3 个月）：按钮复用 .wk-btn 胶囊；当前页 accent 亮起；分组锚点避让吸顶菜单 */
+.wk-pgbar{display:flex;justify-content:center;align-items:center;gap:6px;margin:36px 0 8px;flex-wrap:wrap}
+.wk-pgbtn.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.wk-pgbtn[disabled]{opacity:.4;cursor:default}
+.wk-group{scroll-margin-top:80px}
 .wk-btn{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);line-height:1.3;border:1px solid var(--line2);border-radius:999px;color:var(--dim);background:transparent;transition:color .16s,border-color .16s,background-color .16s}
 .wk-btn:hover{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
 .wk-btn .n{color:var(--faint)}
@@ -1372,6 +1377,51 @@ JS = """\
     });
   });
 })();
+
+/* ── 每周速递列表翻页（每页最多 3 个月）：分组 hidden 由构建期预置，这里只切换
+   页码态与上下页可用性；chips 点击改为「跳到目标月所在页并滚动到分组」；
+   无 JS 时 noscript 展开全部分组（行为同旧版长页） ── */
+(function () {
+  var bar = document.getElementById("wk-pgbar");
+  if (!bar) return;
+  var groups = Array.prototype.slice.call(document.querySelectorAll(".wk-group[data-page]"));
+  if (!groups.length) return;
+  var cur = 1, maxP = 1;
+  groups.forEach(function (g) { maxP = Math.max(maxP, +g.getAttribute("data-page")); });
+  function show(n, scroll) {
+    cur = Math.max(1, Math.min(maxP, n));
+    groups.forEach(function (g) { g.hidden = +g.getAttribute("data-page") !== cur; });
+    Array.prototype.forEach.call(bar.querySelectorAll("[data-p]"), function (b) {
+      var on = +b.getAttribute("data-p") === cur;
+      b.classList.toggle("on", on);
+      if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+    });
+    document.getElementById("wk-pg-prev").disabled = cur <= 1;
+    document.getElementById("wk-pg-next").disabled = cur >= maxP;
+    try { history.replaceState(null, "", "#p" + cur); } catch (e) {}
+    if (scroll) {
+      var q = document.querySelector(".wk-quicknav");
+      if (q) window.scrollTo({ top: q.getBoundingClientRect().top + window.pageYOffset - 70, behavior: "smooth" });
+    }
+  }
+  bar.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-p]");
+    if (b) show(+b.getAttribute("data-p"), true);
+  });
+  document.getElementById("wk-pg-prev").addEventListener("click", function () { show(cur - 1, true); });
+  document.getElementById("wk-pg-next").addEventListener("click", function () { show(cur + 1, true); });
+  Array.prototype.forEach.call(document.querySelectorAll(".wk-quicknav .wk-btn"), function (a) {
+    a.addEventListener("click", function (e) {
+      var g = document.getElementById(a.getAttribute("href").slice(1));
+      if (!g) return;
+      e.preventDefault();
+      show(+g.getAttribute("data-page"), false);
+      g.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
+  var m = location.hash.match(/^#p(\\d+)$/);
+  show(m ? Math.max(1, Math.min(maxP, +m[1])) : 1, false);
+})();
 """
 
 
@@ -2232,8 +2282,15 @@ def build_weekly(cfg: dict) -> list[str]:
         groups.setdefault(key, {"label": label, "items": []})
         groups[key]["items"].append(p)
     ordered = sorted(groups.items(), key=lambda kv: kv[0], reverse=True)
+    # 翻页：月份分组按「每页最多 3 个月」切片（2026-10-10，期次渐多后单页过长）。
+    # 静态预渲染全部分组与页码（首屏无闪烁、爬虫可见全部）：非当前页分组置 hidden，
+    # JS 只做切换；无 JS 时 noscript 展开全部分组（渐进兜底，行为同旧版长页）
+    PER_PAGE_MONTHS = 3
+    pages = [ordered[i:i + PER_PAGE_MONTHS] for i in range(0, len(ordered), PER_PAGE_MONTHS)]
+    n_pages = max(1, len(pages))
+    page_of = {key: n for n, pg in enumerate(pages, 1) for key, _ in pg}
     chips = "".join(
-        f'<a class="wk-btn" href="#m-{key}">{esc(g["label"])} <span class="n">{len(g["items"])}</span></a>'
+        f'<a class="wk-btn" href="#m-{key}" data-page="{page_of[key]}">{esc(g["label"])} <span class="n">{len(g["items"])}</span></a>'
         for key, g in ordered)
     sections = ""
     for key, g in ordered:
@@ -2245,15 +2302,31 @@ def build_weekly(cfg: dict) -> list[str]:
                      f'<span class="wk-line-side"><span class="wk-line-tags">'
                      f'<span class="wk-tag">{esc(p["month"])}</span></span>'
                      f'<span class="wk-line-date">{p["date"]}</span></span></span></a>')
-        sections += (f'<section class="wk-group" id="m-{key}">'
+        pg = page_of[key]
+        sections += (f'<section class="wk-group" id="m-{key}" data-page="{pg}"'
+                     f'{"" if pg == 1 else " hidden"}>'
                      f'<div class="wk-label"><span>{esc(g["label"])}</span>'
                      f'<span class="wk-label-right">{len(g["items"])} 篇</span></div>{rows}</section>')
+    if n_pages > 1:
+        pgbtns = "".join(
+            f'<button type="button" class="wk-btn wk-pgbtn" data-p="{n}"'
+            f' aria-current="{str(n == 1).lower()}">{n}</button>'
+            for n in range(1, n_pages + 1))
+        pager = (f'<nav class="wk-pgbar" id="wk-pgbar" aria-label="每周速递翻页">'
+                 f'<button type="button" class="wk-btn wk-pgbtn" id="wk-pg-prev" disabled>‹ 上一页</button>'
+                 f'{pgbtns}'
+                 f'<button type="button" class="wk-btn wk-pgbtn" id="wk-pg-next">下一页 ›</button>'
+                 f'</nav><noscript><style>.wk-group[hidden]{{display:block}}'
+                 f'.wk-pgbar{{display:none}}</style></noscript>')
+    else:
+        pager = ""
     n_week = len(posts)
     body = f"""<div class="wk-col">
 <div class="wk-head"><div><p class="wk-kicker">{esc(cfg['title'].upper())}</p><h1 class="wk-deco">每周速递</h1></div></div>
 <p class="wk-lede">Nature / Science / Cell 系列大尺度生物多样性研究每周精选，共 {n_week} 期；点击条目阅读本期文献速递全文。</p>
 <div class="wk-quicknav">{chips}</div>
 <div class="wk-groups">{sections}</div>
+{pager}
 </div>"""
     (SITE / "weekly").mkdir(parents=True, exist_ok=True)
     (SITE / "weekly" / "index.html").write_text(

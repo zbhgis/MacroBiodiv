@@ -315,6 +315,11 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 - **列表页**：`wk-col` 760px → 页头（`wk-kicker` mono 大写 + `wk-deco` 大标题 + lede）→
   `wk-quicknav` 月份锚点 chip（`wk-btn` 带计数）→ 按月倒序分组：`wk-label`（月份 + N 篇）→
   `wk-line` 条目（标题 hover 变 accent + 摘要两行截断 + 右侧 tags（分类 accent + 月份）+ 日期 mono）
+  → **翻页**（2026-10-10）：分组按**每页最多 3 个月**切片（`data-page` 构建期写死 + 页外组
+  `hidden`），`wk-pgbar` 页码条（上一页/页码/下一页，复用 `wk-btn` 胶囊、当前页 accent 亮）；
+  JS（papers.js 尾部守卫块）只做切换 + `#pN` hash 记位（刷新保持），chips 点击 = 跳到目标月
+  所在页并滚动到分组（`scroll-margin-top:80px` 避让吸顶）；无 JS 时 noscript 展开全部分组，
+  行为同旧版长页（渐进兜底）
 - **文章页**：三栏 `wk-shell`（max-1400）—— 左 `wk-side` 250px「文章导航」（sticky、
   <1024px 隐藏、全部 14 篇 `wk-side-link`，当前篇构建期写死 `data-active`）；中 `wk-main`
   760px（`wk-deco` 大标题 → tags 行 → meta 行（作者/字数/时长，12.5px 图标行）→ 日期行 →
