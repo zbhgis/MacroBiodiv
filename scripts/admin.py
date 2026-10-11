@@ -63,6 +63,10 @@ MAX_BODY = 20 * 1024 * 1024
 # 客户端传来的路径，文件在才是真相。
 COVERS = ROOT / "assets_src" / "covers"
 COVER_EXTS = ("png", "jpg", "jpeg", "webp", "gif")
+# prepare_thumbs 本地化产物（与 scripts/prepare_thumbs.py 的 FULL_DIR/THUMB_DIR 同址）：
+# 随 git 入库且经 jsDelivr 公网可达，删除文献时必须一并清掉
+IMAGES_FULL = ROOT / "images" / "full"
+IMAGES_THUMB = ROOT / "images" / "thumb"
 COVER_MAX = 20 * 1024 * 1024          # 周报图表原图常超 10MB，上限放宽到 20MB
 COVER_MIME = {"png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg",
               "webp": "image/webp", "gif": "image/gif"}
@@ -637,8 +641,18 @@ def do_delete(ids) -> dict:
         papers["items"] = [x for x in items if x.get("id") not in drop]
         save_papers(papers)
     for it in removed:
-        remove_cover(str(it.get("id") or ""))   # 封面文件随条目一起删（站点重建后不再引用）
-        log.append({"step": f"删除 {it.get('id')}", "ok": True,
+        fid = str(it.get("id") or "")
+        remove_cover(fid)   # 封面文件随条目一起删（站点重建后不再引用）
+        # prepare_thumbs 落在 images/full 与 images/thumb 的原图/缩略一并清掉——
+        # 它们随 git 入库且经 jsDelivr 公网可达，不删则已删文献的封面图仍可下载
+        #（GSP 的 do_delete 有同款清理，此前单侧漂移漏了本仓）
+        if re.fullmatch(r"[0-9a-f]{10}", fid):
+            for stale in list(IMAGES_FULL.glob(fid + ".*")) + list(IMAGES_THUMB.glob(fid + ".*")):
+                try:
+                    stale.unlink()
+                except OSError:
+                    pass
+        log.append({"step": f"删除 {fid}", "ok": True,
                     "out": f"已移除「{str(it.get('title') or '')[:50]}」"})
     for fid in missing:
         log.append({"step": f"删除 {fid}", "ok": False, "out": "id 不存在（可能已被删除）"})

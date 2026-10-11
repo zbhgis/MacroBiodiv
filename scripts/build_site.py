@@ -1284,7 +1284,11 @@ def main() -> int:
         "se": haystack(p),
     } for p in items]
     (SITE / "assets" / "papers-data.js").write_text(
-        "window.MBD_DATA = " + json.dumps(data, ensure_ascii=False, separators=(",", ":")) + ";\n",
+        # < 转义成 \u003c：与 stats-data.js / weekly-data.js 同一口径——数据若改为
+        # 内联 <script>（首屏直嵌），原始 "</script>" 或标签文本会截断脚本
+        "window.MBD_DATA = "
+        + json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
+        + ";\n",
         encoding="utf-8")
 
     # robots.txt + sitemap.xml：配置了 site_url 才生成（部署完整性 / 搜索引擎收录）
