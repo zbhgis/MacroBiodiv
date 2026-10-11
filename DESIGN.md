@@ -124,7 +124,9 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   「URL 排序仅本次生效」语义不变（GSP 同款同修）。同日扩展为**全部筛选控件**：
   面板折叠（`mbd-filters`，按钮同步「筛选 ▾」）、搜索词与日期区间回填输入框、
   tag/journal chips 多选按 URL 值预置——静态默认态与 JS 纠正态之间不再有任何
-  可见跳变（卡片网格本身的重排为静态首屏设计的固有行为，不在消除之列）
+  可见跳变（卡片网格本身的重排为静态首屏设计的固有行为，不在消除之列）；
+  **搜索页同享预置**（2026-10-11）：`STATE_PRESTATE` 同时注入 `/search/`，
+  `?q=` 在首帧前回填 `#spage-q`（该页输入框 id 与首页不同）
 - **chips 多选语义（GeoSciPlot 同源，2026-10 重做）**：默认全选（构建期
   `aria-pressed="true"`），点击某枚=剔除，行尾固定两枚虚线胶囊「全选」「反选」；计数
   徽标 `<i class="n">` 为 chip 内 mini 胶囊（`--line` 底、`min-width:22px` 定宽、

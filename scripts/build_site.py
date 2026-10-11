@@ -207,7 +207,7 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
     head_extra = "\n".join([
         '<meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)">',
         '<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">',
-        f'<link rel="apple-touch-icon" href="{up}assets/favicon.png">',
+        f'<link rel="apple-touch-icon" href="{up}assets/favicon.png?v={BUILD_VER}">',
         f'<link rel="alternate" type="application/atom+xml" '
         f'title="{esc(cfg["title"])} · {esc(cfg["subtitle"])}" href="{esc(feed_href)}">',
     ] + ([f'<meta name="keywords" content="{esc(keywords)}">'] if keywords else []))
@@ -524,7 +524,8 @@ var col=false;try{col=localStorage.getItem("mbd-filters")==="hidden"}catch(e){}
 if(col){var fb=document.getElementById("filters");if(fb)fb.setAttribute("hidden","");
 var fbB=document.getElementById("filterBtn");if(fbB){fbB.textContent="筛选 ▾";
 fbB.setAttribute("aria-expanded","false")}}
-var q=P.get("q");if(q){var qi=document.getElementById("q");if(qi)qi.value=q}
+var q=P.get("q");if(q){var qi=document.getElementById("q");if(qi)qi.value=q;
+var sq=document.getElementById("spage-q");if(sq)sq.value=q}
 ["from","to"].forEach(function(k){var v=P.get(k);if(v){
 var el=document.getElementById("f-"+k);if(el)el.value=v}});
 ["tag","journal"].forEach(function(k){var t=P.get(k);if(t){var names=t.split("|");
@@ -861,6 +862,7 @@ def build_search_page(cfg: dict, items: list) -> str:
 </header>
 
 <input id="spage-q" class="spage-q" type="search" placeholder="输入关键词搜索全站内容…" autocomplete="off" autofocus>
+{STATE_PRESTATE}
 <div class="spage-count" id="spage-count"></div>
 <div class="spage-list" id="spage-list" data-up="../"></div>"""
     return page_shell(cfg, f"全站搜索 · {cfg['title']}", body, depth=1, path="/search/",
