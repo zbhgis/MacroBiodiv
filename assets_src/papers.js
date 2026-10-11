@@ -137,13 +137,40 @@
         .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
     function hl(text, tokens) {
-      // 先转义再高亮：token 也过同一套转义，两边一致，特殊字符不会破坏 HTML 结构
-      var out = escHtml(text);
-      tokens.forEach(function (t) {
-        var et = escHtml(t).replace(/[.*+?^${}()|[\]\\]/g, "$&");
-        out = out.replace(new RegExp(et, "gi"), "<mark>$&</mark>");
+      // 全部 token 在"原始转义文本"上一遍收集命中区间、合并重叠后统一插 <mark>。
+      // 旧实现逐 token 在已插标签的字符串上继续 replace：靠后的 token 会命中前一个
+      // 插入的 <mark> 标签产出 <m<mark>a</mark>rk> 型错乱 HTML。正则元字符转义必须
+      // 用 "\\$&"——旧代码的 "$&" 是恒等替换，搜索词含 ( ) [ \\ 时直接抛 SyntaxError
+      // 打断整页脚本，且 oligo(dT) 这类分组写法被正则吞掉后永远匹配不到
+      var src = escHtml(text);
+      var spans = [];
+      (tokens || []).forEach(function (t) {
+        if (!t) return;
+        var et = escHtml(t).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        var re = new RegExp(et, "gi");
+        var m;
+        while ((m = re.exec(src)) !== null) {
+          spans.push([m.index, m.index + m[0].length]);
+          if (m.index === re.lastIndex) re.lastIndex++;
+        }
       });
-      return out;
+      spans.sort(function (a, b) { return a[0] - b[0] || a[1] - b[1]; });
+      var merged = [];
+      spans.forEach(function (s) {
+        var last = merged[merged.length - 1];
+        if (last && s[0] <= last[1]) {
+          if (s[1] > last[1]) last[1] = s[1];
+        } else {
+          merged.push(s);
+        }
+      });
+      var out = "";
+      var pos = 0;
+      merged.forEach(function (s) {
+        out += src.slice(pos, s[0]) + "<mark>" + src.slice(s[0], s[1]) + "</mark>";
+        pos = s[1];
+      });
+      return out + src.slice(pos);
     }
     /* 周报正文命中片段：在正文自身内找首个命中词，前后各取若干字符，省略号收边
        （注意不能在标题+日期+正文拼接串里找 —— 那样的下标对纯正文切片是错位的） */
