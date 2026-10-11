@@ -1057,6 +1057,11 @@ def do_weekly_and_finish(name: str, content: str, message: str, push: bool, sync
     res = do_weekly_import(name, content, log)
     if not res.get("ok"):
         return {"ok": False, "log": log, "hint": "周报处理失败（见日志），未构建站点"}
+    # 上传即全库对账：从所有周报 md 回填缺失中文（幂等只补空缺，不覆盖已有译文）。
+    # 导入时 md 可能还是缺摘要节的早期版本，事后在本地完善即可——下次上传任意一期
+    # 都会自动补齐，无需重传旧期或手动点「从周报补全中文」
+    bf = do_weekly_backfill_chinese()
+    log.extend(bf.get("log", []))
     # 全部重复也要构建：周报页本身是新增/更新的内容
     return pipeline_after_content(log, message or f"weekly: 收录《{res.get('title', name)}》", push, sync)
 
