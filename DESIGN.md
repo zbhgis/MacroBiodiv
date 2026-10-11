@@ -116,7 +116,12 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   站点不再携带被引数；**随机键 = hash(文献id + 会话种子)**，种子存 sessionStorage
   `mbd-rseed`：同一会话内详情页返回 / 刷新 / 翻页 / 筛选都不重排，点「随机」换新
   种子重洗，新开会话才是全新顺序。此前 Math.random 每次加载全新键，从详情页返回
-  Home 随机顺序全变（2026-10-05 实际踩坑，GSP 路由 + 会话种子同修））
+  Home 随机顺序全变（2026-10-05 实际踩坑，GSP 路由 + 会话种子同修））；
+  **排序胶囊首帧预置**（2026-10-11）：静态 HTML 把「新到旧」写死为按下态，papers.js
+  加载后才按「URL ?sort= > localStorage 偏好」纠正，慢网下可见一瞬间默认态再跳变
+  （?sort=rand 分享链接实测）——`SORT_PRESTATE` 内联脚本紧跟 sortseg 输出、解析期
+  同步执行，按同一优先级预置 `aria-pressed` 消除闪烁；不写 localStorage，
+  「URL 排序仅本次生效」语义不变（GSP 同款同修）
 - **chips 多选语义（GeoSciPlot 同源，2026-10 重做）**：默认全选（构建期
   `aria-pressed="true"`），点击某枚=剔除，行尾固定两枚虚线胶囊「全选」「反选」；计数
   徽标 `<i class="n">` 为 chip 内 mini 胶囊（`--line` 底、`min-width:22px` 定宽、

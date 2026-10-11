@@ -512,6 +512,21 @@ def card_html(p: dict) -> str:
 </a>"""
 
 
+# 排序按钮首帧预置：静态 HTML 把「新到旧」写死为按下态，papers.js 加载后才按
+# 「URL ?sort= > localStorage 偏好」纠正——网络慢时能看到一瞬间默认态再跳变。
+# 内联脚本紧跟 sortseg 输出、解析期同步执行（先于下方卡片网格绘制），按与
+# papers.js 相同的优先级预置 aria-pressed 消除闪烁；不写 localStorage，
+# 「URL 排序仅本次生效、不改写对方偏好」的语义保持不变
+SORT_PRESTATE = (
+    '<script>(function(){try{var v=new URLSearchParams(location.search).get("sort"),'
+    'ok=["pub","pub_asc","rand"];'
+    'if(ok.indexOf(v)<0){v=null;try{v=localStorage.getItem("mbd-sort2")}catch(e){}'
+    'if(ok.indexOf(v)<0)v=null;}'
+    'if(v)document.querySelectorAll("#sortseg button").forEach(function(b){'
+    'b.setAttribute("aria-pressed",String(b.getAttribute("data-sort")===v))})}catch(e){}})();</script>'
+)
+
+
 def build_index(cfg: dict, items: list) -> str:
     tag_counter: Counter = Counter()
     journal_counter: Counter = Counter()
@@ -562,7 +577,7 @@ def build_index(cfg: dict, items: list) -> str:
   + '<button type="button" data-sort="pub" aria-pressed="true" title="发表日期 新→旧"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.5v8M4.8 7.3 8 10.5l3.2-3.2M3 13.5h10"/></svg><span>新到旧</span></button>'
   + '<button type="button" data-sort="pub_asc" aria-pressed="false" title="发表日期 旧→新"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13.5v-8M4.8 8.7 8 5.5l3.2 3.2M3 2.5h10"/></svg><span>旧到新</span></button>'
   + '<button type="button" data-sort="rand" aria-pressed="false" title="随机顺序（每次点击重新洗牌）"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4.5h2.4l6.2 7h2.4M2.5 11.5h2.4l2-2.3M9.6 6.8l1.5-2.3h2.4M12.3 2.9l2.2 1.6-2.2 1.6M12.3 9.9l2.2 1.6-2.2 1.6"/></svg><span>随机</span></button>'
-  + '</span>')}
+  + '</span>' + SORT_PRESTATE)}
 </div>
 
 <main class="grid" id="grid">
