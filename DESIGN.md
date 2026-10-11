@@ -198,25 +198,82 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 
 ### 3.2.1 分享与收录（SEO / GEO）
 
-- 页面输出 Open Graph 标签（og:title/description/type/url/site_name）：详情页 `og:type=article`，
-  配置 `site_url` 后自动生成，聊天工具分享出卡片；**详情页有封面时附 `og:image`（绝对 URL）**，
-  分享卡片带封面
-- **canonical 全页输出**（2026-10 新增）：`page_shell` 在配置了 `site_url` 时为每页输出
+全部 head 元素集中在 `page_shell()` 一处输出（所有页面共用），按页面差异传参：
+`keywords`（meta keywords）、`og_article`（article:* 语义）、`og_image_alt`。
+
+- 页面输出 Open Graph 标签（og:title/description/type/url/site_name/**locale=zh_CN**）：
+  详情页与周报文章页 `og:type=article`，配置 `site_url` 后自动生成，聊天工具分享出卡片；
+  **详情页有封面时附 `og:image`（绝对 URL）+ `og:image:alt`**，分享卡片带封面
+- **`og:type=article` 的配套语义**（2026-10-10）：`article:published_time` /
+  `article:section`（期刊名或「每周速递」）/ `article:tag`（关键词+标签，至多 8 个）——
+  声明了 article 类型却不给 article:* 是半成品，分享端与 AI 引擎都读这几个
+- **Twitter Card**（2026-10-10）：`twitter:card`（有图 `summary_large_image`，无图 `summary`）
+  + title/description/image，**值全部从 OG 派生**，不引入第二套数据源
+- **theme-color 双条**（2026-10-10）：深 `#0d1117` / 浅 `#ffffff` 与 `:root` token 同值，
+  按 `prefers-color-scheme` 分条声明，移动端浏览器地址条不再固定深色；
+  另补 `apple-touch-icon`（复用 favicon.png）
+- **canonical 全页输出**（2026-10）：`page_shell` 在配置了 `site_url` 时为每页输出
   `<link rel="canonical">`（与 og:url 同值）——多入口/带参数访问时搜索引擎只认这一份
-- 详情页内嵌 Schema.org **ScholarlyArticle JSON-LD**（标题/作者/期刊/出版商/日期/DOI/关键词/
-  **封面 image**），搜索引擎可直接理解文献结构；首页内嵌 **WebSite JSON-LD**（2026-10 新增，
-  `name=MacroBiodiv` + `alternateName=宏观生物多样性文献库` 中英双名，供引擎建立站点身份映射）
-- **首页 title 带中文关键词**（2026-10 新增）：`宏观生物多样性文献库 · MacroBiodiv`——只写
-  "MacroBiodiv" 时搜中文词在 title 上无命中
+- **详情页 title / description 中文优先**（2026-10-10 修正）：此前两者都用 Crossref
+  英文原题，而卡片、H1、llms.txt 全是中文优先——权重最高的 title 对中文查询零命中。
+  现统一为 `中文题名 · 期刊缩写`；description 为 `中文题名｜期刊 年：摘要节选`，
+  摘要节选优先落在句末（110 字窗口内找 `。`/`. `，超长首句则加「…」明示截断），
+  **不带 DOI**（整条要控制在 og:description 的 200 字裁剪线内，否则尾巴被砍更难看）。
+  英文原题仍在 H1 副行、JSON-LD `name` 与正文出现，英文检索由页面正文命中
+- **meta keywords**（2026-10-10）：详情页取 关键词+标签 前 10 个，周报页给站点主题词
+  （Google 侧无权重，中文引擎与站内搜索解析仍会用，成本两行）
+- 详情页内嵌 Schema.org **ScholarlyArticle JSON-LD**（2026-10-10 大幅补全，字段全部来自
+  papers.json 已有值，无值即不输出、不编造）：
+  - `name` 英文原题 + `headline` 同值（兼容只读 headline 的引擎）+ **`alternateName` 中文译名**
+  - **`description` = 中文摘要（无中文时英文摘要）**——这是答案引擎最常整段引用的字段，此前缺失
+  - **`url` 指本页 canonical**（此前误写 `https://doi.org/{doi}`，等于告诉引擎"这篇文献住在别处"）；
+    DOI 改走 `identifier`（`PropertyValue` + `propertyID: doi`）与 `sameAs`
+  - `isPartOf` 由裸字符串升级为 `Periodical`（含 `issn`）；`publisher` 升级为 `Organization`
+  - 补 `genre`（article_type）/ `volume` / `pagination`（pages）；`inLanguage` 保持 `"en"`
+    ——它描述的是**原论文**的语言，页面自身语言由 `<html lang="zh-CN">` 表达
+  - **不加 `dateModified`**：库里没有逐条"最后修订时间"，用 `added` 冒充会断言错误事实
+- 首页内嵌 **WebSite JSON-LD**（2026-10，`name` + `alternateName` 中英双名），
+  2026-10-10 补 **`SearchAction`**（`urlTemplate = {base}/search/?q={search_term_string}`，
+  站点确有全文检索页）
+- **周报文章页结构化数据**（2026-10-10 新增）：39 期内容最厚却一个 JSON-LD 都没有——
+  现输出 `BlogPosting`（headline/description/datePublished/url/author/publisher/image/
+  articleSection/keywords），title 补 ` · MacroBiodiv` 站点名后缀（长标题被 SERP 截断后
+  仍认得出出处）
+- **图片 alt 携带题名**（2026-10-10）：卡片 `alt="《题名》封面图"`、详情页
+  `alt="《题名》文章图表 / 图形摘要"`（截 40 字防超长中文标题）——此前全是「封面图」，
+  图片检索与无障碍拿不到任何信息
 - 构建时生成 **robots.txt + sitemap.xml** 与 **atom.xml**（最新 20 篇订阅源，中文摘要优先），
   同样依赖 `site_url` 配置：
-  - robots.txt 含 **AI 爬虫白名单**（2026-10 新增，与主站 zbhgis.com robots.ts 同一份 UA 清单：
-    GPTBot / ClaudeBot / PerplexityBot / Google-Extended 等，允许抓取以产出引用）
-  - sitemap 的 **lastmod 用真实日期**（2026-10 新增）：文献页=收录日 `added`、首页=最新收录日、
-    搜索/统计/周报页=构建日——不用构建时间冒充全站更新（引擎会学会忽略该字段）
-- **llms.txt（GEO，2026-10 新增）**：给 AI 引擎的自然语言站点地图——站点定位引言、四个栏目
-  链接（首页/搜索/每周速递/统计）、全量文献索引（中文标题 + 链接 + 期刊年份 + DOI）
-- **404.html（2026-10 新增）**：构建产出带 `noindex` 的 404 页；nginx 侧 `try_files` 末段用
+  - robots.txt 含 **AI 爬虫白名单**（与主站 zbhgis.com robots.ts 同一份 UA 清单），
+    2026-10-10 补 **中文搜索引擎**（Baiduspider / 360Spider / YisouSpider）与
+    Omgilibot / YouBot / Diffbot / Bytedance；**Sogou 不列**——其 UA 名含空格，不符合
+    RFC 9309 的 UA-name 字符集（写了会被忽略），通配 `*` 已允许其抓取
+  - sitemap 的 **lastmod 用真实日期**：文献页=收录日 `added`、首页=最新收录日、
+    搜索/统计/周报页=构建日——不用构建时间冒充全站更新（引擎会学会忽略该字段）；
+    **2026-10-10 补 `changefreq` + `priority`**：首页 weekly/1.0、文献页 monthly/0.8、
+    周报列表 weekly/0.8、周报文章 yearly/0.7（一经发布不再变动）、统计 monthly/0.5、
+    搜索 monthly/0.4、关于 yearly/0.3
+  - **不加 hreflang**：站点没有英文页面变体，自指声明只是噪声
+  - **`/search/` 与 `/statistics/` 的收录策略本轮保持现状**（可索引且在 sitemap 中，
+    尽管正文由 JS 渲染）——2026-10-10 明确决定不动
+- **atom.xml 补全**（2026-10-10）：feed 级 `rel="alternate"`（指首页）+ `rel="self"`
+  （指自身）+ feed 级 `author`；entry 补 `rel="alternate"` 的 type/href、`published`、
+  `category`（期刊名，无期刊则不输出）；**时区改标 `+08:00`**——此前日期硬写 `Z`，
+  把中文语境制作的日期谎称成 UTC（早 8 小时）
+- **页面内 atom 自动发现链接**（2026-10-10）：`<link rel="alternate" type="application/atom+xml">`
+  ——feed 早就在生成，但没有任何页面引用它，等于不可发现
+- **llms.txt / llms-full.txt（GEO，2026-10-10 分两层）**，遵循 llms.txt 规范"索引小文件 +
+  全文大文件"的分工：
+  - `llms.txt`（索引，~48KB）：定位引言（含篇数/期数/最近更新日期）+ **栏目**（首页/搜索/
+    周报/统计/关于/**Atom**）+ **主题标签**（按篇数 Top 12，链到 `/?tag=`）+ 全量题录
+    （中文标题 + 链接 + 期刊年份 + DOI）+ **每周速递 39 期清单**（日期 + 摘要节选）
+    + 指向 llms-full.txt 的说明
+  - `llms-full.txt`（全文，~870KB）：每篇一段固定字段序（中文题名 / 链接 / 英文题名 /
+    出处含卷期页 / 在线发表 / DOI 双写法 / 体裁 / **全部作者** / 关键词 / **中文摘要** /
+    **英文原文摘要**），摘要**不截断**——这一层的全部意义就是让引擎拿到可引用原文；
+    文末附 39 期周报正文（每期截 4000 字）。文件头声明"中文摘要为 AI 辅助翻译，
+    引用请以 DOI 原文为准"，把可核验性写给引擎
+- **404.html**：构建产出带 `noindex` 的 404 页；nginx 侧 `try_files` 末段用
   `=404`（`deploy/nginx-macrobiodiv.conf` 已同步）——旧写法兜底 `/index.html` 会把所有坏链
   变成 200 首页（软 404），引擎会索引一堆内容相同的 URL
 
@@ -434,10 +491,14 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   （● 已入库 · ○ 待生成 · × 无 DOI）；同名文件重传 = 覆盖更新该期（库内 DOI 自动跳过）；
   「删除此期」与勾选多选「删除所选」（见上方多选批量删除）只删周报页，已生成卡片需到文献管理单独删
 - **通用组件**：页内确认弹窗（替代原生 confirm，支持取消回调）、toast、任务日志步骤条
-  （…/✓/✗，三个标签页各有独立日志区）、同批重复 DOI 客户端即时标出；
+  （…/✓/✗，日志区两个：全局区 + 每周速递独立区）、同批重复 DOI 客户端即时标出；
   **任务进度区全局置顶**（2026-10-10）：日志区从「添加文献」底部移至标签页上方
-  `#jobZone`（sticky top:10，长列表滚动也钉在视口顶），三标签页共用、跨页可见，
-  空态经 `:has(#log:empty)` 整体隐藏，相关按钮文案同步「上方看实时进度」
+  `#jobZone`（sticky top:10，长列表滚动也钉在视口顶），「添加文献 / 文献管理」共用、
+  跨页可见，空态经 `:has(#log:empty)` 整体隐藏，相关按钮文案同步「上方看实时进度」；
+  **周报日志区同步上移**（2026-10-10）：`#wkJobZone` 从期次列表最底部（39 期长列表之后，
+  每次都要划到底）移到「上传周报」下方、期次列表上方，同样 sticky 置顶、空态经
+  `:has(#wkLog:empty)` 隐藏；不并入全局区——后台任务无并行锁，两区分开日志才不会
+  互相覆盖
 - **封面兜底可视化**（2026-10 新增）：封面为 logo 兜底的条目处处可辨 —— `/api/items` 逐篇
   附 `coverLogo`、`/api/weekly` 逐期附 `nLogo`；文献管理行卡片挂橙色「logo 兜底」chip +
   指引行（重传该期周报自动补真图），期次列表显示「⚠ N 篇封面为 logo 兜底」，
@@ -623,9 +684,14 @@ build_site.py：整体拷到 site/assets/covers/（镜像式，删除不残留�
 - **改动即更新**：视觉样式、页面结构、交互、`papers.json` 字段、抓取管线、LLM 行为
   有任何变化 → 更新本文档对应小节 + 检查 usage.md / README.md；仓库根的 `AGENTS.md` 已约定
   后续维护会话自动遵守
-- 样式常量集中在 `scripts/build_site.py` 的 `CSS`/`JS` 字符串；与 GeoSciPlot 共享的部分
+- 站点样式/脚本源文件外置于 **`assets_src/style.css` 与 `assets_src/papers.js`**
+  （2026-10-11 起，与 GeoSciPlot 同构；此前内嵌在 `build_site.py` 的 `CSS`/`JS`
+  字符串里）——构建时模块级读入：style.css 原样写出，papers.js 由构建在头部注入
+  `window.MBD` 配置（tracker/api，源文件不含配置）；两文件属构建特殊处理件，
+  拷贝循环经 `GENERATED` 集合排除、不会被原样覆盖。与 GeoSciPlot 共享的部分
   （token、fab 队列、分页条、搜索页版式）修改前先比对原站，保持同源语言
-- 资源引用统一带 `?v=构建时间戳` 防缓存；改 CSS/JS 后必须重新 build_site.py
+- 资源引用统一带 `?v=构建时间戳` 防缓存（含 `<link rel="icon">`，2026-10-11 补齐）；
+  改 CSS/JS 后必须重新 build_site.py
 - logo/图标：优先用户源图 —— `assets_src/logo_source.png` 存在时，`gen_logo.py`
   由它派生 `logo.png`（居中裁方、保持原分辨率）与 `favicon.png`（64），重跑不会覆盖
   用户 logo；源图不存在时回落纯几何绘制（4x 超采样）。站点 header 的 `.logo` 出

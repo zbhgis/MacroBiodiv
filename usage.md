@@ -25,9 +25,10 @@ python scripts/admin.py        # 本地管理界面（仅本机可访问，自�
 1. **封面缩略图增量补齐**：有新封面时自动下载 → 压 webp → 推图床
    （`zbhgis/BlogImg`）→ 写回 `cover_thumb`；失败不阻断发布（卡片回退原图外链，
    下次发布自动重试），无新封面时秒过；
-2. 写 `meta/papers.json` → `build_site.py` 构建静态站（robots/sitemap/llms.txt/404 页/
-   IndexNow key 文件一并产出）——**检索数据（papers-data.js / weekly-data.js）随构建
-   全量再生，发布即最新，无需单独重建索引**；
+2. 写 `meta/papers.json` → `build_site.py` 构建静态站（robots/sitemap/404 页/
+   IndexNow key 文件，以及 GEO 用的 **llms.txt**（索引层）与 **llms-full.txt**（全文层，
+   含每篇中英文摘要与周报正文）一并产出）——**检索数据（papers-data.js / weekly-data.js）
+   随构建全量再生，发布即最新，无需单独重建索引**；
 3. `git add -A` → 提交 → 推送 GitHub（网络慢时超时放宽到 5 分钟）；
 4. **staging 原子换台同步服务器**（勾选"同步到服务器"时）：`site/` 整体 scp 到服务器
    `.staging` 目录，成功后两连 `mv` 就位——发布期间旧版本完整在线，scp 失败线上原样
@@ -118,7 +119,7 @@ IndexNow key 文件 200、随机坏路径返回**真 404**（不是首页）。
 ```bash
 python scripts/fetch_doi.py 10.1038/s41467-021-24264-9   # 试试抓取，输出 JSON
 python scripts/llm.py "英文标题"                          # 试试翻译
-python scripts/build_site.py                              # 重建站点
+python scripts/build_site.py                              # 重建站点（改样式/脚本请编辑 assets_src/style.css 与 papers.js 后重跑）
 python scripts/gen_logo.py                                # 由 assets_src/logo_source.png 重新派生 logo/favicon
 ```
 

@@ -8,8 +8,9 @@
     site/index.html                文献库首页（卡片网格 + 分页 + 搜索 + 多维筛选 + 排序）
     site/{id}/index.html           每篇文献详情页（完整信息 + BibTeX + 上/下一篇）
     site/search/index.html         全站搜索独立页（结果行带命中高亮，任意终端可用）
-    site/assets/style.css          样式
+    site/assets/style.css          样式（源 assets_src/style.css，构建时原样写出）
     site/assets/papers.js          分页/筛选/排序 + 统计打点 + BibTeX 复制
+                                   （源 assets_src/papers.js，头部构建期注入 window.MBD 配置）
     site/assets/papers-data.js     全量文献元数据（首页网格与搜索页共用）
     site/assets/weekly-data.js     每周速递各期全文（仅 /search/ 页注入，供周报内容检索）
     site/assets/image-lightbox.js  零依赖图片灯箱（详情页与周报文章页注入，源 assets_src/）
@@ -142,1293 +143,20 @@ def sort_items(items: list) -> list:
                   key=lambda p: p.get("published") or "", reverse=True)
 
 
-CSS = """\
-:root{--bg:#0d1117;--text:#e6edf3;--dim:#8b949e;--faint:#6e7681;--line:#1c2129;--line2:#30363d;--accent:#58a6ff;--card:#161b22;--header-bg:#0d1117e6;--accent-soft:#58a6ff1a;--hairline-strong:#2d333b;--scrollbar-thumb:#2d333b;--scrollbar-thumb-hover:#484f58;color-scheme:dark}
-:root[data-theme=dark]{color-scheme:dark}
-:root[data-theme=light]{--bg:#fff;--text:#1f2328;--dim:#59636e;--faint:#818b98;--line:#e8ebef;--line2:#d0d7de;--accent:#0969da;--card:#f6f8fa;--header-bg:#ffffffe6;--accent-soft:#0969da1a;--hairline-strong:#d0d7de;--scrollbar-thumb:#d0d7de;--scrollbar-thumb-hover:#a1a8b2;color-scheme:light}
-/* ── 字号体系（4 档变量 + h2；全部 font-size 只允许用这些变量，禁止散落 px；
-   菜单栏 .mnav 与大标题 clamp 为固定框架不参与调节。放大档 data-fs=lg 只覆盖变量，
-   布局零改动。偏好存 localStorage mbd-fs，head 内联脚本渲染前置位防闪烁）── */
-:root{--fs-xs:13px;--fs-sm:14px;--fs-md:15px;--fs-base:17px;--fs-h2:22px}
-html[data-fs=lg]{--fs-xs:14.5px;--fs-sm:16px;--fs-md:17px;--fs-base:19px;--fs-h2:24px}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font:var(--fs-base)/1.7 ui-sans-serif,system-ui,"PingFang SC","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased}
-a{color:inherit;text-decoration:none}
-/* ── 滚动条（主站 zbhgis.com 同源，2026-10-05 移植）：全局细窄化。
-   Firefox 只认标准属性，用 @supports 隔离 —— Chrome/Edge 里只要设置了
-   scrollbar-width/color，下面 ::-webkit-scrollbar 自定义就会被原生渲染完全忽略
-   （表现为带三角箭头的原生细条），所以标准属性只对不支持的引擎生效 ── */
-html{scrollbar-gutter:stable}
-@supports not selector(::-webkit-scrollbar){html{scrollbar-width:thin;scrollbar-color:var(--scrollbar-thumb) transparent}}
-::-webkit-scrollbar{width:10px;height:10px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background-color:var(--scrollbar-thumb);border:3px solid transparent;background-clip:content-box;border-radius:6px}
-::-webkit-scrollbar-thumb:hover{background-color:var(--scrollbar-thumb-hover);background-clip:content-box}
-::-webkit-scrollbar-corner{background:transparent}
-.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-/* ── 顶部菜单栏（移植主站 zbhgis.com 的 header，同源数值）：
-   sticky 顶栏 · 发丝底边 · 90% 不透明底 + blur(12px) 毛玻璃；
-   链接 hover 出下划线（scaleX 0→1），当前页 accent 常亮；
-   右端一枚 30px 方形 icon 按钮（v3-nav-icon 同语言，当前为占位） ── */
-.mnav{position:sticky;top:0;z-index:50;border-bottom:1px solid var(--line);background:var(--header-bg);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
-.mnav-in{max-width:1080px;margin:0 auto;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;gap:24px}
-.mnav-brand{flex:none;display:inline-flex;align-items:center;gap:10px;font-size:17px;font-weight:600;letter-spacing:-.01em;color:var(--text);transition:color .16s}
-.mnav-brand img{width:26px;height:26px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 1px var(--line)}
-.mnav-brand:hover{color:var(--accent)}
-.mnav-links{display:flex;align-items:center;list-style:none;margin:0;padding:0}
-.mnav-link{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;font-size:15px;line-height:1.4;color:var(--dim);position:relative;transition:color .16s}
-.mnav-link:after{content:"";position:absolute;bottom:1px;left:10px;right:10px;height:1px;background:currentColor;opacity:.45;transform:scaleX(0);transform-origin:0;transition:transform .2s,opacity .2s}
-.mnav-link:hover{color:var(--text)}
-.mnav-link:hover:after{transform:scaleX(1)}
-.mnav-link[data-active=true]{color:var(--accent)}
-.mnav-link[data-active=true]:after{opacity:.9;transform:scaleX(1)}
-/* 菜单项图标：主站 v3-nav-ico 同源（14px，currentColor，随 .mnav-link 的 5px gap 定位） */
-.mnav-ico{flex:none;width:14px;height:14px}
-/* 「更多」下拉：主站 v3-more / v3-nav-menu 同源 —— hover 或触发钮 focus-visible 展开，
-   display 直切无动画；caret 11px 悬停旋转；面板 --bg 实底 + 描边 + 主站同款投影 */
-.mnav-more{position:relative}
-.mnav-more-trigger{cursor:pointer;font-family:inherit;background:none;border:none}
-/* 只继承字族、字号仍取 .mnav-link 的固定 15px —— 用 font:inherit 会继承 body 的
-   --fs-base 字号，字号体系一上按钮就跟着变大（踩坑记录） */
-.mnav-more-caret{flex:none;width:11px;height:11px;transition:transform .16s}
-.mnav-more:hover .mnav-more-caret,.mnav-more:has(.mnav-more-trigger:focus-visible) .mnav-more-caret{transform:rotate(180deg)}
-.mnav-dd{display:none;position:absolute;top:100%;right:0;min-width:148px;margin:0;padding:5px;list-style:none;background:var(--bg);border:1px solid var(--line2);border-radius:6px;box-shadow:0 10px 28px rgba(0,0,0,.16);z-index:60}
-.mnav-more:hover .mnav-dd,.mnav-more:has(.mnav-more-trigger:focus-visible) .mnav-dd{display:block}
-.mnav-dd a{display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:4px;font-size:14px;color:var(--dim);white-space:nowrap;transition:color .16s,background-color .16s}
-.mnav-dd a .mnav-ico{width:15px;height:15px;color:var(--faint)}
-.mnav-dd a:hover{color:var(--text);background:var(--accent-soft)}
-.mnav-dd-sep{height:1px;background:var(--line);margin:5px 4px}
-/* 窄屏汉堡：主站 sm 断点的 details/summary 原生方案（无 JS），
-   summary 即主站 .v3-nav-icon（30px 方形 hover accent + accent-soft 底） */
-.mnav-m{display:none;position:relative}
-.mnav-icon{width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;border-radius:4px;color:var(--dim);cursor:pointer;transition:color .16s,background-color .16s;list-style:none}
-.mnav-icon::-webkit-details-marker{display:none}
-.mnav-icon:hover,.mnav-m[open] .mnav-icon{color:var(--accent);background:var(--accent-soft)}
-.mnav-icon svg{width:18px;height:18px}
-.mnav-m[open] .mnav-dd{display:block}
-@media (max-width:640px){
-  .mnav-in{padding:0 16px}
-  .mnav-links{display:none}
-  .mnav-m{display:block}
-}
-.wrap{max-width:1180px;margin:0 auto;padding:0 24px}
-/* 桌面/平板给右侧控件队列留出通道：队列占 right:16 + 42 = 58px，
-   这里把正文右内边距顶到 74px，避免工具栏、卡片直接压到队列下面。
-   只在队列仍是「垂直居中」的宽度区间生效（>640px），窄屏队列改横排后由 body 底边距接管。 */
-@media (min-width:641px){
-  .wrap{max-width:1180px;padding-right:74px}
-}
-header.site{padding:72px 0 0}
-/* 右侧控件队列：桌面端垂直居中于视口右侧，与主站 zbhgis.com 的 .v3-rail 保持同一形状
-   （42px 正圆 · --card 实底 · 发丝边框 · hover 变强调色并 scale 1.06） */
-.fab{position:fixed;right:16px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:9px;z-index:50}
-.tbtn{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border:1px solid var(--hairline-strong);border-radius:50%;background:var(--card);color:var(--dim);cursor:pointer;transition:color .16s,border-color .16s,transform .16s,opacity .25s ease}
-.tbtn:hover{color:var(--accent);border-color:var(--accent);transform:scale(1.06)}
-.tbtn svg{width:17px;height:17px;flex:none}
-/* 控件内联小箭头：尺寸统一由 CSS 定，用 em 让图标跟着字号缩放；
-   颜色一律 currentColor —— 与文字一起被 hover 染色，避免出现"文字变色图标不变"的割裂 */
-.ico{width:1em;height:1em;flex:none;transition:transform .18s ease}
-.ico-l{width:14px;height:14px}
-.ico-r{width:13px;height:13px}
-/* 回到顶部按钮：不参与 hover 的 scale 过渡，单独过渡 opacity，
-   否则淡入淡出时会跟着缩放抖动 */
-#topBtn{opacity:0;pointer-events:none}
-#topBtn.show{opacity:1;pointer-events:auto}
-/* 窄屏（≤640px）：垂直居中的队列会压住满宽内容，
-   改为右下角横排 —— 断点、定位、尺寸全部对齐主站 zbhgis.com 的 .v3-rail 窄屏方案（统一设计）。
-   同时给 body 补足底部内边距，避免遮住 footer。 */
-@media (max-width:640px){
-  .fab{right:12px;bottom:14px;top:auto;transform:none;flex-direction:row;gap:7px}
-  .tbtn{width:36px;height:36px}
-  .tbtn svg{width:15px;height:15px}
-  body{padding-bottom:calc(14px + 36px + 16px + env(safe-area-inset-bottom))}
-}
-.tbtn .ic-sun{display:inline}.tbtn .ic-moon{display:none}
-/* 图标 = 点击后要切换到的主题（GitHub / GSP 同款口径）：暗色亮出太阳、亮色亮出月亮 */
-:root[data-theme=dark] .tbtn .ic-sun{display:inline}:root[data-theme=dark] .tbtn .ic-moon{display:none}
-:root[data-theme=light] .tbtn .ic-sun{display:none}:root[data-theme=light] .tbtn .ic-moon{display:inline}
-.kicker{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0}
-/* 仅首页 header 的 logo+标题行需要 flex —— 用专用类而非元素/层叠选择器：
-   search/statistics 的 h1.spage-title 也在 header.site 内，全局 h1 或
-   header.site h1 都会以特异度反超 .spage-title 的设计字号 */
-.home-title{display:flex;align-items:center;gap:18px;flex-wrap:wrap;font-size:clamp(44px,6.5vw,68px);line-height:1.08;letter-spacing:-.03em;margin:24px 0 0;font-weight:700}
-h1 img.logo{height:clamp(44px,5.4vw,58px);width:auto;flex:none;border-radius:12px}
-.lede{font-size:var(--fs-base);color:var(--dim);max-width:52ch;margin:20px 0 0}
-.gh-note{display:inline-flex;align-items:center;gap:9px;margin:18px 0 0;padding:9px 16px;border:1px solid var(--accent);border-left-width:3px;border-radius:6px;background:var(--card);font-size:var(--fs-sm);color:var(--text)}
-.gh-note svg{width:16px;height:16px;flex:none;color:var(--accent)}
-.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:22px 0 6px}
-.search{flex:1 1 260px;max-width:380px;padding:8px 12px;border:1px solid var(--line2);border-radius:999px;background:transparent;color:var(--text);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-sm)}
-/* 搜索框 + 搜索按钮（连体胶囊）：外壳 999px，内部按钮只圆右半，focus-within 点亮 accent 边 */
-.searchbox{display:inline-flex;align-items:center;gap:0;flex:1 1 300px;max-width:430px;border:1px solid var(--line2);border-radius:999px;background:transparent;transition:border-color .16s}
-.searchbox:focus-within{border-color:var(--accent)}
-.searchbox .sic{width:14px;height:14px;flex:none;margin-left:13px;color:var(--faint)}
-.searchbox .search{flex:1;min-width:0;border:none;background:transparent;padding:8px 10px;max-width:none}
-.searchbox .search:focus{outline:none}
-.searchbox button{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-sm);padding:0 15px;height:36px;border:none;border-left:1px solid var(--line2);border-radius:0 999px 999px 0;background:transparent;color:var(--dim);cursor:pointer;transition:color .16s,background-color .16s}
-.searchbox button:hover{color:var(--accent);background:var(--card)}
-.search:focus{outline:none;border-color:var(--accent)}
-.search::placeholder{color:var(--faint)}
-select{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-sm);padding:7px 12px;border:1px solid var(--line2);border-radius:999px;background:transparent;color:var(--dim)}
-.reset{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-sm);padding:7px 14px;border:1px solid var(--line2);border-radius:999px;background:transparent;color:var(--faint);cursor:pointer}
-.reset:hover{color:var(--accent);border-color:var(--accent)}
-#filters[hidden]{display:none}
-.sorter{display:inline-flex;align-items:center;gap:2px;padding:3px;border:1px solid var(--line2);border-radius:999px;background:var(--card)}
-.sorter button{display:inline-flex;align-items:center;gap:6px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-sm);padding:6px 13px;border:none;border-radius:999px;background:transparent;color:var(--dim);cursor:pointer;transition:color .15s,background-color .15s}
-.sorter button:hover{color:var(--text)}
-.sorter button[aria-pressed=true]{background:var(--accent);color:var(--bg)}
-.sorter button svg{width:13px;height:13px;flex:none}
-.dateinp{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-sm);padding:6px 12px;border:1px solid var(--line2);border-radius:999px;background:transparent;color:var(--dim);color-scheme:dark light}
-.fgroup{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 0;padding-bottom:8px;border-bottom:1px solid var(--line)}
-.flabel{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--faint);min-width:44px;letter-spacing:.06em}
-.chips{display:flex;flex-wrap:wrap;gap:8px}
-/* 筛选 chips（多选模型，GSP 同源）：默认全选=可读描边胶囊 + 计数徽标；点击剔除=
-   置灰删除线；hover=accent-soft 预选；行尾 全选/反选 为虚线胶囊。
-   accent 实底只给真单选组（排序胶囊）——默认全选的 chips 用实底就是满屏蓝 */
-.chips button{display:inline-flex;align-items:center;gap:7px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-sm);padding:5px 13px;border:1px solid var(--line2);border-radius:999px;background:transparent;color:var(--text);cursor:pointer;transition:color .16s,border-color .16s,background-color .16s,opacity .16s}
-.chips button:hover{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
-.chips button .n{font-style:normal;min-width:22px;padding:0 7px;border-radius:999px;background:var(--line);color:var(--faint);font-size:var(--fs-xs);line-height:19px;text-align:center;font-variant-numeric:tabular-nums}
-.chips button[aria-pressed=false]{color:var(--faint);border-color:var(--line);text-decoration:line-through;opacity:.75}
-.chips button[aria-pressed=false] .n{opacity:.55;text-decoration:none}
-.chips .chip-act{border-style:dashed;color:var(--faint);font-size:var(--fs-xs);padding:5px 11px}
-.chips .chip-act:hover{color:var(--accent);border-color:var(--accent);background:transparent}
-/* ── 首页卡片瀑布流：移植 GeoSciPlot 的 multi-columns 方案（同源）。
-   等宽 grid 同一行会被"最高的那张"定高、矮卡下方必然留空 —— columns
-   每列独立堆叠，封面图自然比例不同，才能形成错落 ── */
-.grid{columns:4;column-gap:18px;margin-top:26px}
-@media (max-width:1100px){.grid{columns:3}}
-@media (max-width:760px){.grid{columns:2;column-gap:12px}}
-.card{break-inside:avoid;display:block;margin:0 0 18px;min-width:0;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--card);transition:border-color .16s}
-.card:hover{border-color:var(--accent)}
-.c-ty{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--dim);border:1px solid var(--line2);border-radius:999px;padding:1px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:12em}
-.c-j{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);border-radius:999px;padding:1px 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-/* .c-y 详情页 .p-top 仍在复用 */
-.c-y{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--faint);flex:none}
-.c-t{font-size:var(--fs-sm);font-weight:600;line-height:1.5;color:var(--text);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-/* 封面通栏顶图：自然宽高比不裁切（瀑布流错落靠比例）。
-   加载占位：c-covbox 垫 --line 底 + ::before「加载中」层；img 的 width/height
-   属性（取缩略图真实尺寸）让浏览器在加载前就预留同比例空间 —— 占位层可见
-   且零抖动，图片画出来后自然盖住占位层（z-index 1） */
-.c-covbox{display:block;position:relative;min-height:96px;background:var(--line)}
-.c-covbox::before{content:"加载中";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);letter-spacing:.14em;color:var(--faint);animation:covpulse 1.2s ease-in-out infinite alternate}
-.c-cov{position:relative;z-index:1;display:block;width:100%;height:auto;background:var(--line)}
-@keyframes covpulse{to{opacity:.45}}
-@media (prefers-reduced-motion:reduce){.c-covbox::before{animation:none}}
-/* 无封面占位块：期刊缩写居中（GeoSciPlot .ph 同语言） */
-.c-ph{display:flex;align-items:center;justify-content:center;min-height:140px;padding:18px;background:var(--line);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);letter-spacing:.08em;color:var(--faint);text-align:center}
-.c-cap{display:block;padding:10px 12px 12px}
-.c-meta{display:flex;flex-wrap:wrap;gap:5px;min-width:0;margin:0 0 7px}
-.pgbar{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;margin:44px 0 0;padding-top:24px;border-top:1px solid var(--line)}
-/* 步进按钮：只有文字 + 一枚内联箭头，hover 才点亮（与主站 .v3-pager-step 同语言） */
-.pgbar button{display:inline-flex;align-items:center;gap:6px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-sm);line-height:1.35;padding:5px 13px;border:1px solid var(--line2);border-radius:999px;background:transparent;color:var(--dim);cursor:pointer;transition:color .16s,border-color .16s,background-color .16s}
-.pgbar button:hover:not(:disabled){color:var(--accent);border-color:var(--accent);background:var(--card)}
-.pgbar button:disabled{opacity:.3;cursor:not-allowed}
-/* 箭头 hover 时朝翻页方向平移 2px；禁用态不动 */
-#prev:hover:not(:disabled) .ico-l{transform:translateX(-2px)}
-#next:hover:not(:disabled) .ico-r{transform:translateX(2px)}
-/* 页码：等宽 + 定宽定高，选中态用强调色描边配极淡底，不填色（保持克制的工程感） */
-.pgnum{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:30px;padding:0 9px;border:1px solid var(--line2);border-radius:999px;background:transparent;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-sm);font-variant-numeric:tabular-nums;color:var(--dim);cursor:pointer;transition:color .16s,border-color .16s,background-color .16s}
-.pgnum:hover{color:var(--text);border-color:var(--accent)}
-.pgnum[data-on=true]{color:var(--accent);border-color:var(--accent);background:var(--card)}
-/* 当前页附近被"窗口"截断时用省略号占位，不可点 */
-.pggap{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:30px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-sm);color:var(--faint);user-select:none}
-/* 页码区与「共 N 篇」之间用一条发丝竖线隔开 */
-.pgbar .info{margin-left:8px;padding-left:14px;border-left:1px solid var(--line);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-sm);color:var(--faint);white-space:nowrap}
-.empty{padding:52px 0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-sm);color:var(--faint);display:none;text-align:center}
-footer.site{margin-top:56px;padding:24px 0 64px;border-top:1px solid var(--line);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--faint);display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between}
-/* ── 详情页（公众号推文式，移植「浩瀚地学」文献精选排版语言：
-   窄栏 677px 居中 · 标题块居中 + accent 通栏底线 · 节标题 accent 左竖线 ·
-   「字段名：值」同行字段行 · 摘要 15px/1.8 左对齐 · 图片撑栏淡蓝光晕；
-   色值一律取本站 token，明暗主题各自适配） ── */
-.pbody{max-width:677px;margin:0 auto}
-.p-top{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin:26px 0 0}
-.p-top .c-j{font-size:var(--fs-xs)}
-.p-top .p-type,.p-top .p-ct{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--faint)}
-.p-head{padding-bottom:16px;border-bottom:1px solid var(--rs,var(--accent));text-align:center}
-.p-title{font-size:clamp(22px,3.2vw,30px);line-height:1.5;letter-spacing:-.01em;margin:14px 0 0;font-weight:700}
-.alt-title{font-size:var(--fs-sm);color:var(--dim);margin:8px 0 0;line-height:1.7}
-.p-auth{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--dim);margin:12px 0 0;line-height:1.9;word-break:break-word}
-/* 作者行折叠：papers.js 检测到超过两行才加 .auth-clamp 并亮出切换按钮；
-   无 JS / 两行以内 = 完整展示（渐进增强，内容不因样式丢失） */
-.p-auth.auth-clamp{max-height:3.8em;overflow:hidden;transition:max-height .25s ease}
-.p-auth.auth-clamp.open{max-height:60em}
-.auth-toggle{display:none;margin:4px 0 0;padding:0;border:none;background:none;cursor:pointer;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--faint);transition:color .16s}
-.auth-toggle:hover{color:var(--accent)}
-.auth-toggle.on{display:inline-block}
-/* 图表：图片撑满栏宽、无圆角、淡蓝光晕（公众号 rgb(133,161,201) 同源） */
-.p-cover{margin:6px 0 0;background:var(--bg);box-shadow:0 0 5px rgba(133,161,201,.5)}
-.p-cover img{display:block;width:100%;height:auto}
-/* 节标题：accent 5px 左竖线 + 18px 加粗（公众号同源：无底线、无背景） */
-.sec{margin-top:32px}
-.sec-h{display:flex;align-items:center;margin:0 0 14px;padding:2px 0 2px 11px;border-left:5px solid var(--rs,var(--accent));scroll-margin-top:80px}
-.sec-h .tx{font-size:var(--fs-h2);font-weight:700;letter-spacing:0;color:var(--rs,var(--accent))}
-/* ── 渲染颜色切换（文献详情 ↔ 周报文章，两页共用同一份用户偏好）：
-   plain（周报默认）＝系统色标题、无装饰；accent（文献详情默认）/green/purple/orange
-   ＝强调色渲染：--rs 按 data-rstyle 定义，节标题竖线与文字、详情页标题底线、备注线、
-   周报彩色标题全部取 --rs；亮色主题下换深一档色值保证对比度 ── */
-html[data-rstyle=accent]{--rs:var(--accent)}
-html[data-rstyle=green]{--rs:#3fb950}
-html[data-rstyle=purple]{--rs:#a371f7}
-html[data-rstyle=orange]{--rs:#f0883e}
-html[data-theme=light][data-rstyle=green]{--rs:#1a7f37}
-html[data-theme=light][data-rstyle=purple]{--rs:#8250df}
-html[data-theme=light][data-rstyle=orange]{--rs:#bc4c00}
-html[data-rstyle=plain] .sec-h{border-left:none;padding-left:0}
-html[data-rstyle=plain] .sec-h .tx{color:var(--text)}
-html[data-rstyle]:not([data-rstyle=plain]) .wk-content h2.md-h1,
-html[data-rstyle]:not([data-rstyle=plain]) .wk-content h3.md-h2{padding:2px 0 2px 11px;border-bottom:none;border-left:5px solid var(--rs,var(--accent));color:var(--rs,var(--accent))}
-/* 强调色渲染：正文作用域内所有用 accent 的文字相关元素（内容链接 / DOI 链接 /
-   悬停反馈 / 期刊徽章 / 关键词胶囊 / 周报分类 chip / strong）一并跟随渲染颜色
-   —— 直接重映射作用域内的 --accent，规则无需逐条改；plain 保持站点原色 */
-html[data-rstyle]:not([data-rstyle=plain]) .pbody,
-html[data-rstyle]:not([data-rstyle=plain]) .wk-main,
-html[data-rstyle]:not([data-rstyle=plain]) .back{--accent:var(--rs)}
-html[data-rstyle]:not([data-rstyle=plain]) .wk-content strong{color:var(--rs)}
-.rstyle{display:inline-flex;align-items:center;gap:6px;margin-left:auto}
-.rst-btn{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:none;background:none;border-radius:50%;cursor:pointer}
-.rst-btn:hover{background:none}
-.rst-dot{position:relative;display:block;width:15px;height:15px;border-radius:50%;transition:opacity .16s,box-shadow .16s}
-.rst-dot-plain{border:1.5px solid var(--dim)}
-.rst-dot-plain:before{content:"";position:absolute;left:1.5px;right:1.5px;top:50%;height:1.5px;margin-top:-1px;background:var(--dim);transform:rotate(-45deg)}
-.rst-dot-accent{background:#58a6ff;border:1.5px solid #58a6ff}
-html[data-theme=light] .rst-dot-accent{background:#0969da;border-color:#0969da}
-.rst-dot-green{background:#3fb950;border:1.5px solid #3fb950}
-.rst-dot-purple{background:#a371f7;border:1.5px solid #a371f7}
-.rst-dot-orange{background:#f0883e;border:1.5px solid #f0883e}
-html[data-theme=light] .rst-dot-green{background:#1a7f37;border-color:#1a7f37}
-html[data-theme=light] .rst-dot-purple{background:#8250df;border-color:#8250df}
-html[data-theme=light] .rst-dot-orange{background:#bc4c00;border-color:#bc4c00}
-.rst-btn[aria-pressed=true] .rst-dot{box-shadow:0 0 0 2px var(--bg),0 0 0 3.5px var(--rs,var(--accent))}
-.rst-btn[aria-pressed=true] .rst-dot-plain{box-shadow:0 0 0 2px var(--bg),0 0 0 3.5px var(--dim)}
-.rst-btn[aria-pressed=false] .rst-dot{opacity:.4}
-.p-top{position:relative}
-.p-top .rstyle{position:absolute;right:0;top:50%;transform:translateY(-50%);margin-left:0}
-@media (max-width:640px){.p-top .rstyle{position:static;transform:none;margin-left:auto}}
-/* 信息节：字段行（字段名：值 同行，15px / 1.8 行高 / 8px 上下呼吸，与推文一致） */
-.frows{margin:0}
-.frow{display:flex;flex-wrap:wrap;margin:0;padding:8px 0;font-size:var(--fs-md);line-height:1.8;color:var(--text)}
-.frow .fk{flex:none;color:var(--dim);font-style:normal}
-.frow .fk::after{content:"："}
-.frow .fv{flex:1;min-width:0;word-break:break-word}
-.frow .fv a{border-bottom:1px solid var(--line2);transition:color .16s,border-color .16s}
-.frow .fv a:hover{color:var(--accent);border-color:var(--accent)}
-.frow .fv a.tag{display:inline-block;margin:0 8px 8px 0;padding:3px 12px;border:1px solid var(--line2);border-radius:999px;font-size:var(--fs-sm);color:var(--dim);transition:color .16s,border-color .16s,background-color .16s}
-.frow .fv a.tag:hover{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
-/* 摘要：15px / 1.8 行高左对齐（对齐推文正文）；英文原题收合、备注强调块保留 */
-.abs-main{font-size:var(--fs-md);line-height:1.8;margin:0;color:var(--text);text-align:left}
-.abs-main.abs-en-only{color:var(--dim)}
-.abs-alt{margin-top:16px}
-.abs-alt summary{cursor:pointer;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--faint);transition:color .16s}
-.abs-alt summary:hover{color:var(--accent)}
-.abs-alt p{margin:10px 0 0;font-size:var(--fs-xs);line-height:1.8;color:var(--dim);text-align:justify}
-.abs-note{margin:16px 0 0;padding:10px 13px;border-left:2px solid var(--rs,var(--accent));background:var(--card);border-radius:0 6px 6px 0;font-size:var(--fs-xs);line-height:1.8;color:var(--dim)}
-/* 引用条（GB/T 7714）+ 复制按钮 */
-.cite-line{padding:13px 15px;border:1px solid var(--line);border-radius:6px;background:var(--card);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);line-height:1.85;color:var(--dim);word-break:break-word;margin:0 0 12px}
-.a-end{margin:46px 0 0;text-align:center;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);letter-spacing:.4em;color:var(--faint);user-select:none}
-/* BibTeX：复制按钮 + 折叠查看 */
-.btx{margin-top:28px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.btx button{display:inline-flex;align-items:center;gap:6px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-sm);padding:7px 13px;border:1px solid var(--line2);border-radius:999px;background:transparent;color:var(--dim);cursor:pointer;transition:color .16s,border-color .16s,background-color .16s}
-.btx button:hover{color:var(--accent);border-color:var(--accent);background:var(--card)}
-.btx summary{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--faint);cursor:pointer}
-.btx summary:hover{color:var(--accent)}
-.btx pre{margin:12px 0 0;padding:12px 14px;border:1px solid var(--line);border-radius:6px;background:var(--card);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);line-height:1.65;color:var(--dim);overflow:auto;max-height:320px;white-space:pre-wrap;word-break:break-all}
-.btx .full{flex-basis:100%}
-/* ── 详情页：上一篇 / 下一篇（与主站 .v3-prevnext 同语言）
-   两列等宽卡片；缺一篇时用虚线占位，避免唯一那篇被拉成通栏 ── */
-.pager{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:46px 0 0;padding-top:24px;border-top:1px solid var(--line)}
-.pager a{display:flex;flex-direction:column;gap:7px;min-width:0;padding:12px 14px;border:1px solid var(--line2);border-radius:6px;transition:color .16s,border-color .16s,background-color .16s}
-.pager a:hover{border-color:var(--accent);background:var(--card)}
-.pager .dir{display:inline-flex;align-items:center;gap:5px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);letter-spacing:.1em;color:var(--faint);transition:color .16s}
-.pager a:hover .dir{color:var(--accent)}
-.pager a:hover .ico-l{transform:translateX(-2px)}
-.pager a:hover .ico-r{transform:translateX(2px)}
-.pager .ttl{font-size:var(--fs-sm);line-height:1.5;color:var(--text);transition:color .16s;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.pager a:hover .ttl{color:var(--accent)}
-.pager .pn-next{text-align:right}
-.pager .pn-next .dir{justify-content:flex-end}
-.pager .pn-empty{min-height:68px;border:1px dashed var(--line);border-radius:6px}
-/* ── 返回全部：发丝边框小按钮，箭头 hover 左移 ── */
-.back{display:inline-flex;align-items:center;gap:7px;margin:36px 0 20px;padding:6px 14px 6px 11px;border:1px solid var(--line2);border-radius:999px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-sm);line-height:1.35;color:var(--dim);transition:color .16s,border-color .16s,background-color .16s}
-.back:hover{color:var(--accent);border-color:var(--accent);background:var(--card)}
-.back:hover .ico-l{transform:translateX(-2px)}
-/* ── 窄屏收尾（必须写在上面这些规则之后，否则同优先级会被覆盖） ──
-   分页条允许换行、末页提示去掉那根竖线；上一篇/下一篇改为上下堆叠，
-   右对齐失去意义统一左对齐；被隐藏的占位块正是"堆叠后不再需要"的元素 */
-@media (max-width:640px){
-  .pgbar{gap:5px}
-  .pgbar .info{margin-left:0;padding-left:0;border-left:none}
-  .pager{grid-template-columns:1fr}
-  .pager .pn-next{text-align:left}
-  .pager .pn-next .dir{justify-content:flex-start}
-  .pager .pn-empty{display:none}
-}
-/* ── 全站搜索独立页（/search/）：版式参考主站 zbhgis.com 的 /search
-   （kicker + 大标题 + 结果行）；文献没有缩略图，结果行就是标题 + 元信息；
-   颜色一律取自主题变量，明暗两套自动跟随 ── */
-.spage-title{font-size:clamp(30px,4.5vw,44px);line-height:1.08;letter-spacing:-.02em;margin:18px 0 0}
-.spage-q{display:block;width:100%;max-width:520px;margin:24px 0 0;padding:10px 16px;border:1px solid var(--line2);border-radius:999px;background:transparent;color:var(--text);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-md)}
-.spage-q:focus{outline:none;border-color:var(--accent)}
-.spage-count{margin:14px 0 2px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--faint)}
-.spage-list{margin-top:6px}
-.sres{display:flex;align-items:center;gap:14px;padding:11px 6px;border-top:1px solid var(--line)}
-.sres:hover{background:var(--card)}
-.sres-body{min-width:0;flex:1}
-.sres-id{display:block;font-size:var(--fs-sm);line-height:1.5;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.sres:hover .sres-id{color:var(--accent)}
-.sres-meta{display:block;margin-top:3px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.sres-meta .sres-sep{font-style:normal;color:var(--faint);margin:0 6px}
-/* 周报结果：分组标题 + 正文命中片段（可多行，弱化色） */
-.spage-grouphd{margin:22px 0 2px;padding:7px 6px;border-top:1px solid var(--line);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);letter-spacing:.08em;color:var(--faint)}
-.sres-snip{margin-top:5px;font-size:var(--fs-xs);line-height:1.7;color:var(--dim);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-mark{background:color-mix(in srgb,var(--accent) 24%,transparent);color:inherit;border-radius:2px;padding:0 1px}
-.spage-hint,.spage-empty{padding:26px 6px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--faint)}
-@media (max-width:640px){
-  .sres{gap:10px}
-}
-/* ── 每周速递（/weekly/）：移植自 mystation（zbhgis.com 主站）globals.css 的
-   v3-* / blog-content 同款数值，token 已换名（--text-primary→--text、
-   --text-secondary/muted→--dim、--text-faint→--faint、--hairline→--line、
-   --hairline-strong/--border→--line2、accent-soft-fade→transparent）。
-   静态站裁剪：ViewToggle/RSS/分组分页/侧栏手风琴/TOC scrollspy 均不做 ── */
-.wk-col{max-width:760px;margin:0 auto;padding:56px 24px 96px}
-.wk-head{display:flex;align-items:flex-end;gap:16px;margin:0 0 40px}
-.wk-kicker{margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
-.wk-deco{margin:16px 0 0;font-size:clamp(28px,4vw,40px);font-weight:600;letter-spacing:-.03em;line-height:1.15;color:var(--text)}
-.wk-lede{margin:18px 0 0;font-size:var(--fs-base);line-height:1.75;color:var(--dim);max-width:46ch}
-/* QuickNav 月份跳转 chip（v3-btn 同源） */
-.wk-quicknav{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 36px}
-/* 列表翻页（每页最多 3 个月）：按钮复用 .wk-btn 胶囊；当前页 accent 亮起；分组锚点避让吸顶菜单 */
-.wk-pgbar{display:flex;justify-content:center;align-items:center;gap:6px;margin:36px 0 8px;flex-wrap:wrap}
-.wk-pgbtn.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
-.wk-pgbtn[disabled]{opacity:.4;cursor:default}
-.wk-group{scroll-margin-top:80px}
-.wk-btn{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);line-height:1.3;border:1px solid var(--line2);border-radius:999px;color:var(--dim);background:transparent;transition:color .16s,border-color .16s,background-color .16s}
-.wk-btn:hover{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
-.wk-btn .n{color:var(--faint)}
-/* 分组 section（v3-label 同源：mono 大写 + 右侧计数） */
-.wk-groups{display:flex;flex-direction:column;gap:40px}
-.wk-label{display:flex;align-items:baseline;justify-content:space-between;gap:16px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);letter-spacing:.16em;text-transform:uppercase;color:var(--dim);padding-bottom:10px;border-bottom:1px solid var(--line2);margin:0 0 18px}
-.wk-label-right{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);letter-spacing:.04em;text-transform:none;color:var(--dim)}
-/* 条目行（v3-line 同源：标题 + 摘要两行 + 右侧标签列） */
-.wk-line{display:block;padding:13px 2px;border-top:1px solid var(--line);transition:background-color .16s}
-.wk-line:last-child{border-bottom:1px solid var(--line)}
-.wk-line:hover{background:linear-gradient(90deg,var(--accent-soft),transparent 70%)}
-.wk-line-in{display:flex;flex-direction:column;gap:8px}
-.wk-line-main{min-width:0}
-.wk-line-ttl{margin:0;font-size:var(--fs-md);font-weight:600;letter-spacing:-.012em;line-height:1.5;color:var(--text);transition:color .16s}
-.wk-line:hover .wk-line-ttl{color:var(--accent)}
-.wk-line-sum{margin:4px 0 0;font-size:var(--fs-xs);line-height:1.65;color:var(--dim);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.wk-line-side{flex:none}
-.wk-line-tags{display:flex;gap:6px;flex-wrap:wrap}
-.wk-line-date{display:block;margin:6px 0 0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--faint);font-variant-numeric:tabular-nums}
-@media (min-width:640px){.wk-line-in{flex-direction:row;justify-content:space-between;align-items:flex-start;gap:24px}.wk-line-main{flex:1}.wk-line-side{text-align:right}}
-/* 标签 chip（v3-tag 同源） */
-.wk-tag{display:inline-flex;align-items:center;height:19px;padding:0 6px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);line-height:1;border:1px solid var(--line2);border-radius:999px;color:var(--dim);white-space:nowrap}
-.wk-tag-accent{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
-/* ── 文章页三栏骨架（max-1400：左文章导航 250 / 中正文 760 / 右 TOC 180）── */
-.wk-shell{display:flex;max-width:1400px;margin:0 auto}
-.wk-side{display:none;width:250px;flex:none;border-right:1px solid var(--line)}
-.wk-side-in{position:sticky;top:80px;height:calc(100vh - 80px);overflow-y:auto;padding:24px 12px 24px 0}
-.wk-side-nav{padding:24px 16px}
-.wk-side-hd{margin:0 0 6px;padding-bottom:8px;border-bottom:1px solid var(--line);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
-.wk-side-link{display:block;padding:6px 8px;border-left:1px solid transparent;font-size:var(--fs-xs);line-height:1.5;color:var(--dim);transition:color .16s,border-color .16s}
-.wk-side-link:hover{color:var(--text);border-left-color:var(--line2)}
-.wk-side-link[data-active="true"]{color:var(--accent);border-left-color:var(--accent)}
-.wk-toc{display:none;width:180px;flex:none}
-.wk-toc-in{position:sticky;top:80px;height:calc(100vh - 80px);overflow-y:auto;padding:24px 8px 32px 0}
-.wk-toc nav{display:flex;flex-direction:column;gap:4px}
-.wk-toc-link{position:relative;display:block;padding:6px 8px;border-left:1px solid transparent;font-size:var(--fs-xs);line-height:1.5;color:var(--dim);transition:color .16s,border-color .16s,padding-left .16s}
-.wk-toc-link:hover{color:var(--text);border-left-color:var(--line2)}
-.wk-toc-link[data-lv="1"]{padding-left:8px;color:var(--dim)}
-.wk-toc-link[data-lv="2"]{padding-left:20px}
-.wk-toc-link[data-lv="3"]{padding-left:30px;font-size:var(--fs-xs);color:var(--faint)}
-.wk-toc-link[data-lv="4"]{padding-left:42px;font-size:var(--fs-xs);color:var(--faint)}
-/* 导轨竖线（lv3 起挂在父级文字下方，主站同源） */
-.wk-toc-link[data-lv="3"]::before,.wk-toc-link[data-lv="4"]::before{content:"";position:absolute;top:5px;bottom:5px;width:1px;background:var(--line)}
-.wk-toc-link[data-lv="3"]::before{left:26px}
-.wk-toc-link[data-lv="4"]::before{left:36px}
-.wk-toc-link[data-lv="3"]:hover::before,.wk-toc-link[data-lv="4"]:hover::before{background:var(--line2)}
-@media (min-width:1024px){.wk-side{display:block}.wk-main{padding:40px 32px}}
-@media (min-width:1280px){.wk-toc{display:block}.wk-main{padding-left:40px;padding-right:24px}}
-/* ── 文章 TOC 组件（article-toc.js 配套样式；拷自 mystation，类名 v3- 前缀保留，
-   CSS 变量已映射本站 token：--background→--bg · --hairline→--line ·
-   --hairline-strong→--line2 · --text-muted→--dim · --text-primary→--text ·
-   --text-faint→--faint）── */
-.v3-side-hd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);letter-spacing:.16em;text-transform:uppercase;color:var(--dim);padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:6px}
-.v3-side-link{display:block;font-size:var(--fs-xs);line-height:1.5;padding:6px 8px;border-left:1px solid transparent;color:var(--dim);transition:color .16s,border-color .16s}
-.v3-side-link:hover{color:var(--text);border-left-color:var(--line2)}
-.v3-side-link[data-active="true"]{color:var(--accent);border-left-color:var(--accent)}
-/* 目录层级：缩进阶跃 + 左侧导轨竖线（h2 起），层级越深字号/字色递减 —— 主站同源 */
-.v3-toc-link{position:relative;padding-left:8px;transition:color .16s,border-color .16s,padding-left .16s}
-.v3-toc-link[data-lv="1"]{padding-left:8px;font-size:var(--fs-xs);color:var(--dim)}
-.v3-toc-link[data-lv="2"]{padding-left:20px;font-size:var(--fs-xs)}
-.v3-toc-link[data-lv="3"]{padding-left:30px;font-size:var(--fs-xs);color:var(--faint)}
-.v3-toc-link[data-lv="4"]{padding-left:42px;font-size:var(--fs-xs);color:var(--faint)}
-.v3-toc-link[data-lv="3"]::before,.v3-toc-link[data-lv="4"]::before{content:"";position:absolute;top:5px;bottom:5px;width:1px;background:var(--line)}
-.v3-toc-link[data-lv="3"]::before{left:26px}
-.v3-toc-link[data-lv="4"]::before{left:36px}
-.v3-toc-link[data-lv="3"]:hover::before,.v3-toc-link[data-lv="4"]:hover::before{background:var(--line2)}
-.v3-toc-link[data-active="true"]::before{background:var(--accent)}
-.v3-toc-link[data-lv="3"][data-active="true"],.v3-toc-link[data-lv="4"][data-active="true"]{color:var(--accent)}
-.v3-noscrollbar{scrollbar-width:none;-ms-overflow-style:none}
-.v3-noscrollbar::-webkit-scrollbar{width:0;height:0;display:none}
-/* 周报既有侧栏链接的 active 态（组件同步点亮） */
-.wk-toc-link[data-active="true"]{color:var(--accent);border-left-color:var(--accent)}
-.wk-toc-link[data-lv="3"][data-active="true"]::before,.wk-toc-link[data-lv="4"][data-active="true"]::before{background:var(--accent)}
-/* FAB + 全高抽屉：<1280px 显示（桌面侧栏 / 周报 aside 的档位） */
-.toc-fab{display:none;position:fixed;right:16px;bottom:16px;z-index:40}
-.toc-fab button{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line2);border-radius:50%;background:var(--card);color:var(--dim);cursor:pointer;transition:color .16s,border-color .16s}
-.toc-fab button:hover{color:var(--accent);border-color:var(--accent)}
-.toc-drawer{position:fixed;inset:0;z-index:60}
-.toc-drawer .toc-mask{position:absolute;inset:0;background:rgba(0,0,0,.6)}
-.toc-drawer .toc-panel{position:absolute;right:0;top:0;height:100%;width:288px;max-width:86vw;border-left:1px solid var(--line);background:var(--bg);padding:24px;overflow-y:auto}
-.toc-panel-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
-.toc-panel-hd .v3-side-hd{flex:1;margin:0}
-.toc-close{border:0;background:transparent;color:var(--faint);cursor:pointer;padding:4px;display:flex}
-.toc-close:hover{color:var(--text)}
-.toc-nav{display:flex;flex-direction:column;gap:4px}
-@media (max-width:1279px){.toc-fab{display:flex}}
-@media (max-width:640px){.toc-fab{bottom:62px}}   /* 避让底部横排 .fab 工具排（mystation 同款抬升） */
-/* 详情页桌面侧栏：fixed 右栏，右移 70px 避让竖排 .fab 工具排（右 16–58px） */
-.p-toc{display:none;position:fixed;right:70px;top:80px;width:180px;max-height:calc(100vh - 104px);overflow-y:auto;padding-bottom:24px}
-@media (min-width:1280px){.p-toc{display:block}}
-/* ── 全站统计页（/statistics/）：访客向数据面板 —— hero 总览 tile + 热读榜 +
-   SVG 环形图/Online 发表动态面积图 + 条形图 + 词云 tab。筛选（期刊/类型/年份）
-   联动重算图表；热读榜与 hero 浏览数来自统计服务，为全量口径不随筛选重算 ── */
-.st-hero{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:22px 0 0}
-@media (max-width:860px){.st-hero{grid-template-columns:1fr 1fr}}
-.st-tile{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:8px;background:var(--card);padding:15px 18px 13px}
-.st-tile:before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--tc,var(--accent))}
-.st-tile b{display:block;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:30px;font-weight:600;line-height:1.25;letter-spacing:-.02em;color:var(--text);font-variant-numeric:tabular-nums}
-.st-tile span{display:block;margin-top:3px;font-size:var(--fs-xs);color:var(--dim)}
-.st-tc1{--tc:#58a6ff}.st-tc2{--tc:#3fb950}.st-tc3{--tc:#a371f7}.st-tc4{--tc:#f0883e}
-html[data-theme=light] .st-tc1{--tc:#0969da}html[data-theme=light] .st-tc2{--tc:#1a7f37}
-html[data-theme=light] .st-tc3{--tc:#8250df}html[data-theme=light] .st-tc4{--tc:#bc4c00}
-/* 热读文献 Top 5：行内淡色底条 = 浏览量占比（--w），No.1 实心章 / 2·3 描边章 */
-.st-hot{margin:14px 0 0}
-.st-card h3{display:flex;align-items:baseline;gap:8px;margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);font-weight:500;letter-spacing:.06em;color:var(--dim)}
-.st-card h3 em{margin-left:auto;font-style:normal;font-weight:400;letter-spacing:0;color:var(--faint)}
-.st-ranks{display:flex;flex-direction:column;gap:6px;margin-top:12px}
-.st-rank{position:relative;display:flex;align-items:center;gap:12px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);overflow:hidden;transition:border-color .16s}
-.st-rank:hover{border-color:var(--line2)}
-.st-rank:before{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--w,0%);background:linear-gradient(90deg,var(--accent-soft),transparent)}
-.st-rank>*{position:relative}
-.st-rank .rk{flex:none;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line2);border-radius:7px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--dim);background:var(--card)}
-.st-rank.pod .rk{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
-.st-rank.top .rk{border-color:var(--accent);background:var(--accent);color:var(--bg)}
-.st-rank .tt{flex:1;min-width:0}
-.st-rank .tt a{display:block;color:var(--text);font-size:var(--fs-sm);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:color .16s}
-.st-rank .tt a:hover{color:var(--accent)}
-.st-rank .tt small{display:block;margin-top:1px;font-size:var(--fs-xs);color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.st-rank .n{flex:none;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--dim);font-variant-numeric:tabular-nums}
-.st-filter{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:16px 0 4px}
-.st-filter select,.st-filter input{width:auto;padding:7px 10px;border-radius:999px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-sm)}
-/* 筛选行与首页 fgroup 同语言：mono 小标签 + 胶囊控件，日期走原生 date（color-scheme 随主题） */
-.st-fgroup{display:inline-flex;align-items:center;gap:8px}
-.st-filter .dateinp{padding:6px 12px;color-scheme:dark light}
-.st-dash{color:var(--faint)}
-.st-count{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--faint)}
-.st-empty{margin:26px 0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--faint)}
-.st-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
-@media (max-width:860px){.st-grid{grid-template-columns:1fr}}
-.st-card{border:1px solid var(--line);border-radius:8px;background:var(--card);padding:14px 16px 16px}
-.st-wide{grid-column:1/-1}
-.st-none{margin:4px 0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--faint)}
-/* 条形图：细轨 + 进场生长动画（每次重渲染触发；reduced-motion 关闭） */
-.st-bars{display:flex;flex-direction:column;gap:8px;margin-top:12px}
-.st-row{display:grid;grid-template-columns:minmax(84px,190px) 1fr 34px;gap:10px;align-items:center}
-.st-k{font-size:var(--fs-xs);color:var(--dim);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.st-bar{position:relative;height:16px;border-radius:4px;background:var(--bg);overflow:hidden}
-.st-bar i{position:absolute;left:0;top:0;bottom:0;min-width:3px;background:var(--accent);opacity:.8;border-radius:4px;transform-origin:left;animation:stgrow .55s cubic-bezier(.25,.8,.35,1) both}
-@keyframes stgrow{from{transform:scaleX(.02)}}
-@media (prefers-reduced-motion:reduce){.st-bar i{animation:none}}
-.st-n{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--faint);text-align:right}
-/* 环形图（文章类型构成）：stroke-dasharray 段 + 中心合计 + 图例联动高亮 */
-.st-donut{display:flex;align-items:center;gap:20px;margin-top:12px;flex-wrap:wrap}
-.st-donut svg{flex:none;width:158px;height:158px}
-.st-donut .seg{fill:none;stroke-width:3.6;transition:opacity .15s,stroke-width .15s;cursor:default}
-.st-donut .seg.big{stroke-width:5}
-.st-donut .seg.off{opacity:.22}
-.st-donut .don-v{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:5.4px;font-weight:600;fill:var(--text)}
-.st-donut .don-k{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:2.6px;fill:var(--faint);letter-spacing:.04em}
-.st-legend{flex:1;min-width:170px;display:flex;flex-direction:column;gap:5px}
-.st-lg{display:flex;align-items:center;gap:8px;padding:3px 8px;border-radius:6px;font-size:var(--fs-xs);color:var(--dim);cursor:default;transition:background .12s}
-.st-lg i{flex:none;width:10px;height:10px;border-radius:3px;background:var(--lc,var(--accent))}
-.st-lg span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.st-lg b{margin-left:auto;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-weight:500;color:var(--text);font-variant-numeric:tabular-nums}
-.st-lg em{font-style:normal;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--faint);min-width:34px;text-align:right;font-variant-numeric:tabular-nums}
-.st-lg.hl{background:var(--accent-soft)}
-/* Online 发表动态面积图：JS 按容器实测像素构建 SVG，hover 显示「日期 · 累计 N 篇」 */
-.st-growth{position:relative;margin-top:10px}
-.st-growth svg{display:block;width:100%;height:auto}
-.st-growth .gl{stroke:var(--line);stroke-width:1}
-.st-growth .gt{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:10.5px;fill:var(--faint)}
-.st-growth .dotc{fill:var(--card);stroke:var(--accent);stroke-width:2}
-.st-growth .hit{fill:transparent;cursor:default}
-.st-gtip{position:absolute;left:0;top:0;pointer-events:none;background:var(--bg);border:1px solid var(--line2);border-radius:6px;padding:4px 9px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--dim);white-space:nowrap;transform:translate(-50%,calc(-100% - 9px));opacity:0;transition:opacity .12s;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:2}
-.st-gtip b{color:var(--text);font-weight:500}
-/* 词云 tab：一张卡两个来源（关键词 / 标题·摘要高频词） */
-.st-tabs{margin-left:auto;display:inline-flex;gap:4px}
-.st-tab{padding:2px 10px;border:1px solid var(--line2);border-radius:999px;background:none;color:var(--dim);font-family:inherit;font-size:var(--fs-xs);cursor:pointer;transition:color .16s,border-color .16s,background-color .16s}
-.st-tab:hover{color:var(--text)}
-/* 单选 tab 组与排序胶囊同一纪律：选中项 accent 实底 */
-.st-tab.on{border-color:var(--accent);color:var(--bg);background:var(--accent)}
-/* 词云 v2：定高相对容器 + 绝对定位螺旋布局（大词居中、小词外溢、低频词灰阶垫底）；
-   [hidden] 显式声明兜底 —— 防作者 display 规则压过 UA 的 hidden 隐藏（实测踩过） */
-.st-cloud[hidden]{display:none}
-.st-cloud{position:relative;height:300px;margin-top:12px}
-@media (max-width:480px){.st-cloud{height:240px}}
-.st-cloud .st-w{position:absolute;left:0;top:0;white-space:nowrap;line-height:1.15;cursor:default;animation:stwin .45s both;transition:opacity .16s,text-shadow .16s}
-.st-cloud .st-w.st-wv{transform:rotate(-90deg)}
-.st-cloud .st-w:hover{opacity:1!important;text-shadow:0 0 9px var(--accent-soft),0 0 22px var(--accent-soft)}
-@keyframes stwin{from{opacity:0}}
-@media (prefers-reduced-motion:reduce){.st-cloud .st-w{animation:none}}
-.st-cta{margin:26px 0 0;font-size:var(--fs-sm);color:var(--dim)}
-.st-cta a{color:var(--accent)}
-/* 关于本站页（/about/）：窄栏 prose，排版复用周报正文 .wk-content */
-.about-wrap{max-width:760px;margin:0 auto;padding:34px 20px 20px}
-/* ── 统计页移动端（≤640px）：修复横溢与布局失衡 ——
-   ① 日期筛选组独占一行、日期框互相收缩（此前固定宽导致 387>380 横向滚动）；
-   ② 环形图改为上下结构居中（此前左对齐留大片空白）；
-   ③ 条形图标签列收窄（84–190px → 64–110px），把宽度还给条形 ── */
-@media (max-width:640px){
-  .st-filter{max-width:100%}
-  .st-fgroup{min-width:0;flex:1 1 100%}
-  .st-fgroup .dateinp{width:auto;min-width:0;flex:1 1 100px}
-  .st-donut{flex-direction:column;align-items:stretch;gap:12px}
-  .st-donut svg{width:176px;height:176px;margin:0 auto}
-  .st-legend{width:100%;min-width:0}
-  .st-row{grid-template-columns:minmax(64px,110px) 1fr 30px;gap:8px}
-}
-/* 字号切换按钮（FAB 内）：A 字标，放大档点亮 */
-.tbtn-fs{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:16px;font-weight:600}
-.tbtn-fs.on{color:var(--accent);border-color:var(--accent)}
-.wk-main{flex:1;min-width:0;max-width:760px;width:100%;margin:0 auto;padding:40px 20px}
-.wk-h1{margin:0 0 20px}
-.wk-tagsrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 20px}
-.wk-tagsrow .dot{color:var(--faint)}
-.wk-meta{display:flex;flex-wrap:wrap;align-items:center;gap:16px;margin:0 0 12px;padding-bottom:16px;border-bottom:1px solid var(--line);font-size:var(--fs-xs);color:var(--dim)}
-.wk-meta span,.wk-meta a{display:inline-flex;align-items:center;gap:6px}
-.wk-meta svg{width:16px;height:16px;flex:none}
-.wk-dates{display:flex;flex-wrap:wrap;align-items:center;gap:16px;margin:0 0 40px;padding-bottom:16px;border-bottom:1px solid var(--line);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--faint)}
-/* 正文排版（blog-content 同源） */
-.wk-content{font-size:var(--fs-base);color:var(--dim)}
-.wk-content h2.md-h1{margin:40px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--line2);font-size:var(--fs-h2);font-weight:700;line-height:1.35;color:var(--text);scroll-margin-top:80px}
-.wk-content h3.md-h2{margin:32px 0 12px;font-size:var(--fs-h2);font-weight:600;line-height:1.4;color:var(--text);scroll-margin-top:80px}
-.wk-content h4{margin:20px 0 8px;font-size:var(--fs-base);font-weight:600;color:var(--text)}
-.wk-content p{margin:0 0 16px;line-height:1.75}
-.wk-content strong{color:#85a4ff}
-.wk-content em{font-style:italic}
-.wk-content a{color:var(--accent);overflow-wrap:anywhere}
-.wk-content a:hover{text-decoration:underline}
-.wk-content .wk-img{margin:24px 0}
-.wk-content .wk-img img{display:block;max-width:100%;height:auto;border:1px solid var(--line2);border-radius:8px}
-.wk-content blockquote{margin:0 0 16px;padding-left:16px;border-left:4px solid var(--line2);font-style:italic;color:var(--faint)}
-.wk-content hr{border:none;border-top:1px solid var(--line2);margin:32px 0}
-/* 上一篇 / 下一篇（v3-prevnext 同源：双栏边框卡 + 虚线空位） */
-.wk-prevnext{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:46px;padding-top:24px;border-top:1px solid var(--line2)}
-.wk-pn{display:flex;flex-direction:column;gap:7px;min-width:0;padding:12px 14px;border:1px solid var(--line2);border-radius:6px;transition:border-color .16s,background-color .16s}
-.wk-pn:hover{border-color:var(--accent);background:var(--accent-soft)}
-.wk-pn-dir{display:inline-flex;align-items:center;gap:5px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);letter-spacing:.1em;color:var(--faint);transition:color .16s}
-.wk-pn:hover .wk-pn-dir{color:var(--accent)}
-.wk-pn-dir svg{width:12px;height:12px;flex:none;transition:transform .18s ease}
-.wk-pn:hover .wk-pn-dir svg{transform:translateX(-2px)}
-.wk-pn-to-next{text-align:right}
-.wk-pn-to-next .wk-pn-dir{justify-content:flex-end}
-.wk-pn:hover .wk-pn-to-next .wk-pn-dir svg{transform:translateX(2px)}
-.wk-pn-ttl{font-size:var(--fs-sm);line-height:1.5;letter-spacing:-.008em;color:var(--text);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.wk-pn-empty{min-height:68px;border:1px dashed var(--line2);border-radius:6px}
-@media (max-width:640px){
-  .wk-col{padding:40px 16px 80px}
-  .wk-shell{display:block}
-  .wk-main{padding:32px 16px}
-  .wk-prevnext{grid-template-columns:1fr}
-}
-"""
-
-JS = """\
-(function () {
-  var CFG = window.MBD, ITEMS = window.MBD_DATA || [], PAGE = window.MBD_PAGE || 30;
-  if (!CFG) return;
-
-  /* 统计打点：所有页面（首页 + 详情页）都要执行。之前放在网格逻辑之后，
-     详情页因没有 #grid 提前 return，打点从未跑过（GeoSciPlot 踩过的坑） */
-  if (CFG.tracker && !location.hostname.match(/^(localhost|127\\.0\\.0\\.1|)$/)) {
-    try {
-      if (navigator.doNotTrack === "1") return;
-      fetch(CFG.tracker, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ path: "/macrobiodiv" + location.pathname, referrer: document.referrer || undefined }),
-        keepalive: true,
-      }).catch(function () {});
-    } catch (e) {}
-  }
-
-  /* ── 每篇文献浏览量（来自统计服务的按 path 计数）。
-     本地预览（localhost / 127.0.0.1 / file://）没有统计后端，请求注定失败，
-     直接跳过不再发（消除控制台网络报错），与上方打点的 hostname 判断同一口径；
-     占位「…」回写「—」，避免停留在加载中状态 ── */
-  var viewsEl = document.getElementById("views");
-  if (viewsEl && !location.hostname.match(/^(localhost|127\\.0\\.0\\.1|)$/)) {
-    fetch((CFG.api || "") + "/api/v1/stats/views?prefix=/macrobiodiv/")
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (d) {
-        if (!d || !d.items) throw 0;
-        var map = {};
-        d.items.forEach(function (x) { map[x.path.replace(/\\/$/, "")] = x.views; });
-        var n = map["/macrobiodiv" + location.pathname.replace(/\\/$/, "")] || 0;
-        viewsEl.textContent = n ? n + " 次" : "首次";
-        viewsEl.style.color = "var(--text)";
-      }).catch(function () { viewsEl.textContent = "—"; });
-  } else if (viewsEl) {
-    viewsEl.textContent = "—";
-  }
-
-  /* ── 作者行两行折叠（仅详情页有 .p-auth / #authToggle）：
-     超过两行才加 .auth-clamp 并亮出「展开全部 N 位作者」按钮；
-     两行以内 / 无 JS = 完整展示，渐进增强 ── */
-  var authEl = document.querySelector(".p-auth");
-  var authBtn = document.getElementById("authToggle");
-  if (authEl && authBtn) {
-    var authLh = parseFloat(getComputedStyle(authEl).lineHeight) || 23;
-    if (authEl.scrollHeight > authLh * 2 + 1) {
-      authEl.classList.add("auth-clamp");
-      var authN = authBtn.dataset.n;
-      var authOpenTxt = authN ? "展开全部 " + authN + " 位作者" : "展开全部作者";
-      authBtn.textContent = authOpenTxt;
-      authBtn.classList.add("on");
-      authBtn.addEventListener("click", function () {
-        var opened = authEl.classList.toggle("open");
-        authBtn.textContent = opened ? "收起作者" : authOpenTxt;
-      });
-    }
-  }
-
-  var themeBtn = document.getElementById("themeBtn");
-  if (themeBtn) themeBtn.addEventListener("click", function () {
-    var root = document.documentElement;
-    // 默认暗色（不跟随系统偏好）；仅当访客手动切过才用其选择
-    var light = root.getAttribute("data-theme") === "light";
-    var t = light ? "dark" : "light";
-    root.setAttribute("data-theme", t);
-    try { localStorage.setItem("mbd-theme", t); } catch (e) {}
-  });
-  var topBtn = document.getElementById("topBtn");
-  if (topBtn) {
-    topBtn.addEventListener("click", function () { window.scrollTo({ top: 0, behavior: "smooth" }); });
-    // 阈值 400px 与主站 zbhgis.com 的 .v3-rail-top 保持一致，两站行为统一
-    var onScroll = function () { topBtn.classList.toggle("show", window.scrollY > 400); };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-  }
-
-  /* ── 字号切换（FAB「A」按钮）：标准 / 放大两档，只覆盖 --fs-* 变量（菜单与大标题
-     固定不动）；偏好存 localStorage mbd-fs，head 内联脚本已前置位防闪烁 ── */
-  var fsBtn = document.getElementById("fsBtn");
-  if (fsBtn) {
-    var fsOn = false;
-    try { fsOn = localStorage.getItem("mbd-fs") === "lg"; } catch (e) {}
-    var syncFs = function () {
-      if (fsOn) document.documentElement.setAttribute("data-fs", "lg");
-      else document.documentElement.removeAttribute("data-fs");
-      fsBtn.title = fsOn ? "字号：放大（点击还原）" : "字号：标准（点击放大）";
-      fsBtn.classList.toggle("on", fsOn);
-      try { localStorage.setItem("mbd-fs", fsOn ? "lg" : ""); } catch (e) {}
-    };
-    fsBtn.addEventListener("click", function () { fsOn = !fsOn; syncFs(); });
-    syncFs();
-  }
-
-  /* ── 详情页：通用复制按钮（data-copy 指向源元素 id：引用条 / BibTeX） ── */
-  var copyFallback = function (t) {
-    var ta = document.createElement("textarea");
-    ta.value = t;
-    ta.style.position = "fixed"; ta.style.opacity = "0";
-    document.body.appendChild(ta);
-    ta.select();
-    try { document.execCommand("copy"); } catch (e) {}
-    ta.remove();
-  };
-  document.querySelectorAll("[data-copy]").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      var src = document.getElementById(btn.getAttribute("data-copy"));
-      var txt = src ? (src.textContent || "") : "";
-      var old = btn.textContent;
-      var done = function () {
-        btn.textContent = "✓ 已复制";
-        setTimeout(function () { btn.textContent = old; }, 1800);
-      };
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(txt).then(done, function () { copyFallback(txt); done(); });
-      } else { copyFallback(txt); done(); }
-    });
-  });
-
-  /* ── 全站搜索独立页（/search/）：静态站没有检索后端，直接在 papers-data.js 的
-     文献元数据 + weekly-data.js 的周报全文上做客户端匹配（文献：标题/作者/DOI/期刊/
-     关键词/标签/摘要；周报：期标题/日期/摘要行/正文全文。多词空格分隔 = 同时命中）。
-     放在网格逻辑之前 —— 搜索页没有 #grid 会提前 return ── */
-  var spageQ = document.getElementById("spage-q");
-  if (spageQ) {
-    var sList = document.getElementById("spage-list");
-    var sCount = document.getElementById("spage-count");
-    var sUp = sList ? (sList.getAttribute("data-up") || "") : "";
-    /* 周报数据（仅搜索页注入 weekly-data.js）：u 路径 / t 标题 / d 日期 /
-       s 摘要行 / w 字数 / x 正文全文（构建期已截 30000 字符） */
-    var WK = window.MBD_WK || [];
-    WK.forEach(function (w) {
-      w.se = (w.t + " " + (w.d || "") + " " + (w.s || "") + " " + (w.x || "")).toLowerCase();
-    });
-
-    function escHtml(s) {
-      return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-    }
-    function hl(text, tokens) {
-      // 先转义再高亮：token 也过同一套转义，两边一致，特殊字符不会破坏 HTML 结构
-      var out = escHtml(text);
-      tokens.forEach(function (t) {
-        var et = escHtml(t).replace(/[.*+?^${}()|[\\]\\\\]/g, "$&");
-        out = out.replace(new RegExp(et, "gi"), "<mark>$&</mark>");
-      });
-      return out;
-    }
-    /* 周报正文命中片段：在正文自身内找首个命中词，前后各取若干字符，省略号收边
-       （注意不能在标题+日期+正文拼接串里找 —— 那样的下标对纯正文切片是错位的） */
-    function wkSnip(w, tokens) {
-      var text = w.x || "", low = text.toLowerCase();
-      var pos = -1;
-      for (var i = 0; i < tokens.length && pos < 0; i++) pos = low.indexOf(tokens[i]);
-      if (pos < 0) return escHtml(text.slice(0, 120)) + (text.length > 120 ? "…" : "");
-      var start = Math.max(0, pos - 50), end = Math.min(text.length, pos + 90);
-      return (start > 0 ? "…" : "") + hl(text.slice(start, end), tokens) + (end < text.length ? "…" : "");
-    }
-    function paperRow(it, tokens) {
-      var meta = [];
-      if (it.a) meta.push(hl(it.a, tokens));
-      if (it.j) meta.push(hl(it.j, tokens));
-      if (it.y) meta.push(escHtml(it.y));
-      if (it.doi) meta.push(hl(it.doi, tokens));
-      // 主标题已是中文优先；此时把英文原题放进元信息行（可高亮），英文关键词搜索不失上下文
-      if (it.tz && it.t === it.tz && it.te) meta.push(hl(it.te, tokens));
-      return '<a class="sres" href="' + sUp + escHtml(it.id) + '/">'
-        + '<span class="sres-body"><span class="sres-id">' + hl(it.t, tokens) + '</span>'
-        + '<span class="sres-meta">' + meta.join('<i class="sres-sep">·</i>') + '</span></span></a>';
-    }
-    function wkRow(w, tokens) {
-      var meta = [];
-      if (w.d) meta.push(escHtml(w.d));
-      if (w.s) meta.push(hl(w.s, tokens));
-      if (w.w) meta.push(escHtml(w.w + " 字"));
-      return '<a class="sres" href="' + sUp + escHtml(w.u) + '">'
-        + '<span class="sres-body"><span class="sres-id">' + hl(w.t, tokens) + '</span>'
-        + '<span class="sres-meta">' + meta.join('<i class="sres-sep">·</i>') + '</span>'
-        + '<span class="sres-snip">' + wkSnip(w, tokens) + '</span></span></a>';
-    }
-    function renderSearch(raw) {
-      var tokens = raw.trim().toLowerCase().split(/\\s+/).filter(Boolean);
-      if (!tokens.length) {
-        sCount.textContent = "";
-        sList.innerHTML = '<p class="spage-hint">输入 标题 / 作者 / DOI / 期刊 / 关键词 / 摘要 / 周报内容 开始检索；多个词用空格分隔（需同时命中）</p>';
-        return;
-      }
-      var hits = ITEMS.filter(function (it) {
-        var hay = (it.se || "").toLowerCase();
-        return tokens.every(function (t) { return hay.indexOf(t) > -1; });
-      });
-      var wkHits = WK.filter(function (w) {
-        return tokens.every(function (t) { return w.se.indexOf(t) > -1; });
-      });
-      sCount.textContent = "找到 " + hits.length + " / " + ITEMS.length + " 篇文献 · "
-        + wkHits.length + " / " + WK.length + " 期周报";
-      if (!hits.length && !wkHits.length) {
-        sList.innerHTML = '<p class="spage-empty">未找到与 “' + escHtml(raw) + '” 相关的文献或周报</p>';
-        return;
-      }
-      var html = hits.map(function (it) { return paperRow(it, tokens); }).join("");
-      if (wkHits.length) {
-        html += '<div class="spage-grouphd">每周速递</div>'
-          + wkHits.map(function (w) { return wkRow(w, tokens); }).join("");
-      }
-      sList.innerHTML = html;
-    }
-    // ?q= 预填：与主站 /search?q= 行为一致，结果可分享
-    var sq = "";
-    try { sq = new URLSearchParams(location.search).get("q") || ""; } catch (e) {}
-    spageQ.value = sq;
-    renderSearch(sq);
-    spageQ.addEventListener("input", function () {
-      renderSearch(spageQ.value);
-      try {
-        var v = spageQ.value.trim();
-        history.replaceState(null, "", v ? "?q=" + encodeURIComponent(v) : location.pathname);
-      } catch (e) {}
-    });
-  }
-
-  /* 详情页「返回全部」（a.back 只在详情页有）：优先回最近一次图库地址
-     （URL 自带筛选/排序/页码，随机排序也不重排 —— GSP gsp-back 同源思路）；
-     无记录（直链打开详情页）保持 ../ 兜底 */
-  try {
-    var backLink = document.querySelector("a.back");
-    var backUrl = sessionStorage.getItem("mbd-back");
-    if (backLink && backUrl) backLink.setAttribute("href", backUrl);
-  } catch (e) {}
-
-  var grid = document.getElementById("grid");
-  if (!grid) return;
-
-  /* ── 分页 + 筛选 + 排序 ── */
-  var state = { q: "", tag: null, journal: null, from: "", to: "", sort: "pub", page: 1, per: PAGE };
-  try {
-    var savedPer = parseInt(localStorage.getItem("mbd-per"), 10);
-    if ([20, 30, 50].indexOf(savedPer) > -1) state.per = savedPer;   // 仅接受合法档位，旧值自动回默认 30
-    if (localStorage.getItem("mbd-sort2")) { state.sort = localStorage.getItem("mbd-sort2"); }
-  } catch (e) {}
-  reshuffle();       // 会话种子键：同会话内稳定，详情页返回 / 刷新 / 翻页不重排
-  var q = document.getElementById("q");
-  var empty = document.getElementById("empty");
-  var info = document.getElementById("pageinfo");
-  var prev = document.getElementById("prev");
-  var next = document.getElementById("next");
-  var pgnums = document.getElementById("pgnums");
-
-  /* 视口越窄，页码窗口收得越小：
-     ≥1000 → 当前页 ±2 且总页数 ≤9 时全列；≥640 → ±1；更窄 → 只列当前页（总数缩到 4 个节点） */
-  function windowSize() {
-    var w = window.innerWidth || 1024;
-    return w < 640 ? 0 : (w < 1000 ? 1 : 2);
-  }
-
-  /* 页码节点用事件委托：一次绑定，翻页时只重建 innerHTML，不重新挂监听 */
-  function paintNums(page, pages) {
-    if (!pgnums) return;
-    if (pages <= 1) { pgnums.innerHTML = ""; return; }
-    var win = windowSize();
-    var nums = [];
-    for (var i = 1; i <= pages; i++) {
-      if (i === 1 || i === pages || Math.abs(i - page) <= win) nums.push(i);
-    }
-    var html = "", last = 0;
-    nums.forEach(function (i) {
-      if (last && i - last > 1) html += '<span class="pggap">…</span>';
-      html += '<button type="button" class="pgnum" data-page="' + i + '"'
-            + (i === page ? ' data-on="true" aria-current="page"' : '')
-            + ' title="第 ' + i + ' 页">' + i + '</button>';
-      last = i;
-    });
-    pgnums.innerHTML = html;
-  }
-  if (pgnums) {
-    pgnums.addEventListener("click", function (e) {
-      var b = e.target.closest ? e.target.closest(".pgnum") : null;
-      if (!b) return;
-      var n = parseInt(b.getAttribute("data-page"), 10);
-      if (!n || n === state.page) return;
-      state.page = n;
-      render();
-      var bar = document.querySelector(".pgbar");
-      if (bar && bar.getBoundingClientRect().top < 0) bar.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-  }
-
-  function pass(it) {
-    /* 多选语义（GSP 同源）：tag/journal 为 null = 全部选中 = 不筛选；
-       否则为「入选值」数组，命中任一即通过（OR），无标签/期刊的内容随之隐藏 */
-    if (state.tag && !(it.tg || []).some(function (t) { return state.tag.indexOf(t) > -1; })) return false;
-    if (state.journal && state.journal.indexOf(it.j || "") === -1) return false;
-    /* 日期区间按重叠匹配：pd 只有月精度（YYYY-MM）时按整月 [月初, 月底] 算 */
-    if (state.from || state.to) {
-      const v = it.pd || "";
-      if (!v) return false;
-      const ps = v.length === 7 ? v + "-01" : v, pe = v.length === 7 ? v + "-31" : v;
-      if (state.from && pe < state.from) return false;
-      if (state.to && ps > state.to) return false;
-    }
-    if (state.q && (it.se || "").indexOf(state.q) === -1) return false;
-    return true;
-  }
-  function cmp(a, b) {
-    var dir = state.sort === "pub_asc" ? 1 : -1;
-    var aa = a.pd || "", ab = b.pd || "";
-    if (aa !== ab) return (aa < ab ? -1 : 1) * dir;
-    // 同日期内按 id 排：与 build_site.py 的静态首屏顺序保持一致
-    return (a.id || "").localeCompare(b.id || "");
-  }
-  /* 随机排序（GSP 路由 + 会话种子）：键 = hash(文献id + 会话种子)，种子存
-     sessionStorage —— 同一会话内返回 / 刷新 / 翻页 / 筛选都不重排；
-     点「随机」或新开会话才换新种子重洗。此前 Math.random 每次加载全新键，
-     从详情页返回 Home 随机顺序全变（实际踩坑） */
-  function hash01(s) {
-    var h = 2166136261;
-    for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
-    return ((h >>> 0) % 100000) / 100000;
-  }
-  function newSeed() {
-    var s = Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
-    try { sessionStorage.setItem("mbd-rseed", s); } catch (e) {}
-    return s;
-  }
-  function reshuffle() {
-    var s = "";
-    try { s = sessionStorage.getItem("mbd-rseed") || ""; } catch (e) {}
-    if (!s) s = newSeed();
-    ITEMS.forEach(function (it) { it._rk = hash01((it.id || "") + ":" + s); });
-  }
-  function cmpRand(a, b) { return (a._rk || 0) - (b._rk || 0); }
-  function el(tag, cls, txt) {
-    var e = document.createElement(tag);
-    if (cls) e.className = cls;
-    if (txt !== undefined) e.textContent = txt;
-    return e;
-  }
-  function cardNode(it) {
-    var a = el("a", "card");
-    a.href = it.id + "/";
-    // 主标题已中文优先（数据构建期定好）；悬停提示给另一种语言的标题
-    a.title = (it.tz && it.t === it.tz) ? (it.te || it.t) : (it.tz || it.t);
-    if (it.ct || it.cv) {                 // 封面通栏顶图（自然比例），与静态首屏输出一致
-      var box = el("span", "c-covbox");   // 垫「加载中」占位层，img 加载后自然盖住
-      var cov = document.createElement("img");
-      cov.className = "c-cov";
-      cov.loading = "lazy";
-      if (it.ct) { cov.src = it.ct; cov.dataset.full = it.cv; }   // 缩略外链优先，失败回退原图
-      else cov.src = it.cv;
-      if (it.ctw && it.cth) { cov.width = it.ctw; cov.height = it.cth; }  // 预留位防抖动
-      cov.alt = "封面图";
-      box.appendChild(cov);
-      a.appendChild(box);
-    } else {                              // 无封面：期刊缩写占位块
-      a.appendChild(el("span", "c-ph", it.jb || it.j || "—"));
-    }
-    var cap = el("span", "c-cap");
-    var meta = el("span", "c-meta");      // 文章类型 + 期刊徽章
-    if (it.pt) meta.appendChild(el("span", "c-ty", it.pt));
-    var jb = el("span", "c-j", it.jb || it.j || "—");
-    if (it.j && it.jb) jb.title = it.j;
-    meta.appendChild(jb);
-    cap.appendChild(meta);
-    cap.appendChild(el("span", "c-t", it.t));
-    a.appendChild(cap);
-    return a;
-  }
-  function perSize(list) { return state.per > 0 ? state.per : (list.length || 1); }
-  function render() {
-    var list = ITEMS.filter(pass);
-    list.sort(state.sort === "rand" ? cmpRand : cmp);
-    var per = perSize(list);
-    var pages = Math.max(1, Math.ceil(list.length / per));
-    if (state.page > pages) state.page = pages;
-    if (state.page < 1) state.page = 1;
-    var slice = list.slice((state.page - 1) * per, state.page * per);
-    grid.innerHTML = "";
-    slice.forEach(function (it) { grid.appendChild(cardNode(it)); });
-    if (info) info.textContent = "共 " + pages + " 页";
-    if (prev) prev.disabled = state.page <= 1;
-    if (next) next.disabled = state.page >= pages;
-    paintNums(state.page, pages);
-    if (empty) empty.style.display = list.length ? "none" : "block";
-    syncFilterBtn();
-    syncUrl();
-  }
-  /* 状态 → URL（GSP 同款路由）：筛选/排序/页码写进地址栏，replaceState 不新增
-     历史记录、不打断返回手势；顺带把图库当前地址记进 sessionStorage（mbd-back），
-     详情页「返回全部」据此跳回 —— 随机排序也不会因返回而重排 */
-  function syncUrl() {
-    try {
-      var parts = [];
-      if (state.q) parts.push("q=" + encodeURIComponent(state.q));
-      if (state.tag) parts.push("tag=" + encodeURIComponent(state.tag.join("|")));
-      if (state.journal) parts.push("journal=" + encodeURIComponent(state.journal.join("|")));
-      if (state.from) parts.push("from=" + encodeURIComponent(state.from));
-      if (state.to) parts.push("to=" + encodeURIComponent(state.to));
-      if (state.sort !== "pub") parts.push("sort=" + encodeURIComponent(state.sort));
-      if (state.page > 1) parts.push("page=" + state.page);
-      history.replaceState(null, "", location.pathname + (parts.length ? "?" + parts.join("&") : ""));
-      sessionStorage.setItem("mbd-back", location.pathname + location.search);
-    } catch (e) {}
-  }
-  function resetPage() { state.page = 1; render(); }
-
-  /* ── 多选 chips（GSP 同源）：aria-pressed 是唯一状态真源，state 从 DOM 派生。
-     默认全选（构建期即 pressed=true）= 不筛选（state[key]=null）；
-     点击 chip = 剔除/恢复；全选/反选 为虚线胶囊 chip-act ── */
-  function chipBoxes() { return Array.prototype.slice.call(document.querySelectorAll(".chips[data-key]")); }
-  function boxChips(box) { return box.querySelectorAll("button.chip[data-v]"); }
-  function readChips(box) {
-    var key = box.getAttribute("data-key"), sel = [], c = boxChips(box);
-    c.forEach(function (b) { if (b.getAttribute("aria-pressed") === "true") sel.push(b.getAttribute("data-v")); });
-    state[key] = sel.length === c.length ? null : sel;   // 全部选中 = 不筛选
-  }
-  function writeChips(box) {
-    var sel = state[box.getAttribute("data-key")];
-    boxChips(box).forEach(function (b) {
-      b.setAttribute("aria-pressed", String(!sel || sel.indexOf(b.getAttribute("data-v")) > -1));
-    });
-  }
-  chipBoxes().forEach(function (box) {
-    box.addEventListener("click", function (e) {
-      var act = e.target.closest ? e.target.closest(".chip-act") : null;
-      if (act) {
-        var all = act.getAttribute("data-act") === "all";
-        boxChips(box).forEach(function (b) { b.setAttribute("aria-pressed", String(all ? true : b.getAttribute("aria-pressed") !== "true")); });
-      } else {
-        var chip = e.target.closest ? e.target.closest("button.chip[data-v]") : null;
-        if (!chip) return;
-        chip.setAttribute("aria-pressed", String(chip.getAttribute("aria-pressed") !== "true"));
-      }
-      readChips(box); resetPage();
-    });
-  });
-
-  if (q) {
-    q.addEventListener("input", function () { state.q = q.value.trim().toLowerCase(); resetPage(); });
-    q.addEventListener("keydown", function (e) {
-      if (e.key === "Escape") { q.value = ""; state.q = ""; resetPage(); }
-      if (e.key === "Enter") { e.preventDefault(); runSearch(); }
-    });
-  }
-  var qBtn = document.getElementById("qBtn");
-  function runSearch() {
-    state.q = (q ? q.value : "").trim().toLowerCase();
-    resetPage();
-    var g = document.getElementById("grid");
-    if (g && g.getBoundingClientRect().top < 0) g.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-  if (qBtn) qBtn.addEventListener("click", runSearch);
-  var sortseg = document.getElementById("sortseg");
-  if (sortseg) {
-    if (["pub", "pub_asc", "rand"].indexOf(state.sort) === -1) state.sort = "pub";
-    var sortBtns = sortseg.querySelectorAll("button");
-    sortBtns.forEach(function (b) {
-      b.setAttribute("aria-pressed", String(b.getAttribute("data-sort") === state.sort));
-      b.addEventListener("click", function () {
-        state.sort = b.getAttribute("data-sort");
-        if (state.sort === "rand") { newSeed(); reshuffle(); }   // 每次点「随机」换新种子重洗
-        try { localStorage.setItem("mbd-sort2", state.sort); } catch (e) {}
-        sortBtns.forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
-        resetPage();
-      });
-    });
-  }
-  var fFrom = document.getElementById("f-from"), fTo = document.getElementById("f-to");
-  if (fFrom) fFrom.addEventListener("change", function () { state.from = fFrom.value; resetPage(); });
-  if (fTo) fTo.addEventListener("change", function () { state.to = fTo.value; resetPage(); });
-  if (prev) prev.addEventListener("click", function () { state.page -= 1; render(); });
-  if (next) next.addEventListener("click", function () { state.page += 1; render(); });
-
-  var reset = document.getElementById("reset");
-  if (reset) reset.addEventListener("click", function () {
-    state = { q: "", tag: null, journal: null, from: "", to: "", sort: state.sort, page: 1,
-              per: state.per };   // 保留每页数量（此 bug 继承自 GeoSciPlot，文献多时重置后分页会失效）
-    var fF = document.getElementById("f-from"), fT = document.getElementById("f-to");
-    if (fF) fF.value = "";
-    if (fT) fT.value = "";
-    if (q) q.value = "";
-    /* 重置 = 恢复默认全选：所有 chip 写回 pressed=true（老单选时代「只留第一枚」
-       的写法必须删净，否则在 URL 写回后执行会覆盖状态 —— 实际踩坑） */
-    chipBoxes().forEach(function (box) { writeChips(box); });
-    render();
-  });
-
-  /* ── 每页显示数量 ── */
-  var perSel = document.getElementById("perpage");
-  if (perSel) {
-    perSel.value = String(state.per);
-    perSel.addEventListener("change", function () {
-      state.per = parseInt(perSel.value, 10) || 0;
-      try { localStorage.setItem("mbd-per", String(state.per)); } catch (e) {}
-      resetPage();
-    });
-  }
-
-  /* ── 筛选区折叠（状态记在 localStorage） ── */
-  var filterBtn = document.getElementById("filterBtn");
-  var filterBox = document.getElementById("filters");
-  /* 筛选摘要（GSP 同源）：被剔除的 ≤3 个显示「排除 X、Y」，否则「仅 入选值」 */
-  function chipSummary(key, label) {
-    if (!state[key]) return null;
-    var box = document.querySelector('.chips[data-key="' + key + '"]');
-    if (!box) return null;
-    var off = [];
-    boxChips(box).forEach(function (b) {
-      if (b.getAttribute("aria-pressed") === "false") off.push(b.getAttribute("data-v"));
-    });
-    return label + " " + (off.length > 0 && off.length <= 3 ? "排除 " + off.join("、") : "仅 " + state[key].join("、"));
-  }
-  function activeFilters() {
-    var parts = [], s;
-    if ((s = chipSummary("tag", "标签"))) parts.push(s);
-    if ((s = chipSummary("journal", "期刊"))) parts.push(s);
-    if (state.from || state.to) parts.push("时间 " + (state.from || "…") + " ~ " + (state.to || "…"));
-    if (state.q) parts.push("搜索 " + state.q);
-    return parts;
-  }
-  function syncFilterBtn() {
-    if (!filterBtn || !filterBox) return;
-    var open = !filterBox.hasAttribute("hidden");
-    var list = activeFilters();
-    filterBtn.textContent = (open ? "筛选 ▴" : "筛选 ▾") + (list.length ? " · " + list.length : "");
-    filterBtn.setAttribute("aria-expanded", String(open));
-    filterBtn.title = list.length ? "当前筛选：" + list.join(" / ") : "展开或收起筛选条件";
-  }
-  if (filterBox) {
-    var collapsed = false;
-    try { collapsed = localStorage.getItem("mbd-filters") === "hidden"; } catch (e) {}
-    if (collapsed) filterBox.setAttribute("hidden", "");
-  }
-  if (filterBtn && filterBox) {
-    filterBtn.addEventListener("click", function () {
-      var open = !filterBox.hasAttribute("hidden");
-      if (open) filterBox.setAttribute("hidden", ""); else filterBox.removeAttribute("hidden");
-      try { localStorage.setItem("mbd-filters", open ? "hidden" : "shown"); } catch (e) {}
-      syncFilterBtn();
-    });
-  }
-
-  /* 支持带参数的链接（标签跳转 / 分享筛选结果）：/?tag=海冰&journal=Nature&sort=rand */
-  var applied = false;
-  try {
-    var params = new URLSearchParams(location.search);
-    ["q", "tag", "journal", "from", "to", "sort", "page"].forEach(function (k) {
-      var v = params.get(k);
-      if (!v) return;
-      if (k === "page") {
-        /* 页码随路由回填（syncUrl 写入）：返回 / 刷新都停在离开时的那一页 */
-        applied = true;
-        state.page = Math.max(1, parseInt(v, 10) || 1);
-        return;
-      }
-      if (k === "sort") {
-        // 排序可分享，但仅本次生效 —— 分享链接不应永久改写接收者的排序偏好
-        if (["pub", "pub_asc", "rand"].indexOf(v) === -1) return;
-        applied = true;
-        state.sort = v;
-        if (sortseg) {
-          sortseg.querySelectorAll("button").forEach(function (x) {
-            x.setAttribute("aria-pressed", String(x.getAttribute("data-sort") === v));
-          });
-        }
-        return;
-      }
-      applied = true;
-      if (k === "q") {
-        state.q = v.trim().toLowerCase();
-        if (q) q.value = v;
-      } else if (k === "tag" || k === "journal") {
-        /* 多选：?tag=A|B|C（旧单值链接天然兼容）。先写 state 再写回 chip 的
-           aria-pressed，最后从 DOM 重读 —— 保持「DOM 是唯一真源」 */
-        var box = document.querySelector('.chips[data-key="' + k + '"]');
-        if (box) {
-          state[k] = v.split("|");
-          writeChips(box);
-          readChips(box);
-        }
-      } else {
-        state[k] = v;
-        // 日期区间：回填输入框，避免"筛选生效但输入框是空的"的困惑
-        var inp = document.getElementById("f-" + k);
-        if (inp) inp.value = v;
-      }
-    });
-  } catch (e) {}
-
-  /* 首屏卡片是构建时静态输出的（对爬虫友好）。只有当"每页数量/排序"被用户改过、
-     或链接带了筛选参数时，才用 JS 重新渲染，保证 DOM 与状态一致。
-     （不重渲染的默认情况下，静态输出与 JS 首屏完全一致） */
-  var needRender = applied || state.per !== PAGE || state.sort !== "pub";
-  if (needRender) {
-    state.page = 1;
-    render();
-  } else {
-    var per0 = perSize(ITEMS);
-    var pages0 = Math.max(1, Math.ceil(ITEMS.length / per0));
-    if (info) info.textContent = "共 " + pages0 + " 页";
-    if (prev) prev.disabled = true;
-    if (next) next.disabled = ITEMS.length <= per0;
-    paintNums(1, pages0);
-    syncFilterBtn();
-  }
-
-  /* 窄屏 / 宽屏切换时页码窗口会变，重算一次节点（不重建卡片） */
-  var lastWin = windowSize();
-  var onResize = function () {
-    if (windowSize() === lastWin) return;
-    lastWin = windowSize();
-    var per1 = perSize(ITEMS.filter(pass));
-    paintNums(state.page, Math.max(1, Math.ceil(ITEMS.filter(pass).length / per1)));
-  };
-  window.addEventListener("resize", onResize);
-
-})();
-
-/* ── 渲染样式切换（文章详情头部的两枚圆点）：html[data-rstyle] 已由
-   <head> 内联脚本按 localStorage 设好，这里只回写按钮选中态；
-   点击写偏好后刷新 —— 样式切换走整页重渲染 ── */
-(function () {
-  var btns = document.querySelectorAll(".rst-btn");
-  if (!btns.length) return;
-  var cur = document.documentElement.getAttribute("data-rstyle") || "plain";
-  Array.prototype.forEach.call(btns, function (b) {
-    b.setAttribute("aria-pressed", String(b.getAttribute("data-rs") === cur));
-    b.addEventListener("click", function () {
-      try { localStorage.setItem("mbd-rstyle", b.getAttribute("data-rs")); } catch (e) {}
-      location.reload();
-    });
-  });
-})();
-
-/* ── 每周速递列表翻页（每页最多 3 个月）：分组 hidden 由构建期预置，这里只切换
-   页码态与上下页可用性；chips 点击改为「跳到目标月所在页并滚动到分组」；
-   无 JS 时 noscript 展开全部分组（行为同旧版长页） ── */
-(function () {
-  var bar = document.getElementById("wk-pgbar");
-  if (!bar) return;
-  var groups = Array.prototype.slice.call(document.querySelectorAll(".wk-group[data-page]"));
-  if (!groups.length) return;
-  var cur = 1, maxP = 1;
-  groups.forEach(function (g) { maxP = Math.max(maxP, +g.getAttribute("data-page")); });
-  function show(n, scroll) {
-    cur = Math.max(1, Math.min(maxP, n));
-    groups.forEach(function (g) { g.hidden = +g.getAttribute("data-page") !== cur; });
-    Array.prototype.forEach.call(bar.querySelectorAll("[data-p]"), function (b) {
-      var on = +b.getAttribute("data-p") === cur;
-      b.classList.toggle("on", on);
-      if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
-    });
-    document.getElementById("wk-pg-prev").disabled = cur <= 1;
-    document.getElementById("wk-pg-next").disabled = cur >= maxP;
-    try { history.replaceState(null, "", "#p" + cur); } catch (e) {}
-    if (scroll) {
-      var q = document.querySelector(".wk-quicknav");
-      if (q) window.scrollTo({ top: q.getBoundingClientRect().top + window.pageYOffset - 70, behavior: "smooth" });
-    }
-  }
-  bar.addEventListener("click", function (e) {
-    var b = e.target.closest("[data-p]");
-    if (b) show(+b.getAttribute("data-p"), true);
-  });
-  document.getElementById("wk-pg-prev").addEventListener("click", function () { show(cur - 1, true); });
-  document.getElementById("wk-pg-next").addEventListener("click", function () { show(cur + 1, true); });
-  Array.prototype.forEach.call(document.querySelectorAll(".wk-quicknav .wk-btn"), function (a) {
-    a.addEventListener("click", function (e) {
-      var g = document.getElementById(a.getAttribute("href").slice(1));
-      if (!g) return;
-      e.preventDefault();
-      show(+g.getAttribute("data-page"), false);
-      g.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-  });
-  var m = location.hash.match(/^#p(\\d+)$/);
-  show(m ? Math.max(1, Math.min(maxP, +m[1])) : 1, false);
-})();
-"""
+# ── 前端源码外置于 assets_src/（与 GeoSciPlot 同构）：改样式/脚本直接编辑
+#    assets_src/style.css 与 assets_src/papers.js，改完重跑本脚本即可（?v= 防缓存）。
+#    papers.js 构建时会在头部注入 window.MBD 配置（见 main），源文件本身不含配置
+ASSETS_SRC = ROOT / "assets_src"
+CSS = (ASSETS_SRC / "style.css").read_text(encoding="utf-8")
+JS = (ASSETS_SRC / "papers.js").read_text(encoding="utf-8")
 
 
 def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "",
                description: str = "", path: str = "", og_type: str = "website",
                og_image: str = "", bare: bool = False, rstyle: str = "",
-               extra_assets: list[str] | None = None, noindex: bool = False) -> str:
+               extra_assets: list[str] | None = None, noindex: bool = False,
+               keywords: str = "", og_article: dict | None = None,
+               og_image_alt: str = "") -> str:
     up = "../" * depth          # depth=2（weekly 文章页）需要 ../../，此前按布尔少了一级
     gh = gh_url or "https://github.com/{}/{}".format(
         cfg.get("owner") or "OWNER", cfg["repo"])
@@ -1437,6 +165,7 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
     # 有封面图时附 og:image（分享卡片带封面，og:image 需绝对 URL）
     base = (cfg.get("site_url") or "").rstrip("/")
     og = ""
+    twitter = ""
     canonical = ""
     if base:
         og_rows = [
@@ -1445,12 +174,43 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
             f'<meta property="og:type" content="{esc(og_type)}">',
             f'<meta property="og:url" content="{esc(base + path)}">',
             f'<meta property="og:site_name" content="{esc(cfg["title"])}">',
+            '<meta property="og:locale" content="zh_CN">',
         ]
         if og_image:
             og_rows.append(f'<meta property="og:image" content="{esc(og_image)}">')
+            og_rows.append(f'<meta property="og:image:alt" content="{esc(og_image_alt or title)}">')
+        # article:* 是 og:type=article 的配套语义（分享卡片与 AI 引擎都读发布时间/栏目/标签）；
+        # 值由调用方按页面给出，不在这里猜
+        if og_type == "article" and og_article:
+            if og_article.get("published"):
+                og_rows.append('<meta property="article:published_time" content="'
+                               f'{esc(og_article["published"])}">')
+            if og_article.get("section"):
+                og_rows.append(f'<meta property="article:section" content="{esc(og_article["section"])}">')
+            for _t in (og_article.get("tags") or [])[:8]:
+                og_rows.append(f'<meta property="article:tag" content="{esc(_t)}">')
         og = "\n".join(og_rows)
+        # Twitter/X 卡片：全部从上面的 OG 值派生，不引入第二套数据（无图退摘要卡）
+        tw_card = "summary_large_image" if og_image else "summary"
+        tw_rows = [f'<meta name="twitter:card" content="{tw_card}">',
+                   f'<meta name="twitter:title" content="{esc(title)}">',
+                   f'<meta name="twitter:description" content="{esc(desc[:200])}">']
+        if og_image:
+            tw_rows.append(f'<meta name="twitter:image" content="{esc(og_image)}">')
+        twitter = "\n".join(tw_rows)
         # canonical 与 og:url 同值：多入口/带参数访问时搜索引擎只认这一份
         canonical = f'<link rel="canonical" href="{esc(base + path)}">'
+    # theme-color 与 :root token 同值（深 #0d1117 / 浅 #fff，见样式表 :root 两行），
+    # 移动端浏览器地址条配色跟随主题；apple-touch-icon 复用 favicon.png；
+    # atom.xml 早就在生成但页面从不引用 —— 补自动发现链接才算真的可订阅
+    feed_href = (base + "/atom.xml") if base else f"{up}atom.xml"
+    head_extra = "\n".join([
+        '<meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)">',
+        '<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">',
+        f'<link rel="apple-touch-icon" href="{up}assets/favicon.png">',
+        f'<link rel="alternate" type="application/atom+xml" '
+        f'title="{esc(cfg["title"])} · {esc(cfg["subtitle"])}" href="{esc(feed_href)}">',
+    ] + ([f'<meta name="keywords" content="{esc(keywords)}">'] if keywords else []))
     # ── 顶部菜单栏：全部页面共用，样式对齐主站 zbhgis.com（v3-nav 同源）。
     #    左站点名 / 右导航组：每周速递（/weekly/）· 全站统计（/statistics/，按 path 标 active）
     #    · 更多▾ 下拉（hover / focus-visible 展开，纯 CSS；zbhgis 与 GeoSciPlot 外链）。
@@ -1525,8 +285,10 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
 {'<meta name="robots" content="noindex">' if noindex else ''}
 {og}
 {canonical}
+{twitter}
+{head_extra}
 <link rel="stylesheet" href="{up}assets/style.css?v={BUILD_VER}">
-<link rel="icon" type="image/png" href="{up}assets/favicon.png">
+<link rel="icon" type="image/png" href="{up}assets/favicon.png?v={BUILD_VER}">
 <script>try{{var t=localStorage.getItem("mbd-theme");if(t)document.documentElement.setAttribute("data-theme",t)}}catch(e){{}}</script>
 <script>try{{var f=localStorage.getItem("mbd-fs");if(f)document.documentElement.setAttribute("data-fs",f)}}catch(e){{}}</script>
 <script>
@@ -1732,14 +494,16 @@ def card_html(p: dict) -> str:
     ctb = (p.get("cover_thumb") or "").strip()
     ctw, cth = p.get("cover_thumb_w") or 0, p.get("cover_thumb_h") or 0
     dims = f' width="{ctw}" height="{cth}"' if ctw and cth else ""
+    # alt 带题名（此前全是「封面图」——图片检索与无障碍都拿不到信息，截 40 字防超长中文标题）
+    alt_cov = esc((display_title(p) or p.get("title") or "封面图")[:40])
     if ctb:
         # 缩略外链优先（图床 webp，30-60KB）；width/height 预留位 + 「加载中」占位层；
         # data-full 供加载失败时回退原图外链
         cov_html = (f'\n  <span class="c-covbox"><img class="c-cov" src="{esc(ctb)}"'
-                    f' data-full="{cover_src(cov)}"{dims} alt="封面图" loading="lazy"></span>')
+                    f' data-full="{cover_src(cov)}"{dims} alt="《{alt_cov}》封面图" loading="lazy"></span>')
     elif cov:
         cov_html = (f'\n  <span class="c-covbox"><img class="c-cov" src="{cover_src(cov)}"'
-                    f' alt="封面图" loading="lazy"></span>')
+                    f' alt="《{alt_cov}》封面图" loading="lazy"></span>')
     else:
         cov_html = f'\n  <span class="c-ph">{esc(jb)}</span>'
     return f"""<a class="card" href="{esc(p['id'])}/" title="{tip}">{cov_html}
@@ -1823,6 +587,12 @@ def build_index(cfg: dict, items: list) -> str:
             "@context": "https://schema.org", "@type": "WebSite",
             "name": cfg["title"], "alternateName": cfg["subtitle"],
             "url": base, "description": cfg["lede"], "inLanguage": "zh-CN",
+            # SearchAction：站点有 /search/ 全文检索，声明后引擎可把站内检索挂进结果
+            "potentialAction": {
+                "@type": "SearchAction",
+                "target": {"@type": "EntryPoint", "urlTemplate": base + "/search/?q={search_term_string}"},
+                "query-input": "required name=search_term_string",
+            },
         }
         ld_html = json.dumps(ld, ensure_ascii=False).replace("<", "\\u003c")
         ld_site = '<script type="application/ld+json">' + ld_html + "</script>"
@@ -1960,9 +730,10 @@ def build_detail(cfg: dict, items: list, idx: int) -> str:
 
     # ── 图表节（可选）：封面图独立成节（公众号「3.图表」式），无封面则整节不出现 ──
     cov = (p.get("cover") or "").strip()
+    fig_alt = esc(f"《{display_title(p)[:40]}》文章图表 / 图形摘要")
     fig_sec = (f'<section class="sec">{sech("图表")}'
                f'<figure class="p-cover"><img src="{cover_src(cov, "../")}" '
-               f'alt="文章图表 / 封面图"></figure></section>') if cov else ""
+               f'alt="{fig_alt}"></figure></section>') if cov else ""
 
     body = f"""<a class="back" href="../">{back_ico}返回全部</a>
 <div class="pbody">
@@ -1981,10 +752,31 @@ def build_detail(cfg: dict, items: list, idx: int) -> str:
 <p class="a-end">· END ·</p>
 {chr(10).join(pager)}
 </div>"""
-    desc = (p.get("title") or "") + " — " + (p.get("journal") or "")
-    if (p.get("abstract") or "").strip():
-        desc += "：" + p["abstract"].strip()[:120]
-    # 学术结构化数据（Schema.org ScholarlyArticle），利于搜索引擎理解文献信息
+    # ── SEO/GEO：站点版式与卡片一律中文优先，title / description 此前漏跟上（用的还是
+    #    Crossref 英文原题，中文查询在权重最高的字段上零命中）——这里统一改中文题名优先。
+    #    英文原题仍在 H1 副行、JSON-LD name 与正文里出现，英文检索由页面正文命中 ──
+    jnl = (p.get("journal") or "").strip()
+    jshort = (p.get("journal_short") or "").strip() or jnl
+    zh_abs = (p.get("abstract_zh") or "").strip()
+    en_abs = (p.get("abstract") or "").strip()
+    seo_title = f"{display_title(p)} · {jshort}" if jshort else f"{display_title(p)} · {cfg['title']}"
+    desc = f"{display_title(p)}｜{jshort} {p.get('year') or ''}".strip()
+    lead = zh_abs or en_abs
+    if lead:
+        # 摘要节选优先落在句末（约 110 字内）——[:120] 硬切会把断在半句的尾巴发给引擎；
+        # 首句本身就超长时明确加「…」，不假装是完整句。
+        # 不带 DOI 尾巴：整条 description 要控制在 og:description 的 200 字裁剪线内
+        cut = lead[:110]
+        i = max(cut.rfind("。"), cut.rfind(". "))
+        if i >= 50:
+            cut = cut[:i + (1 if cut[i] == "。" else 2)]
+        else:
+            cut = cut.rstrip("，、；: ;") + "…"
+        desc += "：" + cut.strip()
+    kw_all = [str(x) for x in ((p.get("keywords") or []) + (p.get("tags") or [])) if str(x).strip()]
+    # 学术结构化数据（Schema.org ScholarlyArticle），利于搜索引擎与 AI 引擎理解文献信息：
+    # url 指本页 canonical（引擎据此把文献实体锚定到本站），DOI 走 identifier + sameAs；
+    # description 必须给摘要 —— 这是答案引擎最常整段引用的字段；卷/页/ISSN/体裁一并进实体。
     base = (cfg.get("site_url") or "").rstrip("/")
     if cov.startswith(("http://", "https://")):
         og_image = cov                      # 外链封面本身就是绝对 URL
@@ -1992,25 +784,40 @@ def build_detail(cfg: dict, items: list, idx: int) -> str:
         og_image = (f"{base}/assets/{cov}" if (base and cov) else "")
     ld = {
         "@context": "https://schema.org", "@type": "ScholarlyArticle",
-        "headline": p.get("title") or "", "inLanguage": "en",
+        "name": p.get("title") or "",
+        "headline": p.get("title") or "",          # 与 name 同值，兼容只读 headline 的引擎
+        "alternateName": (p.get("title_zh") or "").strip() or None,
+        "inLanguage": "en",                 # 描述的是原论文语言（页面本身 lang=zh-CN）
+        "description": zh_abs or en_abs or None,
         "author": [{"@type": "Person", "name": a} for a in (p.get("authors") or [])],
         "datePublished": p.get("published") or p.get("year") or None,
-        "isPartOf": p.get("journal") or None,
-        "publisher": p.get("publisher") or None,
-        "identifier": p.get("doi") or None,
-        "url": f"https://doi.org/{p['doi']}" if p.get("doi") else None,
+        "isPartOf": ({"@type": "Periodical", "name": jnl,
+                      "issn": (p.get("issn") or "").strip() or None} if jnl else None),
+        "publisher": ({"@type": "Organization", "name": p["publisher"]} if p.get("publisher") else None),
+        "identifier": ({"@type": "PropertyValue", "propertyID": "doi",
+                        "value": p["doi"]} if p.get("doi") else None),
+        "sameAs": (f"https://doi.org/{p['doi']}" if p.get("doi") else None),
+        "url": (base + f"/{p['id']}/") if base else None,
         "image": og_image or None,
-        "keywords": ", ".join((p.get("keywords") or []) + (p.get("tags") or [])) or None,
+        "keywords": ", ".join(kw_all) or None,
+        "genre": (p.get("article_type") or "").strip() or None,
+        "volume": (p.get("volume") or "").strip() or None,
+        "pagination": (p.get("pages") or "").strip() or None,
     }
-    ld = {k: v for k, v in ld.items() if v}
+    ld = {k: ({kk: vv for kk, vv in v.items() if vv} if isinstance(v, dict) else v)
+          for k, v in ld.items() if v}
     # "</script>" 会出现于标题/摘要时会把内嵌 script 提前截断：把 "<" 转成 Unicode 转义
     ld_html = (json.dumps(ld, ensure_ascii=False).replace("<", "\\u003c") if base else "")
     ld_block = ('<script type="application/ld+json">' + ld_html + "</script>") if ld_html else ""
     body = body + ld_block
-    return page_shell(cfg, f"{p.get('title')} · {cfg['title']}", body, depth=1,
+    return page_shell(cfg, seo_title, body, depth=1,
                       gh_url=f"https://github.com/{cfg.get('owner') or 'OWNER'}/{cfg['repo']}",
                       description=desc, path=f"/{p['id']}/", og_type="article",
                       og_image=og_image, rstyle="accent",
+                      keywords=", ".join(kw_all[:10]),
+                      og_article={"published": p.get("published") or "", "section": jnl,
+                                  "tags": kw_all[:8]},
+                      og_image_alt=f"{display_title(p)}（{jshort}）封面 / 图形摘要",
                       extra_assets=["image-lightbox.js", "article-toc.js"])
 
 
@@ -2147,15 +954,15 @@ def build_about(cfg: dict) -> str:
     return page_shell(cfg, f"关于本站 · {cfg['title']}", body, depth=1, path="/about/")
 
 
-def build_weekly(cfg: dict) -> list[str]:
-    """构建 /weekly/ 列表页与各文章页；返回（供 sitemap 的）URL 路径列表。"""
+def build_weekly(cfg: dict) -> tuple[list[str], list[dict]]:
+    """构建 /weekly/ 列表页与各文章页；返回（供 sitemap 的）URL 路径列表与期次索引。"""
     if not WEEKLY_SRC.is_dir():
-        return []
+        return [], []
     try:
         from render_md import parse_md
     except ImportError:
         print("· 每周速递：缺 scripts/render_md.py，跳过")
-        return []
+        return [], []
 
     posts = []
     for md in sorted(WEEKLY_SRC.glob("*.md")):
@@ -2202,7 +1009,7 @@ def build_weekly(cfg: dict) -> list[str]:
             "plain": plain,
         })
     if not posts:
-        return []
+        return [], []
     posts.sort(key=lambda p: p["date"], reverse=True)   # 新→旧；i-1 更新（上一篇）
 
     # 周报搜索数据（/search/ 页客户端检索用）：全文存 plain（截 30000 字符防无限增长）；
@@ -2259,10 +1066,34 @@ def build_weekly(cfg: dict) -> list[str]:
 </div>"""
         d = SITE / "weekly" / p["slug"]
         d.mkdir(parents=True, exist_ok=True)
-        html_txt = page_shell(cfg, p["title"], body, depth=2,
+        # 周报文章页此前完全没有结构化数据，title 也不带站点名（长标题在结果里被截断
+        # 后认不出是谁家的）—— 补 BlogPosting + 站点名后缀 + article:* 语义
+        wbase = (cfg.get("site_url") or "").rstrip("/")
+        ld_w = {
+            "@context": "https://schema.org", "@type": "BlogPosting",
+            "headline": p["title"],
+            "description": (p["summary"] or "").strip() or None,
+            "datePublished": p["date"] or None,
+            "inLanguage": "zh-CN",
+            "url": (wbase + f"/weekly/{p['slug']}/") if wbase else None,
+            "author": {"@type": "Organization", "name": cfg["title"], "url": wbase or None},
+            "publisher": {"@type": "Organization", "name": cfg["title"], "url": wbase or None},
+            "image": p["og_image"] or None,
+            "articleSection": "每周速递",
+            "keywords": "宏观生物多样性, 每周速递, Nature, Science, Cell 系列",
+        }
+        ld_w = {k: ({kk: vv for kk, vv in v.items() if vv} if isinstance(v, dict) else v)
+                for k, v in ld_w.items() if v}
+        ld_w_html = (json.dumps(ld_w, ensure_ascii=False).replace("<", "\\u003c") if wbase else "")
+        ld_w_block = ('<script type="application/ld+json">' + ld_w_html + "</script>") if ld_w_html else ""
+        html_txt = page_shell(cfg, f"{p['title']} · {cfg['title']}", body + ld_w_block, depth=2,
                               description=p["summary"], path=f"/weekly/{p['slug']}/",
                               og_type="article", og_image=p["og_image"], bare=True,
                               rstyle="plain",
+                              keywords="宏观生物多样性, 每周速递, Nature, Science, Cell 系列精选",
+                              og_article={"published": p["date"] or "", "section": "每周速递",
+                                          "tags": ["宏观生物多样性", "Nature", "Science", "Cell"]},
+                              og_image_alt=f"{p['title']} 图表",
                               extra_assets=["image-lightbox.js", "article-toc.js"])
         (d / "index.html").write_text(html_txt, encoding="utf-8")
 
@@ -2347,7 +1178,12 @@ def build_weekly(cfg: dict) -> list[str]:
             except OSError:
                 pass
     print(f"· 每周速递：列表页 + {n_week} 篇文章页 → weekly/")
-    return ["/weekly/"] + [f"/weekly/{p['slug']}/" for p in posts]
+    # 第二返回值给 llms.txt / llms-full.txt 用：期次索引（slug / 标题 / 日期 / 摘要 /
+    # 纯文本正文截 4000 字）。周报是本站独有的中文解读内容，只给引擎一条 /weekly/
+    # 链接等于没给——它需要的正是这批可读文本
+    wk_index = [{"slug": p["slug"], "title": p["title"], "date": p["date"],
+                 "summary": p["summary"], "plain": p["plain"][:4000]} for p in posts]
+    return ["/weekly/"] + [f"/weekly/{p['slug']}/" for p in posts], wk_index
 
 
 def main() -> int:
@@ -2382,13 +1218,16 @@ def main() -> int:
                     pass
 
     (SITE / "assets").mkdir(parents=True, exist_ok=True)
-    for f in (ROOT / "assets_src").glob("*"):
-        if f.is_file():
+    # GENERATED 集合内的文件由后面的专门步骤处理（style.css 原样写出、papers.js
+    # 要注入 window.MBD 配置、*-data.js 为构建期生成）——原样拷贝会覆盖掉成品
+    GENERATED = {"style.css", "papers.js", "papers-data.js", "weekly-data.js", "stats-data.js"}
+    for f in ASSETS_SRC.glob("*"):
+        if f.is_file() and f.name not in GENERATED:
             shutil.copyfile(f, SITE / "assets" / f.name)
 
     # 封面图整体随构建拷入站点（源文件在 assets_src/covers/，随 git 入库）。
     # 镜像式同步：管理端删过的封面不残留在构建产物里
-    src_covers = ROOT / "assets_src" / "covers"
+    src_covers = ASSETS_SRC / "covers"
     if src_covers.is_dir():
         dst_covers = SITE / "assets" / "covers"
         shutil.copytree(src_covers, dst_covers, dirs_exist_ok=True)
@@ -2400,13 +1239,16 @@ def main() -> int:
         n_used = len([p for p in items if p.get("cover")])
         print(f"· 封面图 {n_cov} 张（{n_used} 篇文献引用）→ assets/covers/")
 
-    (SITE / "assets" / "style.css").write_text(CSS, encoding="utf-8")
+    # newline="" 保持 \n 原样落盘：write_text 默认在 Windows 上把行尾翻成 CRLF，
+    # 产物就会偏离 assets_src 源文件的「原样写出」口径
+    (SITE / "assets" / "style.css").write_text(CSS, encoding="utf-8", newline="")
     inline = {
         "tracker": cfg.get("tracker", ""),
         "api": cfg.get("api", ""),
     }
     (SITE / "assets" / "papers.js").write_text(
-        "window.MBD = " + json.dumps(inline, ensure_ascii=False) + ";\n" + JS, encoding="utf-8")
+        "window.MBD = " + json.dumps(inline, ensure_ascii=False) + ";\n" + JS,
+        encoding="utf-8", newline="")
 
     # 全量元数据：首页网格与全站搜索页共用这一份数据（详情页没有内嵌数据，
     # 靠它实现跨页搜索）。se = 检索 haystack，构建期算好免去 JS 重复拼接。
@@ -2440,58 +1282,156 @@ def main() -> int:
         encoding="utf-8")
 
     # robots.txt + sitemap.xml：配置了 site_url 才生成（部署完整性 / 搜索引擎收录）
-    weekly_urls = build_weekly(cfg)          # 每周速递：列表页 + 各文章页
+    weekly_urls, weekly_index = build_weekly(cfg)   # 每周速递：列表页 + 各文章页（+ 期次索引）
     base = (cfg.get("site_url") or "").rstrip("/")
     if base:
         # AI 爬虫白名单（GEO）：与主站 zbhgis.com robots.ts 同一份清单——
-        # 允许产出引用的 AI 引擎抓取，语义同主站"让模型看到、引用我们"
+        # 允许产出引用的 AI 引擎抓取，语义同主站"让模型看到、引用我们"。
+        # 另补中文搜索引擎与其 AI 抓取端（本站受众在中文侧，B 家引擎不吃默认 * 的兼容匹配）
         ai_crawlers = (
             "GPTBot", "ChatGPT-User", "OAI-SearchBot", "ClaudeBot", "Claude-Web",
             "Claude-SearchBot", "PerplexityBot", "Perplexity-User", "Google-Extended",
             "CCBot", "Meta-ExternalAgent", "FacebookBot", "Applebot", "Applebot-Extended",
             "Amazonbot", "DuckAssistBot", "Bytespider", "PetalBot",
+            "Omgilibot", "YouBot", "Diffbot", "Bytedance",
         )
+        # 中文搜索引擎（本站受众在中文侧）；Sogou 的 UA 名含空格，不符合 RFC 9309 的
+        # UA-name 字符集（写了会被忽略），故不列——通配 * 已允许它抓取
+        cn_engines = ("Baiduspider", "360Spider", "YisouSpider")
         robots_lines = (["User-agent: *", "Allow: /", ""]
-                        + [f"User-agent: {ua}\nAllow: /" for ua in ai_crawlers]
+                        + [f"User-agent: {ua}\nAllow: /" for ua in ai_crawlers + cn_engines]
                         + ["", "Sitemap: " + base + "/sitemap.xml"])
         (SITE / "robots.txt").write_text("\n".join(robots_lines) + "\n", encoding="utf-8")
         today = time.strftime("%Y-%m-%d")
         # lastmod 用每篇文献真实的收录日期（added），而非构建时间——
         # 否则每次重新构建全站都声称"今天改过"，引擎会学会忽略这个字段
         home_lastmod = max((p.get("added") or "" for p in items), default="") or today
-        urls = [("/", home_lastmod),
-                ("/search/", today), ("/statistics/", today), ("/about/", today)]
-        urls += [("/" + p["id"] + "/", (p.get("added") or "").split("T")[0] or today) for p in items]
-        urls += [(u, today) for u in weekly_urls]
+        # (路径, lastmod, changefreq, priority)：文献详情页是主要落地页（0.8），
+        # 首页聚合全部（1.0）；周报文章页一经发布不再变动 → yearly；
+        # /search/ 与 /statistics/ 是交互工具页，权重给低但不排除（保持既有收录策略）
+        urls = [("/", home_lastmod, "weekly", "1.0"),
+                ("/search/", today, "monthly", "0.4"),
+                ("/statistics/", today, "monthly", "0.5"),
+                ("/about/", today, "yearly", "0.3")]
+        urls += [("/" + p["id"] + "/", (p.get("added") or "").split("T")[0] or today,
+                  "monthly", "0.8") for p in items]
+        urls += [(u, today, "weekly" if u == "/weekly/" else "yearly",
+                  "0.8" if u == "/weekly/" else "0.7") for u in weekly_urls]
         sm = ['<?xml version="1.0" encoding="UTF-8"?>',
               '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
-        for u, lm in urls:
-            sm.append(f"<url><loc>{base}{u}</loc><lastmod>{lm}</lastmod></url>")
+        for u, lm, cf, pr in urls:
+            sm.append(f"<url><loc>{base}{u}</loc><lastmod>{lm}</lastmod>"
+                      f"<changefreq>{cf}</changefreq><priority>{pr}</priority></url>")
         sm.append("</urlset>")
         (SITE / "sitemap.xml").write_text("\n".join(sm) + "\n", encoding="utf-8")
-        # llms.txt（GEO）：给 AI 引擎的自然语言站点地图——定位、栏目、全量文献索引。
-        # 与 sitemap 的纯 URL 清单互补：这里回答"是什么 / 有什么 / 去哪看"。
+        # llms.txt / llms-full.txt（GEO）：分两层，与 llms.txt 规范一致 ——
+        # llms.txt 是**索引**（栏目 / 主题 / 全量题录 / 周报期次，保持小巧）；
+        # llms-full.txt 是**全文**（每篇带中英文摘要 + 周报正文），答案引擎要整段引用时拉它。
         n_weekly = sum(1 for u in weekly_urls if u != "/weekly/")
+
+        def md_safe(s) -> str:
+            """纯文本文件里不做 HTML 转义，但要防方括号破坏 markdown 链接、防换行折断条目。"""
+            return re.sub(r"\s+", " ", str(s or "")).replace("[", "［").replace("]", "］").strip()
+
+        tag_ct = Counter(str(t).strip() for p in items for t in (p.get("tags") or []) if str(t).strip())
+        top_tags = " · ".join(f"[{md_safe(t)}]({base}/?tag={quote(t, safe='')}): {n} 篇"
+                              for t, n in tag_ct.most_common(12)) or "（暂未打标签）"
         paper_lines = "\n".join(
             f"- [{display_title(p)}]({base}/{p['id']}/): {(p.get('journal') or '—').strip()}"
             f" {p.get('year') or ''}".rstrip()
             + (f" · DOI: {p['doi']}" if p.get("doi") else "")
             for p in items)
+        weekly_lines = "\n".join(
+            f"- [{md_safe(w['title'])}]({base}/weekly/{w['slug']}/): {w['date']}"
+            + (f" · {md_safe(w['summary'])[:60]}" if w["summary"] else "")
+            for w in weekly_index)
         llms = f"""# {cfg['title']}（{cfg['subtitle']}）
 
 > {cfg['lede']} 元数据来自 Crossref / OpenAlex，中文摘要为 AI 辅助翻译（初译+审校）。
+> 共 {len(items)} 篇文献、{n_weekly} 期每周速递；最近更新 {home_lastmod}。
+> 需要摘要全文（中英文）用于回答或引用时，读 [{base}/llms-full.txt]({base}/llms-full.txt)。
+
+## 栏目
 
 - [首页]({base}/): 全部 {len(items)} 篇文献的卡片视图，可按标签/期刊/年份筛选
 - [全站搜索]({base}/search/): 标题 / 作者 / DOI / 期刊 / 摘要全文检索
 - [每周速递]({base}/weekly/): Nature / Science / Cell 系列大尺度生物多样性研究每周精选（{n_weekly} 期）
 - [全站统计]({base}/statistics/): 关键词 / 期刊 / 年份分布
 - [关于本站]({base}/about/): 站点定位、数据来源与说明
+- [Atom 订阅]({base}/atom.xml): 最新收录 20 篇
+
+## 主题标签（按篇数）
+
+{top_tags}
 
 ## 文献（{len(items)} 篇）
 
 {paper_lines}
+
+## 每周速递（{n_weekly} 期，新→旧）
+
+{weekly_lines}
 """
         (SITE / "llms.txt").write_text(llms, encoding="utf-8")
+        # 全文文件：每篇一段，字段顺序固定（题名 / 出处 / DOI / 作者 / 关键词 / 摘要），
+        # 摘要不设截断——这一层的意义就是让引擎拿到可引用的原文
+        blocks: list[str] = []
+        for p in items:
+            zh_t = display_title(p)
+            head = [f"### {md_safe(zh_t)}", f"链接: {base}/{p['id']}/"]
+            if (p.get("title") or "").strip() and p["title"].strip() != zh_t.strip():
+                head.append(f"英文题名: {md_safe(p['title'])}")
+            src = f"出处: {(p.get('journal') or '—').strip()}"
+            if p.get("year"):
+                src += f" {p['year']}"
+            vp = []
+            if p.get("volume"):
+                vp.append(f"卷 {p['volume']}")
+            if p.get("issue"):
+                vp.append(f"期 {p['issue']}")
+            if p.get("pages"):
+                vp.append(f"页 {p['pages']}")
+            if vp:
+                src += " · " + " ".join(vp)
+            head.append(src)
+            if p.get("published"):
+                head.append(f"在线发表: {p['published']}")
+            if p.get("doi"):
+                head.append(f"DOI: {p['doi']} · https://doi.org/{p['doi']}")
+            if p.get("article_type"):
+                head.append(f"体裁: {md_safe(p['article_type'])}")
+            if p.get("authors"):
+                head.append("作者: " + ", ".join(md_safe(a) for a in p["authors"]))
+            kws = [str(x).strip() for x in ((p.get("keywords") or []) + (p.get("tags") or [])) if str(x).strip()]
+            if kws:
+                head.append("关键词: " + "; ".join(md_safe(k) for k in kws[:12]))
+            if (p.get("abstract_zh") or "").strip():
+                head.append("中文摘要: " + " ".join(str(p["abstract_zh"]).split()))
+            if (p.get("abstract") or "").strip():
+                head.append("原文摘要（English）: " + " ".join(str(p["abstract"]).split()))
+            blocks.append("\n".join(head))
+        wk_blocks = [
+            f"### {md_safe(w['title'])}\n链接: {base}/weekly/{w['slug']}/\n发布于: {w['date']}\n"
+            "正文: " + " ".join(str(w["plain"] or w["summary"]).split())
+            for w in weekly_index]
+        papers_md = "\n\n".join(blocks)
+        weekly_md = "\n\n".join(wk_blocks)
+        llms_full = f"""# {cfg['title']}（{cfg['subtitle']}）· 全文索引
+
+> 本文件面向大模型与答案引擎，收录本站全部 {len(items)} 篇文献的题录与中英文摘要、
+> 以及 {n_weekly} 期「每周速递」中文精选正文。元数据来自 Crossref / OpenAlex，
+> 中文摘要为 AI 辅助翻译（初译 + 审校），可能存在术语偏差，引用请以 DOI 指向的原文为准。
+> 站点首页: {base}/ · 索引文件: {base}/llms.txt · 生成: {today}
+
+## 文献（{len(items)} 篇，新→旧）
+
+{papers_md}
+
+## 每周速递（{n_weekly} 期，新→旧）
+
+{weekly_md}
+"""
+        (SITE / "llms-full.txt").write_text(llms_full, encoding="utf-8")
         # 404.html：配合 nginx 的 try_files =404 + error_page 使用——
         # 兜底 /index.html 的旧写法会把所有坏链都变成 200 首页（软 404）
         nf_body = ('<header class="site"><h1 class="home-title">404</h1>'
@@ -2515,19 +1455,27 @@ def main() -> int:
             return esc(xml_bad.sub("", s or ""))
 
         newest = sorted(items, key=lambda p: p.get("added") or "", reverse=True)[:20]
+        # 时区按 +08:00 标注（站点在中文语境制作，此前写死 Z=UTC 是把日期谎称早 8 小时）
+        cst = "+08:00"
         atom = ['<?xml version="1.0" encoding="utf-8"?>',
                 '<feed xmlns="http://www.w3.org/2005/Atom">',
                 f'<title>{xml_text(cfg["title"])} · {xml_text(cfg["subtitle"])}</title>',
-                f'<link href="{base}/"/><id>{base}/</id>',
-                f'<updated>{time.strftime("%Y-%m-%dT00:00:00Z")}</updated>']
+                f'<link rel="alternate" type="text/html" href="{base}/"/>',
+                f'<link rel="self" type="application/atom+xml" href="{base}/atom.xml"/>',
+                f'<id>{base}/</id>',
+                f'<updated>{time.strftime("%Y-%m-%dT00:00:00")}{cst}</updated>',
+                f'<author><name>{xml_text(cfg["title"])}</name><uri>{base}/</uri></author>']
         for p in newest:
             summ = (p.get("abstract_zh") or p.get("abstract") or "")[:300]
             atom += ['<entry>',
                      f'<title>{xml_text(display_title(p))}</title>',
-                     f'<link href="{base}/{p["id"]}/"/>',
+                     f'<link rel="alternate" type="text/html" href="{base}/{p["id"]}/"/>',
                      f'<id>urn:doi:{xml_text(p.get("doi", p["id"]))}</id>',
-                     f'<updated>{p.get("added") or time.strftime("%Y-%m-%d")}T00:00:00Z</updated>',
+                     f'<published>{p.get("added") or time.strftime("%Y-%m-%d")}T00:00:00{cst}</published>',
+                     f'<updated>{p.get("added") or time.strftime("%Y-%m-%d")}T00:00:00{cst}</updated>',
                      f'<summary>{xml_text(summ)}</summary>']
+            if p.get("journal"):
+                atom.append(f'<category term="{xml_text(p["journal"])}"/>')
             for a in (p.get("authors") or [])[:5]:
                 atom.append(f'<author><name>{xml_text(a)}</name></author>')
             atom.append('</entry>')

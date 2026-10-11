@@ -12,4 +12,5 @@ Thumbs.db
 
 # 本地工具与临时文件
 .trae/
+.zcode/
 debug.log
