@@ -119,9 +119,12 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   Home 随机顺序全变（2026-10-05 实际踩坑，GSP 路由 + 会话种子同修））；
   **排序胶囊首帧预置**（2026-10-11）：静态 HTML 把「新到旧」写死为按下态，papers.js
   加载后才按「URL ?sort= > localStorage 偏好」纠正，慢网下可见一瞬间默认态再跳变
-  （?sort=rand 分享链接实测）——`SORT_PRESTATE` 内联脚本紧跟 sortseg 输出、解析期
+  （?sort=rand 分享链接实测）——`STATE_PRESTATE` 内联脚本紧跟 sortseg 输出、解析期
   同步执行，按同一优先级预置 `aria-pressed` 消除闪烁；不写 localStorage，
-  「URL 排序仅本次生效」语义不变（GSP 同款同修）
+  「URL 排序仅本次生效」语义不变（GSP 同款同修）。同日扩展为**全部筛选控件**：
+  面板折叠（`mbd-filters`，按钮同步「筛选 ▾」）、搜索词与日期区间回填输入框、
+  tag/journal chips 多选按 URL 值预置——静态默认态与 JS 纠正态之间不再有任何
+  可见跳变（卡片网格本身的重排为静态首屏设计的固有行为，不在消除之列）
 - **chips 多选语义（GeoSciPlot 同源，2026-10 重做）**：默认全选（构建期
   `aria-pressed="true"`），点击某枚=剔除，行尾固定两枚虚线胶囊「全选」「反选」；计数
   徽标 `<i class="n">` 为 chip 内 mini 胶囊（`--line` 底、`min-width:22px` 定宽、
