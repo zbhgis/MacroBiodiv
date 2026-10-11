@@ -84,6 +84,12 @@ button.tiny{padding:4px 9px;font-size:11px}
 #jobZone{position:sticky;top:10px;z-index:30;margin:14px 0;padding:10px 12px;border:1px solid var(--line2);border-radius:8px;background:var(--card);box-shadow:0 6px 18px rgba(0,0,0,.18)}
 #jobZone:has(#log:empty){display:none}
 #jobZone .log{margin-top:6px;max-height:34vh;overflow-y:auto}
+/* 周报任务日志区：原在期次列表最底部（39 期长列表之后，每次都要划到底才看到）——
+   移到「上传周报」下方、期次列表上方，同 jobZone 一样 sticky 置顶、空态隐藏。
+   不并入全局 #jobZone：后台任务无并行锁，两区分开日志才不会互相覆盖 */
+#wkJobZone{position:sticky;top:10px;z-index:30;margin:14px 0;padding:10px 12px;border:1px solid var(--line2);border-radius:8px;background:var(--card);box-shadow:0 6px 18px rgba(0,0,0,.18)}
+#wkJobZone:has(#wkLog:empty){display:none}
+#wkJobZone .log{margin-top:6px;max-height:34vh;overflow-y:auto}
 .step{display:flex;gap:10px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--line);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px}
 .step .mark{width:14px;flex:none}
 .step .nm{color:var(--text)}
@@ -238,6 +244,11 @@ details pre{margin:8px 0 0;padding:10px;border:1px solid var(--line);border-radi
       </div>
     </div>
 
+    <div id="wkJobZone">
+      <p class="note" style="margin:0"><b>周报任务日志</b><span class="note">（收录 / 删除 / 补全中文 · 滚动时置顶跟随）</span></p>
+      <div class="log" id="wkLog"></div>
+    </div>
+
     <h2>已收录期次</h2>
     <div class="row" style="margin:0 0 14px">
       <label class="mono" style="display:flex;align-items:center;gap:6px;margin:0;font-size:11px;cursor:pointer">
@@ -249,7 +260,6 @@ details pre{margin:8px 0 0;padding:10px;border:1px solid var(--line);border-radi
     </div>
     <div id="wkList"><p class="note">读取中…</p></div>
     <div id="wkPager" class="mpager"></div>
-    <div class="log" id="wkLog"></div>
   </div>
 
   <div class="tabpage" id="tab-manage" style="display:none">
