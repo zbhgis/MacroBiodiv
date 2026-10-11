@@ -1,8 +1,6 @@
+/*! 由 lib/image-lightbox.ts 编译生成（node scripts/compile_lightbox.mjs），勿直接改动 */
 /**
- * image-lightbox —— 零依赖文章图片灯箱（纯原生 JS，框架无关）
- *
- * 拷自 mystation 项目 frontend/lib/image-lightbox.ts（删除 TypeScript 类型标注转纯 JS），
- * 其余逻辑与上游保持一致，升级时可直接对照上游文件重新转换。
+ * image-lightbox —— 零依赖文章图片灯箱（纯原生 TS，框架无关）
  *
  * 特性：
  *   - 点击正文图片弹出灯箱；同容器内多图可左右切换（按钮 / 方向键 / 触摸滑动）
@@ -11,14 +9,31 @@
  *   - 打开时锁定背景滚动（带滚动条宽度补偿）；焦点移入灯箱、关闭后归还
  *   - 自动跳过链接内的图、超小图（徽章/图标）、data-no-lightbox 标记的图
  *
- * 复用方式：对任意容器调用 attachImageLightbox(selector, { exclude: ".no-zoom img" })，
- * 返回 detach() 供卸载时清理。样式随模块自动注入（<style data-lbx-style>），
- * 类名统一 lbx- 前缀，不污染宿主页面；配色可用 CSS 变量覆盖：
- * --lbx-backdrop / --lbx-accent / --lbx-fg。
+ * 复用方式（其他项目）：把本文件拷走，对任意容器调用
+ *   const detach = attachImageLightbox(".article-body", { exclude: ".no-zoom img" });
+ *   detach(); // 卸载时清理
  *
- * HTML 标记：data-no-lightbox 强制排除；data-lightbox="on" 让链接内的图强制参与；
- * data-lightbox-src="高清图URL" 指定灯箱里加载的更清晰版本。
+ * 样式随模块自动注入（<style data-lbx>），类名统一 lbx- 前缀，不污染宿主页面；
+ * 配色可用 CSS 变量覆盖：--lbx-backdrop / --lbx-accent / --lbx-fg。
  */
+
+                                  
+                               
+                    
+                                      
+                   
+                                                
+                          
+                             
+                    
+ 
+
+                     
+              
+              
+                                                             
+                  
+ 
 
 const STYLES_ID = "lbx-styles";
 const ROOT_Z = 99990;
@@ -74,7 +89,10 @@ const STYLES = `
 }
 `;
 
-function attachImageLightbox(target, options = {}) {
+function attachImageLightbox(
+  target                      ,
+  options                  = {},
+)             {
   const {
     selector = "img",
     exclude,
@@ -83,8 +101,8 @@ function attachImageLightbox(target, options = {}) {
   } = options;
 
   const container =
-    typeof target === "string" ? document.querySelector(target) : target;
-  if (!container) return function () {};
+    typeof target === "string" ? document.querySelector             (target) : target;
+  if (!container) return () => {};
 
   // ───────────────────────── 样式注入（幂等） ─────────────────────────
   if (!document.getElementById(STYLES_ID)) {
@@ -103,8 +121,12 @@ function attachImageLightbox(target, options = {}) {
   // ───────────────────────── 图片资格判定 ─────────────────────────
   // 链接里的图默认是导航元素（徽章、封面跳转），不劫持点击，data-lightbox="on"
   // 可强制参与；data-no-lightbox 反向排除；自然尺寸过小的按徽章/图标处理。
-  const isEligible = (img) => {
+  // 灯箱自己的大图（lbx-img）也要排除：根节点就挂在容器里（本站挂 body），
+  // 关闭后 DOM 仍在，第二次打开收集图片列表时会把自己算进去——计数器凭空多出
+  // "1 / 2"、箭头出现，单指拖动被当成"切换到第二张（还是自己）"而像失效。
+  const isEligible = (img                  )          => {
     if (!img.matches(selector)) return false;
+    if (img.closest("[data-lbx]")) return false;
     if (img.hasAttribute("data-no-lightbox")) return false;
     if (img.closest("a[href]") && img.dataset.lightbox !== "on") return false;
     if (exclude && (img.matches(exclude) || img.closest(exclude))) return false;
@@ -119,7 +141,7 @@ function attachImageLightbox(target, options = {}) {
 
   // 合格图标注抓手光标；先清后加，让"加载后变小图"的也能摘掉标记
   const decorate = () => {
-    const imgs = container.querySelectorAll("img");
+    const imgs = container.querySelectorAll                  ("img");
     imgs.forEach((img) => {
       const eligible = isEligible(img);
       img.classList.toggle("lbx-candidate", eligible);
@@ -132,16 +154,16 @@ function attachImageLightbox(target, options = {}) {
   observer.observe(container, { childList: true, subtree: true });
 
   // ───────────────────────── 灯箱 DOM（首次打开时创建） ─────────────────────────
-  let root = null;
-  let stageEl;
-  let imgEl;
-  let spinnerEl;
-  let captionEl;
-  let counterEl;
-  let zoomEl;
-  let prevBtn;
-  let nextBtn;
-  let closeBtn;
+  let root                     = null;
+  let stageEl             ;
+  let imgEl                  ;
+  let spinnerEl             ;
+  let captionEl             ;
+  let counterEl             ;
+  let zoomEl             ;
+  let prevBtn                   ;
+  let nextBtn                   ;
+  let closeBtn                   ;
 
   const ensureDom = () => {
     if (root) return;
@@ -172,15 +194,15 @@ function attachImageLightbox(target, options = {}) {
       <div class="lbx-caption"></div>
       <div class="lbx-zoom"></div>
     `;
-    stageEl = root.querySelector(".lbx-stage");
-    imgEl = root.querySelector(".lbx-img");
-    spinnerEl = root.querySelector(".lbx-spinner");
-    captionEl = root.querySelector(".lbx-caption");
-    counterEl = root.querySelector(".lbx-counter");
-    zoomEl = root.querySelector(".lbx-zoom");
-    prevBtn = root.querySelector(".lbx-prev");
-    nextBtn = root.querySelector(".lbx-next");
-    closeBtn = root.querySelector(".lbx-close");
+    stageEl = root.querySelector(".lbx-stage") ;
+    imgEl = root.querySelector(".lbx-img") ;
+    spinnerEl = root.querySelector(".lbx-spinner") ;
+    captionEl = root.querySelector(".lbx-caption") ;
+    counterEl = root.querySelector(".lbx-counter") ;
+    zoomEl = root.querySelector(".lbx-zoom") ;
+    prevBtn = root.querySelector(".lbx-prev") ;
+    nextBtn = root.querySelector(".lbx-next") ;
+    closeBtn = root.querySelector(".lbx-close") ;
     document.body.appendChild(root);
     bindStage();
   };
@@ -192,7 +214,7 @@ function attachImageLightbox(target, options = {}) {
   let ty = 0;
   let baseW = 0;
   let baseH = 0;
-  let items = [];
+  let items              = [];
   let currentIndex = 0;
 
   const applyTransform = () => {
@@ -219,7 +241,7 @@ function attachImageLightbox(target, options = {}) {
   };
 
   // 以视口点 (px, py) 为不动点缩放：光标指着哪儿，哪儿不动
-  const zoomAt = (nextScale, px, py) => {
+  const zoomAt = (nextScale        , px        , py        ) => {
     const clamped = Math.min(Math.max(nextScale, 1), maxScale);
     if (clamped === scale) return;
     const cx = window.innerWidth / 2;
@@ -229,7 +251,7 @@ function attachImageLightbox(target, options = {}) {
     ty = py - cy - (py - cy - ty) * k;
     scale = clamped;
     clampPan();
-    root.classList.add("lbx-anim");
+    root?.classList.add("lbx-anim");
     applyTransform();
   };
 
@@ -251,11 +273,11 @@ function attachImageLightbox(target, options = {}) {
   };
 
   // ───────────────────────── 打开 / 关闭 / 切换 ─────────────────────────
-  let lastFocused = null;
+  let lastFocused                 = null;
   let scrollLocked = false;
   let isOpen = false;
 
-  const onKeyDown = (e) => {
+  const onKeyDown = (e               ) => {
     if (!isOpen) return;
     switch (e.key) {
       case "Escape":
@@ -299,16 +321,16 @@ function attachImageLightbox(target, options = {}) {
     document.body.style.paddingRight = "";
   };
 
-  const open = (index, list) => {
+  const open = (index        , list             ) => {
     ensureDom();
     items = list;
     lastFocused = document.activeElement;
     isOpen = true;
-    root.style.display = "";
+    root .style.display = "";
     // 强制回流让 display:none → block 的淡入过渡生效。
     // 不用 rAF：后台/被遮挡标签页会无限节流 rAF，遮罩将停留在透明状态。
-    void root.offsetHeight;
-    root.classList.add("lbx-open");
+    void root .offsetHeight;
+    root .classList.add("lbx-open");
     lockScroll();
     window.addEventListener("keydown", onKeyDown, true);
     window.addEventListener("resize", onResize);
@@ -334,7 +356,7 @@ function attachImageLightbox(target, options = {}) {
     spinnerEl.classList.remove("lbx-on");
     imgEl.classList.add("lbx-loaded");
     fitAndReset();
-    root.classList.add("lbx-anim");
+    root?.classList.add("lbx-anim");
   };
 
   const failLoad = () => {
@@ -343,7 +365,7 @@ function attachImageLightbox(target, options = {}) {
     captionEl.classList.add("lbx-error");
   };
 
-  const go = (index) => {
+  const go = (index        ) => {
     if (!items.length || !root) return;
     currentIndex = (index + items.length) % items.length;
     const item = items[currentIndex];
@@ -375,7 +397,7 @@ function attachImageLightbox(target, options = {}) {
   };
 
   // ───────────────────────── 交互：滚轮 / 指针 / 双击 ─────────────────────────
-  const onWheel = (e) => {
+  const onWheel = (e            ) => {
     if (!isOpen) return;
     e.preventDefault();
     zoomAt(scale * (e.deltaY < 0 ? 1.15 : 1 / 1.15), e.clientX, e.clientY);
@@ -383,16 +405,16 @@ function attachImageLightbox(target, options = {}) {
 
   // 指针状态机：down 记录起点 → move 分派拖拽/滑动/捏合 → up 收尾。
   // Map 持有全部活动指针，单指走平移/换图，双指走捏合。
-  const pointers = new Map();
-  let panStart = null;
-  let swipeStartX = null;
+  const pointers = new Map                                  ();
+  let panStart                                                          = null;
+  let swipeStartX                = null;
   let swipeMoved = false;
-  let pinchStart = null;
+  let pinchStart                                         = null;
   // pointer capture 会把 click/dblclick 的 target 重定向到 stage，
   // "按下点是否在图片上"只能在 pointerdown 时记录原始 target
   let pressedOnImage = false;
 
-  const onPointerDown = (e) => {
+  const onPointerDown = (e              ) => {
     if (!isOpen) return;
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.size === 2) {
@@ -410,14 +432,14 @@ function attachImageLightbox(target, options = {}) {
     stageEl.setPointerCapture(e.pointerId);
   };
 
-  const onPointerMove = (e) => {
+  const onPointerMove = (e              ) => {
     if (!isOpen || !pointers.has(e.pointerId)) return;
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
     if (pointers.size === 2 && pinchStart) {
       const [a, b] = Array.from(pointers.values());
       const dist = Math.hypot(a.x - b.x, a.y - b.y);
-      root.classList.remove("lbx-anim"); // 捏合要跟手，不能有过渡
+      root?.classList.remove("lbx-anim"); // 捏合要跟手，不能有过渡
       scale = Math.min(Math.max((pinchStart.scale * dist) / pinchStart.dist, 1), maxScale);
       clampPan();
       applyTransform();
@@ -430,32 +452,32 @@ function attachImageLightbox(target, options = {}) {
     if (Math.abs(dx) + Math.abs(dy) > 6) swipeMoved = true;
 
     if (scale > 1.005) {
-      root.classList.remove("lbx-anim");
+      root?.classList.remove("lbx-anim");
       tx = panStart.tx + dx;
       ty = panStart.ty + dy;
       clampPan();
       applyTransform();
     } else if (swipeStartX !== null && items.length > 1) {
       // 未缩放时当前图水平跟手，给切换的手感
-      root.classList.remove("lbx-anim");
+      root?.classList.remove("lbx-anim");
       tx = e.clientX - swipeStartX;
       applyTransform();
     }
   };
 
-  const onPointerUp = (e) => {
+  const onPointerUp = (e              ) => {
     if (!isOpen) return;
     pointers.delete(e.pointerId);
     stageEl.classList.remove("lbx-panning");
 
     if (pointers.size === 0) {
       if (scale > 1.005) {
-        root.classList.add("lbx-anim");
+        root?.classList.add("lbx-anim");
         clampPan();
         applyTransform();
       } else if (swipeStartX !== null && items.length > 1) {
         const dx = e.clientX - swipeStartX;
-        root.classList.add("lbx-anim");
+        root?.classList.add("lbx-anim");
         if (!swipeMoved || Math.abs(dx) < 48) {
           tx = 0;
           applyTransform(); // 不够一格，弹回
@@ -479,9 +501,9 @@ function attachImageLightbox(target, options = {}) {
   // 鼠标走 dblclick 事件；触摸没有 dblclick，用 pointerup 间隔判定。
   // （合成双击可能只派发一对带 clickCount=2 的 pointer 事件，鼠标路径不可靠）
   let lastTap = 0;
-  const toggleZoom = (px, py) => {
+  const toggleZoom = (px        , py        ) => {
     if (scale > 1.005) {
-      root.classList.add("lbx-anim");
+      root?.classList.add("lbx-anim");
       scale = 1;
       tx = 0;
       ty = 0;
@@ -490,11 +512,11 @@ function attachImageLightbox(target, options = {}) {
       zoomAt(2.5, px, py);
     }
   };
-  const onDblClick = (e) => {
+  const onDblClick = (e            ) => {
     e.preventDefault();
     toggleZoom(e.clientX, e.clientY);
   };
-  const onDoubleTap = (e) => {
+  const onDoubleTap = (e              ) => {
     if (e.pointerType === "mouse") return;
     const now = Date.now();
     if (now - lastTap > 320) {
@@ -508,7 +530,7 @@ function attachImageLightbox(target, options = {}) {
 
   // 点击 stage 空白处（非图片、非拖拽后）关闭。stage 铺满全屏承载手势，
   // backdrop 永远被它盖住，所以"点背景关闭"必须在 stage 上判定。
-  const onStageClick = (e) => {
+  const onStageClick = (e            ) => {
     if (swipeMoved || pressedOnImage) return; // 平移/滑动/点图片，都不算点空白
     if (e.target !== stageEl) return; // capture 重定向失效的兜底
     close();
@@ -526,23 +548,23 @@ function attachImageLightbox(target, options = {}) {
     closeBtn.addEventListener("click", close);
     prevBtn.addEventListener("click", () => go(currentIndex - 1));
     nextBtn.addEventListener("click", () => go(currentIndex + 1));
-    root.querySelector(".lbx-backdrop").addEventListener("click", close);
+    root .querySelector(".lbx-backdrop") .addEventListener("click", close);
   };
 
   // ───────────────────────── 容器级委托点击 ─────────────────────────
   // 打开瞬间收集容器内全部合格图并定位 index——集合随 DOM 实时变化（懒加载、
   // 预览替换），预扫描建列表会过期；委托点击时现算，天然不过期。
-  const onClick = (e) => {
-    const target = e.target;
-    const img = target && target.closest && target.closest("img");
+  const onClick = (e            ) => {
+    const target = e.target                  ;
+    const img = target?.closest?.("img");
     if (!img || !container.contains(img)) return;
     // 资格在点击时重算：懒加载图此刻可能刚好已解码（尺寸可判定）
     if (!isEligible(img)) return;
     e.preventDefault();
 
-    const list = [];
+    const list              = [];
     let index = 0;
-    container.querySelectorAll("img").forEach((el) => {
+    container.querySelectorAll                  ("img").forEach((el) => {
       if (!isEligible(el)) return;
       const src = el.currentSrc || el.src;
       if (!src) return;
@@ -580,12 +602,4 @@ function attachImageLightbox(target, options = {}) {
   };
 }
 
-/* ── 本站接入：文献详情页（封面图表）与周报文章页正文自动挂载。
-   脚本经 page_shell 注入且位于 body 末尾，DOM 已就绪；容器判断放行，
-   其他页面（首页 / 搜索 / 周报列表）不挂载、不加载。 ── */
-(function () {
-  const pbody = document.querySelector(".pbody");
-  if (pbody) attachImageLightbox(pbody);
-  const wk = document.querySelector(".wk-content");
-  if (wk) attachImageLightbox(wk);
-})();
+globalThis.ImageLightbox = { attachImageLightbox };
