@@ -96,13 +96,23 @@ def today() -> str:
 
 
 def load_papers() -> dict:
+    """papers.json 是全站元数据的唯一真源：损坏时备份现场并抛错，绝不静默归零
+    ——静默返回空库后，下一次任意写操作就把空库写回，文献连同中文译文/标签
+    整批丢失。主站 loadConfig 的同款教训。"""
     if PAPERS_JSON.exists():
         try:
             data = json.loads(PAPERS_JSON.read_text(encoding="utf-8"))
             if isinstance(data, dict) and isinstance(data.get("items"), list):
                 return data
-        except json.JSONDecodeError:
-            pass
+            raise ValueError("形状不符（缺 items 数组）")
+        except (json.JSONDecodeError, ValueError) as e:
+            stamp = time.strftime("%Y%m%d-%H%M%S")
+            backup = PAPERS_JSON.parent / (PAPERS_JSON.name + f".corrupt-{stamp}")
+            backup.write_bytes(PAPERS_JSON.read_bytes())
+            raise RuntimeError(
+                f"papers.json 损坏（{e}），已备份为 {backup.name}"
+                "——修复或恢复该文件后重试，拒绝以空库覆盖"
+            ) from e
     return {"generated": today(), "count": 0, "items": []}
 
 
@@ -110,7 +120,11 @@ def save_papers(papers: dict) -> None:
     papers["generated"] = today()
     papers["count"] = len(papers["items"])
     PAPERS_JSON.parent.mkdir(parents=True, exist_ok=True)
-    PAPERS_JSON.write_text(json.dumps(papers, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    # 原子写（tmp + replace）：写一半崩溃不留半截 JSON——半截 JSON 会触发上面的
+    # 损坏防护抛错，管理台与发布全部停摆
+    tmp = PAPERS_JSON.parent / (PAPERS_JSON.name + ".tmp")
+    tmp.write_text(json.dumps(papers, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    tmp.replace(PAPERS_JSON)
 
 
 def apply_manual(item: dict, upd: dict) -> None:
@@ -203,13 +217,16 @@ def set_cover_url(fid: str, url: str) -> tuple[bool, str]:
     u = (url or "").strip()
     if not u.startswith(("http://", "https://")):
         return False, "外链必须以 http:// 或 https:// 开头"
-    papers = load_papers()
-    hit = [it for it in papers.get("items", []) if it.get("id") == fid]
-    if not hit:
-        return False, "该文献尚未入库（新文献的外链会随条目在发布时写入）"
-    remove_cover(fid)
-    hit[0]["cover"] = u
-    save_papers(papers)
+    # cover 通道此前绕过 DATA_LOCK：与发布/更新并发时用旧快照覆盖保存，
+    # 刚入库的条目整批丢失（lost update）。读-改-写必须持锁。
+    with DATA_LOCK:
+        papers = load_papers()
+        hit = [it for it in papers.get("items", []) if it.get("id") == fid]
+        if not hit:
+            return False, "该文献尚未入库（新文献的外链会随条目在发布时写入）"
+        remove_cover(fid)
+        hit[0]["cover"] = u
+        save_papers(papers)
     return True, u
 
 
@@ -218,13 +235,14 @@ def clear_cover_url(fid: str) -> None:
     只动外链值；本地文件封面照旧走 remove_cover + 编辑保存时按磁盘探测。"""
     if not re.fullmatch(r"[0-9a-f]{10}", fid or ""):
         return
-    papers = load_papers()
-    hit = [it for it in papers.get("items", [])
-           if it.get("id") == fid and str(it.get("cover") or "").startswith(("http://", "https://"))]
-    if hit:
-        for it in hit:
-            it.pop("cover", None)
-        save_papers(papers)
+    with DATA_LOCK:
+        papers = load_papers()
+        hit = [it for it in papers.get("items", [])
+               if it.get("id") == fid and str(it.get("cover") or "").startswith(("http://", "https://"))]
+        if hit:
+            for it in hit:
+                it.pop("cover", None)
+            save_papers(papers)
 
 
 def repo_state() -> dict:
@@ -1194,10 +1212,25 @@ class Handler(BaseHTTPRequestHandler):
         except Exception:
             return {}
 
+    def _safe_500(self, e: BaseException) -> None:
+        """任何未捕获异常都转成 500 + JSON，而不是让线程带着异常死掉、
+        客户端只看到「连接被无声关闭」（GSP 同款，实测教训：load_papers 的
+        损坏防护抛错、文件被杀软/沙箱占用等异常穿透时就是这种症状）。"""
+        try:
+            self._json({"ok": False, "error": "服务器内部错误：" + repr(e)}, 500)
+        except Exception:
+            pass
+
     def do_GET(self):
-        if not self._trusted():
-            self._send(403, b"forbidden", "text/plain; charset=utf-8")
-            return
+        try:
+            if not self._trusted():
+                self._send(403, b"forbidden", "text/plain; charset=utf-8")
+                return
+            self._handle_get()
+        except Exception as e:
+            self._safe_500(e)
+
+    def _handle_get(self):
         path = (self.path or "/").split("?")[0]
         if path in ("/", "/index.html"):
             if UI_HTML.exists():
@@ -1253,9 +1286,15 @@ class Handler(BaseHTTPRequestHandler):
             self._send(404, b"not found", "text/plain; charset=utf-8")
 
     def do_POST(self):
-        if not self._trusted():
-            self._send(403, b"forbidden", "text/plain; charset=utf-8")
-            return
+        try:
+            if not self._trusted():
+                self._send(403, b"forbidden", "text/plain; charset=utf-8")
+                return
+            self._handle_post()
+        except Exception as e:
+            self._safe_500(e)
+
+    def _handle_post(self):
         path = (self.path or "").split("?")[0]
         body = self._read_json()
         if path == "/api/fetch":
