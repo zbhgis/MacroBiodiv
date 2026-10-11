@@ -1206,8 +1206,14 @@ def main() -> int:
     # site_trash/ 已 gitignore，偶尔手动清空即可。
     if SITE.exists():
         trash = ROOT / "site_trash"
+        # 本轮仍要生成的详情页（SITE / p["id"]）必须留在原地——白名单只排除了
+        # 固定栏目，漏了这条 live 比对会把全部详情页当"过期"搬进 site_trash
+        # 再原样重建，site_trash 每次构建近似翻倍（实测曾堆到 1.5 万目录/348MB）。
+        # 与下方周报清理的 live 比对同一写法；空库时 live 为空集，详情页全部照搬。
+        live = {p["id"] for p in items}
         for d in SITE.iterdir():
             if (d.is_dir() and d.name not in ("assets", "search", "weekly", "statistics", "about")
+                    and d.name not in live
                     and (d / "index.html").exists()):
                 trash.mkdir(parents=True, exist_ok=True)
                 dest = trash / (d.name + "-" + str(int(time.time())))
