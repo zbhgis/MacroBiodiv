@@ -90,7 +90,7 @@ DOI：https://doi.org/10.1038/s41559-026-03047-9
 
 ## 3.图表
 
-![img](https://my.feishu.cn/space/api/box/stream/download/asynccode/?code=YjI3NjUyODc0M2QzMWQyZmE5ZjViMjI3NDY5NjM1ZWFfdGViWXJIVkNjS1g5Nm1kV1hyUDlhQmQ4TkJrZGVoMWVfVG9rZW46TU5HQ2JmQmU2bzl6Mld4R1dQcGM3TFAwblpmXzE3OTE1Mzg0MzE6MTc5MTU0MjAzMV9WNA&add_watermark=true&scene_type=CCM)
+![img](https://cdn.jsdelivr.net/gh/zbhgis/BlogImg2@main/blog/202610111601990.png)
 
 # 文献6
 
