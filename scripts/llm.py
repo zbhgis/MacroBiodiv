@@ -237,6 +237,16 @@ def _extract_json(text: str) -> dict:
         text = text[start:end + 1]
     try:
         return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+    # 修复梯（实测审校输出两类高频坏法）：① strict=False 容忍字符串值里的裸换行/
+    # 制表符——长中文摘要被模型排成多行时必踩；② 去尾逗号——列表/对象收尾多一杈다。
+    try:
+        return json.loads(text, strict=False)
+    except json.JSONDecodeError:
+        pass
+    try:
+        return json.loads(re.sub(r",\s*([}\]])", r"\1", text), strict=False)
     except json.JSONDecodeError as e:
         raise LLMError(f"JSON 解析失败：{e}\n{text[:200]}") from None
 

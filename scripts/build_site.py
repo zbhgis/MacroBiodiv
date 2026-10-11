@@ -168,6 +168,10 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
     twitter = ""
     canonical = ""
     if base:
+        # 无封面页（首页/搜索/统计/关于/无封面文献）的 og:image 用站点 logo 兜底：
+        # 分享卡片无图就是灰底块，logo 虽非 1200×630 最佳比例但能辨识站点
+        if not og_image:
+            og_image = f"{base}/assets/logo.png?v={BUILD_VER}"
         og_rows = [
             f'<meta property="og:title" content="{esc(title)}">',
             f'<meta property="og:description" content="{esc(desc[:200])}">',
