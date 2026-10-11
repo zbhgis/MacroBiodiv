@@ -217,7 +217,10 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 
 - 页面输出 Open Graph 标签（og:title/description/type/url/site_name/**locale=zh_CN**）：
   详情页与周报文章页 `og:type=article`，配置 `site_url` 后自动生成，聊天工具分享出卡片；
-  **详情页有封面时附 `og:image`（绝对 URL）+ `og:image:alt`**，分享卡片带封面
+  **详情页有封面时附 `og:image`（绝对 URL）+ `og:image:alt`**，分享卡片带封面；
+  **无封面页 og:image 用站点 logo 兜底**（2026-10-11，`{base}/assets/logo.png?v=`）——
+  首页/搜索/统计/关于/无封面文献的分享卡片不再空成灰底块，twitter 卡随之升为
+  `summary_large_image`
 - **`og:type=article` 的配套语义**（2026-10-10）：`article:published_time` /
   `article:section`（期刊名或「每周速递」）/ `article:tag`（关键词+标签，至多 8 个）——
   声明了 article 类型却不给 article:* 是半成品，分享端与 AI 引擎都读这几个
@@ -655,6 +658,9 @@ build_site.py：整体拷到 site/assets/covers/（镜像式，删除不残留�
   严禁凭对论文的了解补写背景/方法/结论，审校同权裁剪——模型常认得知名论文，短输入下
   会凭训练语料复述其真实内容，产出远超原文信息量的译文
 - 输出：严格 JSON + `_extract_json` 容错（剥围栏）+ 解析失败自动重试一次；
+  **JSON 修复梯**（2026-10-11）：纯解析坏法在重试前先走 `strict=False`（容忍字符串值
+  内裸换行/制表符——长中文摘要被模型排成多行的高频坏法）→ 去尾逗号再各试一次，
+  实测「审校失败回退初译」大幅减少（结构性坏 JSON 仍回退初译兜底）；
   `max_tokens: 16384`（推理模型思考链计入输出配额，实测可吃 1000+ tokens）
 - **限流与回退分层**（详见 README 表格）：请求节流 → 429 指数退避 + Retry-After →
   断路器（120s 内 2 次全败冷却 60s）→ 审校失败降级「仅初译」→ 初译失败留空正常入库 →
