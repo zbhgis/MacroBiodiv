@@ -25,7 +25,7 @@ DOI：https://doi.org/10.1038/s41467-025-68154-w
 
 ## 3.图表
 
-![img](https://my.feishu.cn/space/api/box/stream/download/asynccode/?code=MGMxYjVjMWMxNDExMTUwZjhiYmFjNWJiMGE5OTFiYzlfaXJHdXNLY2hlSmxKYnBhSVlaTE40M2VlYmM2T3AyTUVfVG9rZW46VzNQMWJyeWZtb2pXSFB4UHZ5ZmN6MmE5bldnXzE3NzIwNzU1NzY6MTc3MjA3OTE3Nl9WNA)
+![img](https://cdn.jsdelivr.net/gh/zbhgis/BlogImg2@main/blog/202610111558831.png)
 
 # 文献2
 
@@ -43,7 +43,7 @@ DOI：https://doi.org/10.1038/s44358-025-00128-8
 
 ## 3.图表
 
-![img](https://my.feishu.cn/space/api/box/stream/download/asynccode/?code=NmZkYzM3MTc1Yzk1MTE4OGEzODU0MjZiYTIyMjZmYmNfVm9kWnYyeExDMENkbmJpVWdWN1R3MVZqak8wd25yMFdfVG9rZW46SDN6RWJWZlhKb3JUWjR4bGFYYmN0RkpQbjFlXzE3NzIwNzU1NzY6MTc3MjA3OTE3Nl9WNA)
+![img](https://cdn.jsdelivr.net/gh/zbhgis/BlogImg2@main/blog/202610111559537.png)
 
 # 文献3
 
@@ -79,7 +79,7 @@ DOI：https://doi.org/10.1038/s44358-026-00131-7
 
 ## 3.图表
 
-![img](https://my.feishu.cn/space/api/box/stream/download/asynccode/?code=MGNlYzkxNDdhMTQ2ODFjMmYwYTUzY2VjYmVjZjJlMzFfNGNWWXY2elBVOXM0STFEM29CVEEwMEZ0UDJiME1ncWZfVG9rZW46UVZwSGJkYnNob244U1J4aGJ3QmNza0Zsbk5nXzE3NzIwNzU1NzY6MTc3MjA3OTE3Nl9WNA)
+![img](https://cdn.jsdelivr.net/gh/zbhgis/BlogImg2@main/blog/202610111559800.png)
 
 # 文献5
 
@@ -115,7 +115,7 @@ DOI：https://doi.org/10.1038/s44284-025-00388-7
 
 ## 3.图表
 
-![img](https://my.feishu.cn/space/api/box/stream/download/asynccode/?code=YzA2MDEzZDAxYTQ0OTEwMzMyNzI5YTYwNjBiYjFlMjlfVjZoNFpZa2VscHJMYnVSMUFLbjhkWEdLTlFFWjJvMDFfVG9rZW46Q2c2aGJkS1RNbzNPZlB4UnBaWGNnczVtbjZlXzE3NzIwNzU1NzY6MTc3MjA3OTE3Nl9WNA)
+![img](https://cdn.jsdelivr.net/gh/zbhgis/BlogImg2@main/blog/202610111559748.png)
 
 # 文献7
 
@@ -151,7 +151,7 @@ DOI：https://doi.org/10.1038/s41467-026-69594-8
 
 ## 3.图表
 
-![img](https://my.feishu.cn/space/api/box/stream/download/asynccode/?code=NGFhOTM3MGJkOTUzNzFhZTNjMzM4Y2Q3YzA5ZmNjYWRfekppYzJQSVJ3SGw1TGxzT2lQV0tJd3hUYlhXQzhaU3pfVG9rZW46TUI4TGJNamxjbzBtd0F4czMxbWNqVzBDbmZjXzE3NzIwNzU1NzY6MTc3MjA3OTE3Nl9WNA)
+![img](https://cdn.jsdelivr.net/gh/zbhgis/BlogImg2@main/blog/202610111559448.png)
 
 # 文献9
 
