@@ -1166,13 +1166,22 @@ def build_weekly(cfg: dict) -> tuple[list[str], list[dict]]:
                      f'<div class="wk-label"><span>{esc(g["label"])}</span>'
                      f'<span class="wk-label-right">{len(g["items"])} 篇</span></div>{rows}</section>')
     if n_pages > 1:
-        pgbtns = "".join(
-            f'<button type="button" class="wk-btn wk-pgbtn" data-p="{n}"'
-            f' aria-current="{str(n == 1).lower()}">{n}</button>'
-            for n in range(1, n_pages + 1))
+        # 静态只渲染第 1 页的页码窗口（首尾 + 当前 ±2 + 「…」省略，与首页 paintNums
+        # 同规则）；切页后 papers.js 的 paintWkNums 按当前页重建。全罗列会随月份
+        # 增长线性变长（每页 3 个月）。无 JS 时 noscript 展开全部分组、隐藏翻页条
+        # （渐进兜底，行为同旧版长页），窗口化不影响该路径
+        nums = [n for n in range(1, n_pages + 1) if n == 1 or n == n_pages or n - 1 <= 2]
+        parts, last_n = [], 0
+        for n in nums:
+            if last_n and n - last_n > 1:
+                parts.append('<span class="pggap">…</span>')
+            parts.append(f'<button type="button" class="wk-btn wk-pgbtn{" on" if n == 1 else ""}"'
+                         f' data-p="{n}" aria-current="{str(n == 1).lower()}">{n}</button>')
+            last_n = n
+        pgbtns = "".join(parts)
         pager = (f'<nav class="wk-pgbar" id="wk-pgbar" aria-label="每周速递翻页">'
                  f'<button type="button" class="wk-btn wk-pgbtn" id="wk-pg-prev" disabled>‹ 上一页</button>'
-                 f'{pgbtns}'
+                 f'<span id="wk-pgnums">{pgbtns}</span>'
                  f'<button type="button" class="wk-btn wk-pgbtn" id="wk-pg-next">下一页 ›</button>'
                  f'</nav><noscript><style>.wk-group[hidden]{{display:block}}'
                  f'.wk-pgbar{{display:none}}</style></noscript>')

@@ -667,14 +667,26 @@
   if (!groups.length) return;
   var cur = 1, maxP = 1;
   groups.forEach(function (g) { maxP = Math.max(maxP, +g.getAttribute("data-page")); });
+  /* 页码窗口重建（与首页 paintNums 同规则：首尾 + 当前 ±2 + …）：
+     静态只渲染第 1 页的窗口，切页后按当前页重建（事件委托在 bar 上，不受重建影响） */
+  function paintWkNums() {
+    var box = document.getElementById("wk-pgnums");
+    if (!box) return;
+    var nums = [], i;
+    for (i = 1; i <= maxP; i++) if (i === 1 || i === maxP || Math.abs(i - cur) <= 2) nums.push(i);
+    var html = "", last = 0;
+    nums.forEach(function (n) {
+      if (last && n - last > 1) html += '<span class="pggap">…</span>';
+      html += '<button type="button" class="wk-btn wk-pgbtn' + (n === cur ? " on" : "") +
+        '" data-p="' + n + '"' + (n === cur ? ' aria-current="page"' : '') + '>' + n + '</button>';
+      last = n;
+    });
+    box.innerHTML = html;
+  }
   function show(n, scroll) {
     cur = Math.max(1, Math.min(maxP, n));
     groups.forEach(function (g) { g.hidden = +g.getAttribute("data-page") !== cur; });
-    Array.prototype.forEach.call(bar.querySelectorAll("[data-p]"), function (b) {
-      var on = +b.getAttribute("data-p") === cur;
-      b.classList.toggle("on", on);
-      if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
-    });
+    paintWkNums();
     document.getElementById("wk-pg-prev").disabled = cur <= 1;
     document.getElementById("wk-pg-next").disabled = cur >= maxP;
     try { history.replaceState(null, "", "#p" + cur); } catch (e) {}

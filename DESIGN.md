@@ -147,7 +147,11 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 - 瀑布流 **CSS multi-columns**：4 列、列距 18px，≤1100px 3 列、≤760px 2 列（列距 12px）；
   `break-inside:avoid` 防卡片跨列截断；hover 仅边框变 accent（无阴影，克制工程感）；
   **首屏 30 张由 Python 静态输出**（爬虫/AI 引擎友好），翻页与筛选由 JS 重渲染，两者输出必须完全一致（构建期 `sort_items` 与 JS `cmp` 同序；封面字段 `cv` 构建期写死带 `?v=`，静态与 JS 渲染同源）
-- 分页 20/30/50；页码窗口随视口收窄；筛选/排序状态可记 localStorage（`mbd-per/mbd-sort2/mbd-filters`）；URL 参数 `?q=&tag=A|B|C&journal=A|B&from=&to=&sort=&page=` 可分享（`encodeURIComponent`，
+- 分页 20/30/50；页码窗口随视口收窄；**页码窗口规则三处统一**（2026-10-11）：首页/搜索
+  （papers.js `paintNums`）、周报列表（静态只渲染第 1 页窗口 + `paintWkNums` 切页重建，
+  事件委托在 `#wk-pgbar` 上不受重建影响）、管理后台 `renderPager`——均为
+  「首尾 + 当前 ±2 + `…` 省略」，全罗列会随月份/文献量线性溢出换行；
+  筛选/排序状态可记 localStorage（`mbd-per/mbd-sort2/mbd-filters`）；URL 参数 `?q=&tag=A|B|C&journal=A|B&from=&to=&sort=&page=` 可分享（`encodeURIComponent`，
   多值 `|` 分隔，**旧单值链接天然兼容**；全部选中时该参数无意义，分享链接按选中集还原）。
   **GSP 同款双向路由（2026-10-05 起）**：render 末尾 `syncUrl()` 把全部状态 replaceState
   进 URL（不新增历史）并镜像到 sessionStorage `mbd-back`，URL 变化时也回读

@@ -1138,7 +1138,21 @@ function renderPager(box, page, maxP, onGo) {
     return b;
   };
   box.appendChild(mk("‹ 上一页", page - 1, page <= 1));
-  for (var n = 1; n <= maxP; n++) box.appendChild(mk(String(n), n, false));
+  /* 页码窗口：首尾 + 当前 ±2 + 「…」省略（与前台 papers.js paintNums 同款）——
+     全罗列在文献破百页后会溢出换行 */
+  var nums = [], n;
+  for (n = 1; n <= maxP; n++) if (n === 1 || n === maxP || Math.abs(n - page) <= 2) nums.push(n);
+  var lastNum = 0;
+  nums.forEach(function (n) {
+    if (lastNum && n - lastNum > 1) {
+      var gap = document.createElement("span");
+      gap.className = "pggap";
+      gap.textContent = "…";
+      box.appendChild(gap);
+    }
+    box.appendChild(mk(String(n), n, false));
+    lastNum = n;
+  });
   box.appendChild(mk("下一页 ›", page + 1, page >= maxP));
   var note = document.createElement("span");
   note.className = "pgnote";
