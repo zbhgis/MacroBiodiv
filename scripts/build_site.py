@@ -690,7 +690,7 @@ def build_detail(cfg: dict, items: list, idx: int) -> str:
     tags = p.get("tags") or []
     tags_html = "".join(
         f'<a class="tag" href="/?tag={quote(str(t), safe="")}">{esc(t)}</a>' for t in tags
-    ) if tags else '<span style="color:var(--faint)">—</span>'
+    ) if tags else ""
     kws = p.get("keywords") or []
     kws_html = "".join(
         f'<a class="tag" href="/search/?q={quote(str(k), safe="")}">{esc(k)}</a>' for k in kws
@@ -723,7 +723,8 @@ def build_detail(cfg: dict, items: list, idx: int) -> str:
     info.append(frow("被浏览", '<span id="views">…</span>'))
     if kws_html:
         info.append(frow("关键词", kws_html))
-    info.append(frow("标签", tags_html))
+    if tags_html:            # 无标签不输出整行（曾渲染「标签：—」孤行，2026-10-13 修）
+        info.append(frow("标签", tags_html))
 
     # 节标题：公众号「1.信息 / 2.摘要 / 3.图表」式，编号动态顺延（有封面图才有图表节）
     n_sec = 0
