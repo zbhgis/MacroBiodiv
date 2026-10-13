@@ -537,7 +537,7 @@ var q=P.get("q");if(q){var qi=document.getElementById("q");if(qi)qi.value=q;
 var sq=document.getElementById("spage-q");if(sq)sq.value=q}
 ["from","to"].forEach(function(k){var v=P.get(k);if(v){
 var el=document.getElementById("f-"+k);if(el)el.value=v}});
-["tag","journal"].forEach(function(k){var t=P.get(k);if(t){var names=t.split("|");
+["tag","journal","type"].forEach(function(k){var t=P.get(k);if(t){var names=t.split("|");
 document.querySelectorAll('#filters .chips[data-key="'+k+'"] button.chip[data-v]')
 .forEach(function(b){b.setAttribute("aria-pressed",
 String(names.indexOf(b.getAttribute("data-v"))>-1))})}});
@@ -552,12 +552,18 @@ b.setAttribute("aria-pressed",String(b.getAttribute("data-sort")===v))})
 def build_index(cfg: dict, items: list) -> str:
     tag_counter: Counter = Counter()
     journal_counter: Counter = Counter()
+    type_counter: Counter = Counter()
     for p in items:
         for t in p.get("tags", []):
             tag_counter[str(t)] += 1
         j = p.get("journal") or ""
         if j:
             journal_counter[j] += 1
+        # 类型 chips 按卡片徽章同口径（display_type：article_type 优先，Crossref
+        # 类型映射回落）；全空缺的条目不进 chips —— 筛选语义与期刊/标签一致
+        ty = display_type(p)
+        if ty:
+            type_counter[ty] += 1
 
     # 首屏静态渲染，其余交给 JS（首屏只输出 PAGE_SIZE 个卡片节点）
     first_page = items[:PAGE_SIZE]
@@ -591,6 +597,7 @@ def build_index(cfg: dict, items: list) -> str:
 <div id="filters">
 {filter_row("标签", chips(tag_counter, "tag")) if tag_counter else "<!-- 标签为空：标签行隐藏，管理员在后台补录 tags 后自动出现 -->"}
 {filter_row("期刊", chips(journal_counter, "journal"))}
+{filter_row("类型", chips(type_counter, "type"))}
 {filter_row("时间", '<input type="date" id="f-from" class="dateinp" title="按在线发表（online）日期筛选">\n'
   + ' <span class="flabel" style="min-width:auto">至</span>\n'
   + '<input type="date" id="f-to" class="dateinp" title="按在线发表（online）日期筛选">\n'

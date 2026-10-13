@@ -258,7 +258,7 @@
   if (!grid) return;
 
   /* ── 分页 + 筛选 + 排序 ── */
-  var state = { q: "", tag: null, journal: null, from: "", to: "", sort: "pub", page: 1, per: PAGE };
+  var state = { q: "", tag: null, journal: null, type: null, from: "", to: "", sort: "pub", page: 1, per: PAGE };
   try {
     var savedPer = parseInt(localStorage.getItem("mbd-per"), 10);
     if ([20, 30, 50].indexOf(savedPer) > -1) state.per = savedPer;   // 仅接受合法档位，旧值自动回默认 30
@@ -312,10 +312,11 @@
   }
 
   function pass(it) {
-    /* 多选语义（GSP 同源）：tag/journal 为 null = 全部选中 = 不筛选；
-       否则为「入选值」数组，命中任一即通过（OR），无标签/期刊的内容随之隐藏 */
+    /* 多选语义（GSP 同源）：tag/journal/type 为 null = 全部选中 = 不筛选；
+       否则为「入选值」数组，命中任一即通过（OR），无标签/期刊/类型的内容随之隐藏 */
     if (state.tag && !(it.tg || []).some(function (t) { return state.tag.indexOf(t) > -1; })) return false;
     if (state.journal && state.journal.indexOf(it.j || "") === -1) return false;
+    if (state.type && state.type.indexOf(it.pt || "") === -1) return false;
     /* 日期区间按重叠匹配：pd 只有月精度（YYYY-MM）时按整月 [月初, 月底] 算 */
     if (state.from || state.to) {
       const v = it.pd || "";
@@ -419,6 +420,7 @@
       if (state.q) parts.push("q=" + encodeURIComponent(state.q));
       if (state.tag) parts.push("tag=" + encodeURIComponent(state.tag.join("|")));
       if (state.journal) parts.push("journal=" + encodeURIComponent(state.journal.join("|")));
+      if (state.type) parts.push("type=" + encodeURIComponent(state.type.join("|")));
       if (state.from) parts.push("from=" + encodeURIComponent(state.from));
       if (state.to) parts.push("to=" + encodeURIComponent(state.to));
       if (state.sort !== "pub") parts.push("sort=" + encodeURIComponent(state.sort));
@@ -498,7 +500,7 @@
 
   var reset = document.getElementById("reset");
   if (reset) reset.addEventListener("click", function () {
-    state = { q: "", tag: null, journal: null, from: "", to: "", sort: state.sort, page: 1,
+    state = { q: "", tag: null, journal: null, type: null, from: "", to: "", sort: state.sort, page: 1,
               per: state.per };   // 保留每页数量（此 bug 继承自 GeoSciPlot，文献多时重置后分页会失效）
     var fF = document.getElementById("f-from"), fT = document.getElementById("f-to");
     if (fF) fF.value = "";
@@ -539,6 +541,7 @@
     var parts = [], s;
     if ((s = chipSummary("tag", "标签"))) parts.push(s);
     if ((s = chipSummary("journal", "期刊"))) parts.push(s);
+    if ((s = chipSummary("type", "类型"))) parts.push(s);
     if (state.from || state.to) parts.push("时间 " + (state.from || "…") + " ~ " + (state.to || "…"));
     if (state.q) parts.push("搜索 " + state.q);
     return parts;
@@ -569,7 +572,7 @@
   var applied = false;
   try {
     var params = new URLSearchParams(location.search);
-    ["q", "tag", "journal", "from", "to", "sort", "page"].forEach(function (k) {
+    ["q", "tag", "journal", "type", "from", "to", "sort", "page"].forEach(function (k) {
       var v = params.get(k);
       if (!v) return;
       if (k === "page") {
@@ -594,7 +597,7 @@
       if (k === "q") {
         state.q = v.trim().toLowerCase();
         if (q) q.value = v;
-      } else if (k === "tag" || k === "journal") {
+      } else if (k === "tag" || k === "journal" || k === "type") {
         /* 多选：?tag=A|B|C（旧单值链接天然兼容）。先写 state 再写回 chip 的
            aria-pressed，最后从 DOM 重读 —— 保持「DOM 是唯一真源」 */
         var box = document.querySelector('.chips[data-key="' + k + '"]');

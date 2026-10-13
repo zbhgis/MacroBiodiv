@@ -111,12 +111,15 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 - Header：logo + 大标题 → gh-note（「文献数据存储于 GitHub，访问需具备 GitHub 访问能力
   （点此查看仓库）」，整条为指向仓库的链接）→ lede（2026-10 移除其后原 meta-row 统计行
   「N 篇 · 标签 · 期刊 · 年份 · 点击卡片查看详情」，GSP 同步删除——与筛选区/分页条信息重复）
-- 筛选维度三行：**标签 / 期刊 chips（多选模型）** + **时间区间**（时间 = online 发表
+- 筛选维度四行：**标签 / 期刊 / 类型 chips（多选模型）** + **时间区间**（时间 = online 发表
   日期）+ 排序（发表 新→旧【默认】、旧→新、**随机**——2026-10 由「被引 多→少」改来：
   站点不再携带被引数；**随机键 = hash(文献id + 会话种子)**，种子存 sessionStorage
   `mbd-rseed`：同一会话内详情页返回 / 刷新 / 翻页 / 筛选都不重排，点「随机」换新
   种子重洗，新开会话才是全新顺序。此前 Math.random 每次加载全新键，从详情页返回
   Home 随机顺序全变（2026-10-05 实际踩坑，GSP 路由 + 会话种子同修））；
+  **类型行**（2026-10-13 新增）：按卡片徽章同口径 `display_type`（article_type 优先、
+  Crossref 类型映射回落）统计分组成 chips，papers-data.js 的 `pt` 字段直接过滤；
+  URL 参数 `?type=A|B` 可分享，STATE_PRESTATE 同步预置
   **排序胶囊首帧预置**（2026-10-11）：静态 HTML 把「新到旧」写死为按下态，papers.js
   加载后才按「URL ?sort= > localStorage 偏好」纠正，慢网下可见一瞬间默认态再跳变
   （?sort=rand 分享链接实测）——`STATE_PRESTATE` 内联脚本紧跟 sortseg 输出、解析期
@@ -134,7 +137,7 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   `--faint` 字 + `--line` 边 + **删除线** + `opacity .75`；hover=accent 字/边 +
   `--accent-soft` 底。入选标签之间 **OR**（任一命中即显示）；全部选中=不筛选；
   被剔除的 ≤3 个时筛选摘要显示「标签/期刊 排除 X、Y」，否则「仅 入选值」；筛选激活时
-  无标签/无期刊的内容随之隐藏。**标签行在 tags 数据为空时整行不输出**（管理员在后台
+  无标签/无期刊/无类型的内容随之隐藏。**标签行在 tags 数据为空时整行不输出**（管理员在后台
   补录 tags 后自动出现）——期刊同理走同一组件。chips 的 `aria-pressed` 是唯一状态
   真源，重置 = 全部写回 pressed=true（旧单选「只留第一枚」的写法已删净）
 - 文献卡片（`.card`，GeoSciPlot 瀑布流同源语言）：**封面通栏顶图**（自然宽高比不裁切，
