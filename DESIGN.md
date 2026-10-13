@@ -649,6 +649,11 @@ build_site.py：整体拷到 site/assets/covers/（镜像式，删除不残留�
    「Nature Ecology &amp; Evolution」），`_finalize` 对全部字符串字段统一
    `html.unescape`（摘要此前已在 `_clean_abstract` 处理），避免站点 `esc()`
    二次转义出现「&amp;amp;」；BibTeX 输出（`_bib_escape`）也随之拿到干净的 `&`
+6. **期刊名规范化**（2026-10-13）：AAAS 把 Science 新闻类文章（10.1126/science.zd…
+   等，`type` 为 dataset/其他非 journal-article）挂在「AAAS Articles DO Group」这个
+   DOI 组名下，Crossref container-title 原样返回它 —— `_finalize` 里统一改写
+   journal=Science（journal_short 空缺时一并补），期刊标签/期刊页不再显示组名；
+   存量 1 篇（ba08ef6ab3，亚马逊监测新闻篇）已同步修正
 
 ## 6. LLM 中文化（llm.py）
 

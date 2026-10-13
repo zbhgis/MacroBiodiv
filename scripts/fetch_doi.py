@@ -356,6 +356,13 @@ def _finalize(rec: dict) -> dict:
     rec["title"] = (rec.get("title") or "").strip()
     if not rec.get("url"):
         rec["url"] = f"https://doi.org/{rec.get('doi', '')}"
+    # 期刊名规范化：AAAS 把 Science 新闻类文章（10.1126/science.zd… 等）挂在
+    # 「AAAS Articles DO Group」这个 DOI 组名下，Crossref container-title 原样返回它，
+    # 期刊标签/期刊页会跟着显示成它 —— 统一改写为 Science
+    if (rec.get("journal") or "").strip() == "AAAS Articles DO Group":
+        rec["journal"] = "Science"
+        if not (rec.get("journal_short") or "").strip():
+            rec["journal_short"] = "Science"
     return rec
 
 
