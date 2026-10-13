@@ -189,15 +189,21 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 上一篇 / 下一篇（等宽卡片，中文标题 + 期刊·年份）
 ```
 
-- **图片灯箱**（2026-10 新增，拷自 mystation `frontend/lib/image-lightbox.ts` 删类型转纯 JS，
-  零依赖）：源文件 `assets_src/image-lightbox.js` 随 assets 拷贝循环自动入
-  `site/assets/`，详情页（挂 `.pbody`）与周报文章页（挂 `.wk-content`）经
-  `page_shell` 的 `extra_assets` 注入后按容器自动挂载 —— 首页 / 搜索 / 周报列表不加载；
-  点击图片放大、同容器多图切换（箭头 / 方向键 / 触摸滑动）、滚轮以光标为锚点缩放、
-  双击 / 双指捏合、拖拽平移、Esc / 点空白关闭、相邻图预加载、背景滚动锁定（带滚动条补偿）；
-  链接内图片默认不劫持（`data-lightbox="on"` 强制），`data-no-lightbox` 排除，
-  `data-lightbox-src` 指定灯箱内加载的高清版；样式运行时自动注入、类名 `lbx-` 前缀，
-  不污染站点样式（配色可经 `--lbx-backdrop / --lbx-accent / --lbx-fg` 覆盖）
+- **图片灯箱**（2026-10-13 接入，同源移植 GeoSciPlot 的
+  `assets_src/image-lightbox.js`（编译自 `lib/image-lightbox.ts`，零依赖）——
+  两站保持镜像，GSP 更新后可直接覆盖同步）：源文件随 assets 拷贝循环自动入
+  `site/assets/`；**挂载方式 = GSP 同款 body 级接管**：`page_shell` 尾部一行
+  `attachImageLightbox(document.body, {exclude: ".mnav-brand img"})`（菜单栏
+  brand logo 排除），脚本经 `extra_assets` 仅注入文献详情页（封面 `figure.p-cover`
+  参与）与周报文章页（正文 `.wk-content` 图表图参与），其余页面不加载该脚本、
+  `window.ImageLightbox` 未定义由 if 守卫安全跳过 —— 首页 / 搜索 / 周报列表的
+  卡片封面都在链接内，模块默认不劫持（维持跳转，`data-lightbox="on"` 可强制、
+  `data-no-lightbox` 反向排除）；点击图片放大、同容器多图切换（箭头 / 方向键 /
+  触摸滑动）、滚轮以光标为锚点缩放、双击 / 双指捏合、拖拽平移、Esc / 点空白
+  关闭、相邻图预加载、背景滚动锁定（带滚动条补偿）；`data-lightbox-src` 指定
+  灯箱内加载的高清版；样式运行时自动注入、类名 `lbx-` 前缀，不污染站点样式
+  （配色可经 `--lbx-backdrop / --lbx-accent / --lbx-fg` 覆盖，默认值即本站
+  暗色 token）
 - **文章 TOC**（2026-10 新增，拷自 mystation：数据层 `md-shared.ts` 的 slugify /
   extractTOC + 组件 BlogTOC 改写为原生 JS → `assets_src/article-toc.js`，样式类
   v3-side-hd / v3-side-link / v3-toc-link / v3-noscrollbar / toc-fab 拷入 style.css，

@@ -39,8 +39,10 @@ const STYLES_ID = "lbx-styles";
 const ROOT_Z = 99990;
 
 const STYLES = `
-[data-lbx]{position:fixed;inset:0;z-index:${ROOT_Z};opacity:0;transition:opacity .18s ease}
-[data-lbx].lbx-open{opacity:1}
+/* 淡出关闭的 190ms 里根节点要 pointer-events:none，否则透明遮罩仍会拦住
+   用户"关闭后立刻再点图"的第一下点按，让重开像失灵一样要点两次 */
+[data-lbx]{position:fixed;inset:0;z-index:${ROOT_Z};opacity:0;transition:opacity .18s ease;pointer-events:none}
+[data-lbx].lbx-open{opacity:1;pointer-events:auto}
 [data-lbx] .lbx-backdrop{position:absolute;inset:0;background:var(--lbx-backdrop,rgba(0,0,0,.93))}
 [data-lbx] .lbx-stage{position:absolute;inset:0;touch-action:none;overflow:hidden;cursor:grab}
 [data-lbx] .lbx-stage.lbx-panning{cursor:grabbing}
@@ -59,9 +61,10 @@ const STYLES = `
   font:12.5px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.08em;
   color:var(--lbx-fg,rgba(255,255,255,.75))}
 [data-lbx] .lbx-counter{margin-left:2px}
-[data-lbx] .lbx-close{pointer-events:auto;width:38px;height:38px;display:flex;align-items:center;
+[data-lbx] .lbx-close{width:38px;height:38px;display:flex;align-items:center;
   justify-content:center;border:0;border-radius:50%;background:rgba(255,255,255,.06);cursor:pointer;
   color:var(--lbx-fg,rgba(255,255,255,.85));transition:background .15s ease,transform .15s ease}
+[data-lbx].lbx-open .lbx-close{pointer-events:auto}
 [data-lbx] .lbx-close:hover{background:rgba(255,255,255,.16);transform:scale(1.06)}
 [data-lbx] .lbx-arrow{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;
   display:flex;align-items:center;justify-content:center;border:0;border-radius:50%;cursor:pointer;
@@ -273,9 +276,10 @@ function attachImageLightbox(
   };
 
   // ───────────────────────── 打开 / 关闭 / 切换 ─────────────────────────
-  let lastFocused                 = null;
+  let lastFocused                     = null;
   let scrollLocked = false;
   let isOpen = false;
+  let openedAt = 0;
 
   const onKeyDown = (e               ) => {
     if (!isOpen) return;
@@ -326,6 +330,19 @@ function attachImageLightbox(
     items = list;
     lastFocused = document.activeElement;
     isOpen = true;
+    openedAt = Date.now();
+    // 清掉上一轮会话可能残留的手势状态：极端时序下（触屏本按住图的同时按 Esc）
+    // close 发生在指针仍按住时，pointers 里的幽灵指针会把重开后的双指触摸
+    // 凑成三人组，捏合直接失效；swipeMoved/pressedOnImage 残留也会污染首次点按。
+    pointers.clear();
+    panStart = null;
+    swipeStartX = null;
+    pinchStart = null;
+    swipeMoved = false;
+    pressedOnImage = false;
+    multiTouch = false;
+    suppressTap = false;
+    lastTap = 0;
     root .style.display = "";
     // 强制回流让 display:none → block 的淡入过渡生效。
     // 不用 rAF：后台/被遮挡标签页会无限节流 rAF，遮罩将停留在透明状态。
@@ -388,10 +405,22 @@ function attachImageLightbox(
 
     imgEl.onload = finishLoad;
     imgEl.onerror = failLoad;
-    // src 相同的重复打开不触发 load 事件，complete 时直接收尾
-    if (imgEl.src === item.fullSrc && imgEl.complete && imgEl.naturalWidth > 0) {
+    // imgEl.src 是解析后的绝对地址，item.fullSrc 可能是相对路径，先归一再比较。
+    // src 相同的重复打开不会触发 load 事件：已加载成功就直接收尾；
+    // 上次以失败告终（complete 且 naturalWidth=0）时同值赋值同样不会触发
+    // load，会永远卡在转圈——先摘掉 src 强制重新加载
+    let same = false;
+    try {
+      same = imgEl.src === new URL(item.fullSrc, location.href).href;
+    } catch {
+      same = false;
+    }
+    if (same && imgEl.complete && imgEl.naturalWidth > 0) {
       finishLoad();
     } else {
+      if (same && imgEl.complete && imgEl.naturalWidth === 0) {
+        imgEl.removeAttribute("src");
+      }
       imgEl.src = item.fullSrc;
     }
   };
@@ -413,11 +442,18 @@ function attachImageLightbox(
   // pointer capture 会把 click/dblclick 的 target 重定向到 stage，
   // "按下点是否在图片上"只能在 pointerdown 时记录原始 target
   let pressedOnImage = false;
+  // 本轮是否发生过多点触控（捏合会话）；suppressTap 让捏合收尾的抬指
+  // 不进入双击判定——两指在 320ms 内相继抬起是标准收手节奏，
+  // 不隔离的话第二下抬指会被误判成"双触"，把刚捏出来的缩放弹回 1x
+  let multiTouch = false;
+  let suppressTap = false;
 
   const onPointerDown = (e              ) => {
     if (!isOpen) return;
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.size === 2) {
+      multiTouch = true;
+      lastTap = 0;
       const [a, b] = Array.from(pointers.values());
       pinchStart = { dist: Math.hypot(a.x - b.x, a.y - b.y), scale };
       panStart = null;
@@ -429,7 +465,12 @@ function attachImageLightbox(
       swipeMoved = false;
       stageEl.classList.add("lbx-panning");
     }
-    stageEl.setPointerCapture(e.pointerId);
+    // 指针可能刚好已失效（如极快的点按、合成事件），capture 失败不该拖垮手势状态
+    try {
+      stageEl.setPointerCapture(e.pointerId);
+    } catch {
+      /* ignore */
+    }
   };
 
   const onPointerMove = (e              ) => {
@@ -467,10 +508,20 @@ function attachImageLightbox(
 
   const onPointerUp = (e              ) => {
     if (!isOpen) return;
+    // pointercancel（系统手势接管等）不是用户的滑动决策：只收尾弹回，不切图。
+    // 它不会走 onDoubleTap，这里只清双击窗口，不动 suppressTap
+    const cancelled = e.type === "pointercancel";
+    if (cancelled) {
+      lastTap = 0;
+    } else if (multiTouch) {
+      // 捏合会话中的每次抬指都不参与双击判定（见 suppressTap 声明处）
+      suppressTap = true;
+    }
     pointers.delete(e.pointerId);
     stageEl.classList.remove("lbx-panning");
 
     if (pointers.size === 0) {
+      multiTouch = false;
       if (scale > 1.005) {
         root?.classList.add("lbx-anim");
         clampPan();
@@ -478,9 +529,9 @@ function attachImageLightbox(
       } else if (swipeStartX !== null && items.length > 1) {
         const dx = e.clientX - swipeStartX;
         root?.classList.add("lbx-anim");
-        if (!swipeMoved || Math.abs(dx) < 48) {
+        if (cancelled || !swipeMoved || Math.abs(dx) < 48) {
           tx = 0;
-          applyTransform(); // 不够一格，弹回
+          applyTransform(); // 不够一格（或被系统打断），弹回
         } else {
           go(dx < 0 ? currentIndex + 1 : currentIndex - 1);
         }
@@ -513,11 +564,18 @@ function attachImageLightbox(
     }
   };
   const onDblClick = (e            ) => {
+    if (!isOpen || Date.now() - openedAt < 350) return;
     e.preventDefault();
     toggleZoom(e.clientX, e.clientY);
   };
   const onDoubleTap = (e              ) => {
+    if (!isOpen) return;
     if (e.pointerType === "mouse") return;
+    if (suppressTap) {
+      suppressTap = false; // 捏合收尾的抬指，不算敲击
+      lastTap = 0;
+      return;
+    }
     const now = Date.now();
     if (now - lastTap > 320) {
       lastTap = now;
@@ -530,9 +588,12 @@ function attachImageLightbox(
 
   // 点击 stage 空白处（非图片、非拖拽后）关闭。stage 铺满全屏承载手势，
   // backdrop 永远被它盖住，所以"点背景关闭"必须在 stage 上判定。
+  // 刚打开的 350ms 内不响应：双击正文图片时第二击会落在已弹出的 stage 上，
+  // 不挡住的话灯箱会"开了又闪关"（手机快速双触同理）。
   const onStageClick = (e            ) => {
     if (swipeMoved || pressedOnImage) return; // 平移/滑动/点图片，都不算点空白
     if (e.target !== stageEl) return; // capture 重定向失效的兜底
+    if (Date.now() - openedAt < 350) return;
     close();
   };
 

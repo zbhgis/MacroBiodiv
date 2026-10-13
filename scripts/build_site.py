@@ -353,6 +353,11 @@ document.addEventListener("error", function (e) {{
 {"".join(f'<script src="{up}assets/{a}?v={BUILD_VER}"></script>' for a in (extra_assets or []))}
 <script src="{up}assets/papers-data.js?v={BUILD_VER}"></script>
 <script src="{up}assets/papers.js?v={BUILD_VER}"></script>
+<!-- 图片灯箱（同源移植 GeoSciPlot，样式随模块注入）：仅详情页/周报文章页引入
+     image-lightbox.js，其余页面 window.ImageLightbox 未定义，此行 if 守卫安全跳过。
+     挂 body 统一接管：链接内图（首页/搜索卡片封面）默认不劫持维持跳转，
+     详情页 .p-cover 封面与周报正文图表图参与；菜单栏 brand logo 排除 -->
+<script>try{{if(window.ImageLightbox)window.ImageLightbox.attachImageLightbox(document.body,{{exclude:".mnav-brand img"}})}}catch(e){{}}</script>
 </body>
 </html>
 """
