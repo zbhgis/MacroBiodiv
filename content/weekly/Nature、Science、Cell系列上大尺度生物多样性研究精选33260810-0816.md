@@ -80,7 +80,7 @@ DOI：https://doi.org/10.1038/s43017-026-00813-y
 
 标题：Soil microbial conservation cannot rely on above-ground biodiversity 土壤微生物保护不能依赖于地上生物多样性
 
-DOI：https://doi.org/10.1038/s43017-026-00813-y
+DOI：https://doi.org/10.1038/s41579-026-01358-z
 
 期刊：Nature Reviews Microbiology
 

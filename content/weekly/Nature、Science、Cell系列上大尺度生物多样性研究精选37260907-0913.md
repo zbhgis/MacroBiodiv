@@ -44,7 +44,7 @@ DOI：https://doi.org/10.1126/science.aek3731
 
 标题：Growth rate overrides the benefit of extended growing season from boreal to semiarid conifers 从北方针叶树到半干旱针叶树，生长速度超过了生长季延长带来的益处
 
-DOI：https://doi.org/10.1126/science.aek3731
+DOI：https://doi.org/10.1126/science.aec8866
 
 期刊：Science
 
@@ -114,7 +114,7 @@ DOI：https://doi.org/10.1016/j.tree.2026.08.004
 
 标题：3D tracking of marine megafauna to advance movement ecology 利用三维追踪技术研究海洋大型动物的运动生态学
 
-DOI：https://doi.org/10.1016/j.tree.2026.08.004
+DOI：https://doi.org/10.1016/j.tree.2026.08.003
 
 期刊：Trends in Ecology & Evolution
 

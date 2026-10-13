@@ -51,7 +51,7 @@ DOI：https://doi.org/10.1038/s41467-026-71095-7
 
 标题：Meta-analysis reveals widespread negative associations between species richness and ecological uniqueness 荟萃分析揭示物种丰富度与生态独特性之间普遍存在负相关关系
 
-DOI：https://doi.org/10.1038/s41467-026-71095-7
+DOI：https://doi.org/10.1038/s41467-026-70886-2
 
 期刊：Nature Communications
 

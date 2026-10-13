@@ -33,7 +33,7 @@ DOI：https://doi.org/10.1038/s41586-025-09976-y
 
 标题：Pesticide residues alter taxonomic and functional biodiversity in soils 农药残留改变土壤中的分类学和功能多样性
 
-DOI：https://doi.org/10.1038/s41586-025-09976-y
+DOI：https://doi.org/10.1038/s41586-025-09991-z
 
 期刊：Nature
 

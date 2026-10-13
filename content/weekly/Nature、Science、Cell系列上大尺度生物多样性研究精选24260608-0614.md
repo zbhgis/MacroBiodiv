@@ -116,7 +116,7 @@ DOI：https://doi.org/10.1126/science.adv0367
 
 标题：Global density and biomass of arbuscular mycorrhizal fungal networks 丛枝菌根真菌网络的全球密度和生物量
 
-DOI：https://doi.org/10.1126/science.adv0367
+DOI：https://doi.org/10.1126/science.adu4373
 
 期刊：Science
 

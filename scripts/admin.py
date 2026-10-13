@@ -990,6 +990,7 @@ def do_weekly_import(name: str, content: str, log: list) -> dict:
     with DATA_LOCK:
         papers = load_papers()
         by_doi = {str(i.get("doi") or "").lower(): i for i in papers["items"]}
+        md_seen: set = set()
         for idx, p in enumerate(parsed):
             label = f"文献{p['no']}"
             doi = normalize_doi(p["doi_line"] or "")
@@ -997,6 +998,15 @@ def do_weekly_import(name: str, content: str, log: list) -> dict:
                 log.append({"step": label, "ok": False, "out": "未解析到 DOI，跳过（不生成卡片）"})
                 failed += 1
                 continue
+            if doi.lower() in md_seen:
+                # 防歧义：同一期同 DOI 出现多条，九成是笔误（后一条抄成前一条的
+                # DOI）。只按首条处理，重复条目整条跳过 —— 封面/中文回填/抓取
+                # 一律不做，防止错条内容污染首条对应的库内条目
+                log.append({"step": label, "ok": False,
+                            "out": f"DOI 与本期前文重复（{doi}），疑似笔误，仅按首条处理，本条跳过"})
+                skipped += 1
+                continue
+            md_seen.add(doi.lower())
             if doi.lower() in by_doi:
                 # 已在库也要看一眼封面：上次导入图表为无会落 logo 兜底，这次重传
                 # 同一期且解析到图表 → 封面升级为外链直显（日志标「补封面」）
@@ -1096,9 +1106,16 @@ def do_weekly_backfill_chinese() -> dict:
         except Exception as e:
             log.append({"step": f"解析 {p.name}", "ok": False, "out": str(e)[:120]})
             continue
+        # 防歧义：同一期同 DOI 出现多条 → 疑似笔误（一条抄成另一条的 DOI），
+        # 该 DOI 在本期整体弃用，防止错条的中文灌进首条对应的库内条目
+        count: dict[str, int] = {}
+        for it in parsed:
+            d = normalize_doi(it["doi_line"] or "").lower()
+            if d:
+                count[d] = count.get(d, 0) + 1
         for it in parsed:
             doi = normalize_doi(it["doi_line"] or "").lower()
-            if not doi:
+            if not doi or count.get(doi, 0) > 1:
                 continue
             entry = weekly_map.setdefault(doi, {})
             if str(it.get("title_zh") or "").strip() and not entry.get("title_zh"):
