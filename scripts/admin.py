@@ -138,7 +138,7 @@ def save_papers(papers: dict) -> None:
 # 白名单归一：casefold 命中 → 规范名；未命中仅去粗体标记与首尾空白（新体裁不误伤）。
 _AT_CANON = {
     "comment": "Comment", "comments": "Comment",
-    "commentary": "Commentary", "commentaries": "Commentary",
+    "commentary": "Comment", "commentaries": "Comment",   # Commentary 属评论类，并入 Comment
     "perspective": "Perspective", "perspectives": "Perspective",
     "editorial": "Editorial", "editorials": "Editorial",
     "review": "Review", "reviews": "Review",
@@ -147,7 +147,8 @@ _AT_CANON = {
     "spotlight": "Spotlight", "spotlights": "Spotlight",
     "matters arising": "Matters Arising",
     "in depth": "In Depth",
-    "research article": "Research Article",
+    # 研究论文不特殊标注：与 Crossref journal-article 的回落名「Article」归并同一类
+    "research article": "Article", "article": "Article", "articles": "Article",
     "policy article": "Policy Article",
     "expert voice": "Expert Voice",
 }

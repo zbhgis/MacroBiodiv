@@ -670,9 +670,12 @@ build_site.py：整体拷到 site/assets/covers/（镜像式，删除不残留�
    分组会被拆成多块 —— admin.py `normalize_article_type()` 白名单归一（casefold
    命中 → 规范名，未命中仅去粗体标记与首尾空白不误伤新体裁），接入全部四个写入
    点（添加文献 LLM 翻译、重新抓取/翻译、周报导入注记、管理端手动保存）；
+   **语义归并**（2026-10-13 二次修订，用户裁定）：Commentary 并入 Comment（评论类）；
+   Research Article / Article 归并为 Article —— 研究论文不特殊标注，与 Crossref
+   journal-article 的回落名同组（首页类型 chips 不再出现 Research Article 孤类）；
    存量 7 条已清洗（Perspectives×3→Perspective、Editorials×1→Editorial、
    `**Review**`→Review、`**Science & Society**` 去 星号、Matters arising→
-   Matters Arising），全库体裁 18 种归并为 14 种
+   Matters Arising），二次重洗 2 条（Commentary→Comment、Research Article→Article）
 
 ## 6. LLM 中文化（llm.py）
 
