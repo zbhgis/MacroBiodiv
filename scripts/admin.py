@@ -131,11 +131,43 @@ def save_papers(papers: dict) -> None:
     tmp.replace(PAPERS_JSON)
 
 
+# ────────────────────────── 体裁归一 ──────────────────────────
+# article_type 有三个来源（周报注记 / 大模型判定 / 手动填写），同一体裁常以大小写、
+# 单复数、markdown 粗体等变体出现（实测：Comment 与 Comments、Perspective 与
+# Perspectives、**Review**）——统计环形图与搜索按原串分组，变体会被拆成多块。
+# 白名单归一：casefold 命中 → 规范名；未命中仅去粗体标记与首尾空白（新体裁不误伤）。
+_AT_CANON = {
+    "comment": "Comment", "comments": "Comment",
+    "commentary": "Commentary", "commentaries": "Commentary",
+    "perspective": "Perspective", "perspectives": "Perspective",
+    "editorial": "Editorial", "editorials": "Editorial",
+    "review": "Review", "reviews": "Review",
+    "letter": "Letter", "letters": "Letter",
+    "opinion": "Opinion", "opinions": "Opinion",
+    "spotlight": "Spotlight", "spotlights": "Spotlight",
+    "matters arising": "Matters Arising",
+    "in depth": "In Depth",
+    "research article": "Research Article",
+    "policy article": "Policy Article",
+    "expert voice": "Expert Voice",
+}
+
+
+def normalize_article_type(v) -> str:
+    """体裁归一：去 markdown 粗体/下划线与首尾空白 → casefold 查白名单 → 规范名
+    （未命中原样保留，规整内部连续空白）。空值返回空串。"""
+    s = str(v or "").replace("*", "").replace("_", "").strip()
+    if not s:
+        return ""
+    return _AT_CANON.get(" ".join(s.casefold().split()), s)
+
+
 def apply_manual(item: dict, upd: dict) -> None:
     """把手动字段（tags / title_zh / note）合并进条目，自动字段不动。"""
     for k in MANUAL_TEXT:
         if k in upd:
-            item[k] = str(upd[k] or "").strip()
+            val = str(upd[k] or "").strip()
+            item[k] = normalize_article_type(val) if k == "article_type" else val
     for k in MANUAL_LIST:
         if k in upd:
             v = upd[k]
@@ -416,7 +448,7 @@ def do_fetch(dois: list) -> dict:
                     if res.get("abstract_zh"):
                         record["abstract_zh"] = res["abstract_zh"]
                     if res.get("article_type"):
-                        record["article_type"] = res["article_type"]
+                        record["article_type"] = normalize_article_type(res["article_type"])
                     rec["translated"] = True
                     rec["passes"] = res.get("passes", 1)
                     rec["tnote"] = res.get("note", "")
@@ -596,7 +628,7 @@ def do_translate(ids: list, only_missing: bool = False) -> dict:
                 if res.get("abstract_zh"):
                     it["abstract_zh"] = res["abstract_zh"]
                 if res.get("article_type"):
-                    it["article_type"] = res["article_type"]
+                    it["article_type"] = normalize_article_type(res["article_type"])
                 ok_n += 1
                 tag = "初译+审校" if res.get("passes", 2) >= 2 else "仅初译"
                 note = res.get("note") or ""
@@ -1046,7 +1078,7 @@ def do_weekly_import(name: str, content: str, log: list) -> dict:
             # 个别空缺事后用「翻译缺中文的」批量回补
             record["title_zh"] = p["title_zh"]
             record["abstract_zh"] = p["abstract_zh"]
-            record["article_type"] = p["genre"]
+            record["article_type"] = normalize_article_type(p["genre"])
             record["note"] = ""
             record["tags"] = []
             record.setdefault("added", today())
