@@ -1714,8 +1714,10 @@ def main() -> int:
                 newest.append(by_doi[k])
         if not newest:                               # 无周报索引的兜底
             newest = sorted(items, key=lambda p: p.get("added") or "", reverse=True)[:10]
-        # 时区按 +08:00 标注（站点在中文语境制作，此前写死 Z=UTC 是把日期谎称早 8 小时）
-        cst = "+08:00"
+        # 日期一律用纯日期（2026-03-25，不带 T00:00:00+08:00）：Zotero 会把带时区的
+        # 整点时间戳换算成本地时刻显示（实证 2026-03-25T00:00:00+08:00 → 「2026-03-25
+        # 16:00:00」），纯日期阅读器就只显示日期；RFC 3339 的 date-only 各阅读器均接受
+        # （站点在中文语境制作，此前写死 Z=UTC 是把日期谎称早 8 小时，再早先的教训）
         # DC/PRISM 命名空间：Zotero 等文献管理器把 dc:source 读作「出版物」（期刊），
         # PRISM 组（publicationName/volume/number/pageRange）是出版业 feed 惯例
         # （Nature/Science 官方 feed 同款），补齐后 Zotero 条目信息不再缺期刊与卷期
@@ -1727,7 +1729,7 @@ def main() -> int:
                 f'<link rel="alternate" type="text/html" href="{base}/"/>',
                 f'<link rel="self" type="application/atom+xml" href="{base}/atom.xml"/>',
                 f'<id>{base}/</id>',
-                f'<updated>{time.strftime("%Y-%m-%dT00:00:00")}{cst}</updated>',
+                f'<updated>{time.strftime("%Y-%m-%d")}</updated>',
                 f'<author><name>{xml_text(cfg["title"])}</name><uri>{base}/</uri></author>']
         for p in newest:
             summ = (p.get("abstract_zh") or p.get("abstract") or "")[:300]
@@ -1739,8 +1741,8 @@ def main() -> int:
                      f'<title>{xml_text(display_title(p))}</title>',
                      f'<link rel="alternate" type="text/html" href="{base}/{p["id"]}/"/>',
                      f'<id>urn:doi:{xml_text(p.get("doi", p["id"]))}</id>',
-                     f'<published>{d_pub}T00:00:00{cst}</published>',
-                     f'<updated>{d_pub}T00:00:00{cst}</updated>',
+                     f'<published>{d_pub}</published>',
+                     f'<updated>{d_pub}</updated>',
                      f'<summary>{xml_text(summ)}</summary>']
             if display_type(p):
                 atom.append(f'<category term="{xml_text(display_type(p))}"/>')
@@ -1782,8 +1784,8 @@ def main() -> int:
                            f'<title>{xml_text(wk["title"])}</title>',
                            f'<link rel="alternate" type="text/html" href="{base}/weekly/{wk["slug"]}/"/>',
                            f'<id>{base}/weekly/{wk["slug"]}/</id>',
-                           f'<published>{d0}T00:00:00{cst}</published>',
-                           f'<updated>{d0}T00:00:00{cst}</updated>',
+                           f'<published>{d0}</published>',
+                           f'<updated>{d0}</updated>',
                            f'<content type="html">{xml_text(content)}</content>',
                            '</entry>']
         if wk_entries:
@@ -1793,7 +1795,7 @@ def main() -> int:
                        f'<link rel="alternate" type="text/html" href="{base}/weekly/"/>',
                        f'<link rel="self" type="application/atom+xml" href="{base}/weekly.xml"/>',
                        f'<id>{base}/weekly/</id>',
-                       f'<updated>{recent_wks[0]["date"] or time.strftime("%Y-%m-%d")}T00:00:00{cst}</updated>',
+                       f'<updated>{recent_wks[0]["date"] or time.strftime("%Y-%m-%d")}</updated>',
                        f'<author><name>{xml_text(cfg["title"])}</name><uri>{base}/</uri></author>']
             wk_atom += wk_entries + ['</feed>']
             (SITE / "weekly.xml").write_text("\n".join(wk_atom) + "\n", encoding="utf-8")

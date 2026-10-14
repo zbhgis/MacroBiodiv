@@ -292,8 +292,8 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
     尽管正文由 JS 渲染）——2026-10-10 明确决定不动
 - **atom.xml 补全**（2026-10-10）：feed 级 `rel="alternate"`（指首页）+ `rel="self"`
   （指自身）+ feed 级 `author`；entry 补 `rel="alternate"` 的 type/href、`published`、
-  `category`（期刊名，无期刊则不输出）；**时区改标 `+08:00`**——此前日期硬写 `Z`，
-  把中文语境制作的日期谎称成 UTC（早 8 小时）
+  `category`（期刊名，无期刊则不输出）；日期时区教训链：先硬写 `Z`（把中文语境的日期
+  谎称成 UTC 早 8 小时）→ 改标 `+08:00` 的整点时间戳 → **改纯日期（2026-10-14，现状）**
 - **RSS 双源订阅**（2026-10-14 重构口径，构建期生成 Atom）：**atom.xml = 文献更新**
   （最近 3 期周报对应的卡片，跨期 DOI 去重、期新→旧、期内按 md 顺序，category 补
   display_type 体裁；无周报索引时兜底 added 最新 10 篇）+
@@ -301,7 +301,10 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   期简介 + 文献清单「中文标题 — 摘要首句」，published/updated 用周区间日期）。
   **published 与 updated 都用论文 online 发表日**（缺则回落收录日）——Zotero 的
   「日期」字段读 updated 而非 published（2026-10-14 实证），两个都给 online 日
-  才能让阅读器显示用户期望的日期。
+  才能让阅读器显示用户期望的日期。**两个 feed 的全部日期均为纯日期**（`2026-03-25`，
+  feed 级 updated 同）：带时区的整点时间戳（`T00:00:00+08:00`）会被 Zotero 换算成
+  本地时刻显示成「2026-03-25 16:00:00」（同日实证），RFC 3339 date-only 各阅读器
+  均只显示日期；动态 feed（backend）同规则。
   **口径收敛到最近 3 期**是刻意设计：首次订阅时阅读器会把 feed 现有条目整批拉走，
   只放近 3 期把首订噪音压到最小（初版 1 期、同日扩为 3 期）；条目滚出 feed 后
   已订阅用户的阅读器仍保留（按 id 去重——文献 `urn:doi:` / 周报永久 URL），
