@@ -226,12 +226,15 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
     is_weekly = path.startswith("/weekly")
     is_stats = path.startswith("/statistics")
     is_about = path.startswith("/about")
+    is_rss = path.startswith("/rss")
     cur_w = ' aria-current="page"' if is_weekly else ''
     cur_s = ' aria-current="page"' if is_stats else ''
     cur_a = ' aria-current="page"' if is_about else ''
+    cur_r = ' aria-current="page"' if is_rss else ''
     ico_send = ('<svg class="mnav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg>')
     ico_chart = ('<svg class="mnav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 20V10M12 20V4M6 20v-4"/></svg>')
     ico_info = ('<svg class="mnav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>')
+    ico_rss = ('<svg class="mnav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1" fill="currentColor" stroke="none"/></svg>')
     ico_globe = ('<svg class="mnav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>')
     # GeoSciPlot 图标与主站「更多」菜单同款（图片样式：方框 + 圆点 + 山形）
     ico_geosci = ('<svg class="mnav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>')
@@ -241,6 +244,7 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
 <ul class="mnav-links">
 <li><a class="mnav-link" data-active="{str(is_weekly).lower()}" href="/weekly/"{cur_w}>{ico_send}每周速递</a></li>
 <li><a class="mnav-link" data-active="{str(is_stats).lower()}" href="/statistics/"{cur_s}>{ico_chart}全站统计</a></li>
+<li><a class="mnav-link" data-active="{str(is_rss).lower()}" href="/rss/"{cur_r}>{ico_rss}RSS 订阅</a></li>
 <li><a class="mnav-link" data-active="{str(is_about).lower()}" href="/about/"{cur_a}>{ico_info}关于本站</a></li>
 <li class="mnav-more"><button type="button" class="mnav-link mnav-more-trigger" aria-haspopup="true" title="更多站点">更多<svg class="mnav-more-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
 <ul class="mnav-dd">
@@ -253,6 +257,7 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
 <ul class="mnav-dd">
 <li><a href="/weekly/"{cur_w}>{ico_send}每周速递</a></li>
 <li><a href="/statistics/"{cur_s}>{ico_chart}全站统计</a></li>
+<li><a href="/rss/"{cur_r}>{ico_rss}RSS 订阅</a></li>
 <li><a href="/about/"{cur_a}>{ico_info}关于本站</a></li>
 <li class="mnav-dd-sep"></li>
 <li><a href="https://zbhgis.com" rel="noopener" target="_blank">{ico_globe}zbhgis</a></li>
@@ -584,31 +589,10 @@ def build_index(cfg: dict, items: list) -> str:
                 'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
                 '<path d="M6 3l5 5-5 5"/></svg>')
     body = f"""<header class="site">
-  <div class="rss-top">
-    <button type="button" class="rss-btn" id="rssBtn" aria-haspopup="dialog" aria-controls="rssDlg" title="订阅 RSS 更新（每周速递 / 文献）">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1.5" fill="currentColor" stroke="none"/></svg><span class="rss-txt">订阅 RSS</span>
-    </button>
-  </div>
   <h1 class="home-title"><img class="logo" src="assets/logo.png?v={BUILD_VER}" alt="MacroBiodiv logo">{esc(cfg['title'])}</h1>
   <a class="gh-note" href="https://github.com/{esc(cfg.get('owner') or 'OWNER')}/{esc(cfg['repo'])}" rel="noopener" target="_blank" title="在 GitHub 查看数据与索引">{ghsvg}<span>文献数据存储于 <b>GitHub</b>，访问需具备 <b>GitHub</b> 访问能力（点此查看仓库）</span></a>
   <p class="lede">{esc(cfg['lede'])}</p>
 </header>
-
-<dialog id="rssDlg" class="rss-dlg" aria-labelledby="rssTtl">
-  <button type="button" class="rss-x" id="rssClose" aria-label="关闭"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
-  <h2 id="rssTtl">订阅 RSS</h2>
-  <div class="rss-row">
-    <span class="rss-lab">每周速递更新</span>
-    <span class="rss-url" id="rssUrlWk">{esc(base + "/weekly.xml") if base else "weekly.xml"}</span>
-    <button type="button" class="rss-copy" data-copy="rssUrlWk">复制</button>
-  </div>
-  <div class="rss-row">
-    <span class="rss-lab">文献更新</span>
-    <span class="rss-url" id="rssUrlDoc">{esc(base + "/atom.xml") if base else "atom.xml"}</span>
-    <button type="button" class="rss-copy" data-copy="rssUrlDoc">复制</button>
-  </div>
-  <p class="rss-note">订阅后，最近 3 期周报或其对应的文献卡片会进入你的阅读器，新内容发布时自动推送。两种订阅可以同时使用。</p>
-</dialog>
 
 <div class="toolbar">
   <span class="searchbox"><svg class="sic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.2"/><path d="M10.2 10.2 14 14"/></svg><input id="q" class="search" type="search" placeholder="搜索 标题 / 作者 / DOI / 期刊 / 关键词 / 摘要…" autocomplete="off"><button id="qBtn" type="button" title="搜索" aria-label="搜索">搜索</button></span>
@@ -1003,6 +987,119 @@ def _month_label(date: str) -> str:
     return f"{m.group(1)}年{int(m.group(2))}月" if m else ""
 
 
+def build_feed_pool(cfg: dict, items: list) -> None:
+    """feed 池：动态订阅（/rss/feed.atom）的数据源，构建期生成、随发布整体上传
+    （site/assets/feed-pool.json，公开度与 papers-data.js 同级）。
+    过滤所需的全部字段在此预计算（dt=体裁与首页筛选同口径），服务器端只做
+    读池 → 过滤 → 拼 Atom，保持极薄；mtime 缓存在 backend 侧。"""
+    data = {
+        "base": (cfg.get("site_url") or "").rstrip("/"),
+        "title": cfg["title"],
+        "items": [{
+            "id": p["id"], "doi": p.get("doi") or "",
+            "title": p.get("title") or "", "title_zh": p.get("title_zh") or "",
+            "journal": p.get("journal") or "", "dt": display_type(p),
+            "published": p.get("published") or "", "added": p.get("added") or "",
+            "authors": (p.get("authors") or [])[:8],
+            "abstract_zh": p.get("abstract_zh") or "", "abstract": p.get("abstract") or "",
+            "volume": p.get("volume") or "", "issue": p.get("issue") or "",
+            "pages": p.get("pages") or "",
+        } for p in items],
+    }
+    (SITE / "assets" / "feed-pool.json").write_text(
+        json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c"),
+        encoding="utf-8")
+
+
+def build_rss_page(cfg: dict, items: list) -> str:
+    """RSS 定制订阅配置页（/rss/）：期刊/类型 chips 正向多选 + 标题语言 + 条数，
+    实时拼 /rss/feed.atom 动态链接（服务器 FastAPI 按 query 过滤生成 Atom）；
+    页面为纯静态，chips 是「选中=订阅」的正向语义（与首页筛选的全选剔除相反），
+    因此用页面内联脚本而非 papers.js 的 chips 机制。复制按钮复用 data-copy。"""
+    jn_counter: Counter = Counter()
+    ty_counter: Counter = Counter()
+    for p in items:
+        if p.get("journal"):
+            jn_counter[p["journal"]] += 1
+        ty = display_type(p)
+        if ty:
+            ty_counter[ty] += 1
+
+    def rchips(counter: Counter) -> str:
+        return "".join(
+            f'<button type="button" class="rscp-chip" data-v="{esc(v)}" aria-pressed="false">'
+            f'{esc(v)}<i class="n">{c}</i></button>'
+            for v, c in counter.most_common())
+
+    base = (cfg.get("site_url") or "").rstrip("/")
+    all_url = (base + "/atom.xml") if base else "atom.xml"
+    wk_url = (base + "/weekly.xml") if base else "weekly.xml"
+    body = f"""<header class="site">
+  <h1 class="spage-title">RSS 订阅</h1>
+  <p class="lede">按你关注的期刊与文章类型生成专属订阅链接，粘贴到任意 RSS 阅读器（Zotero / Feedly / Inoreader / Follow…），文献库更新时自动收到推送。</p>
+</header>
+<div class="rscp">
+  <div class="rscp-sec"><h2><i>①</i>期刊（可多选，不选 = 全部期刊）</h2><div class="rscp-chips" id="rJ">{rchips(jn_counter)}</div></div>
+  <div class="rscp-sec"><h2><i>②</i>文章类型（可多选，不选 = 全部类型）</h2><div class="rscp-chips" id="rT">{rchips(ty_counter)}</div></div>
+  <div class="rscp-sec"><h2><i>③</i>标题语言</h2><div class="rscp-langs" id="rL">
+    <button type="button" class="rscp-lang" data-v="zh" aria-pressed="true">中文标题</button>
+    <button type="button" class="rscp-lang" data-v="en" aria-pressed="false">英文标题</button>
+    <button type="button" class="rscp-lang" data-v="both" aria-pressed="false">中英双语</button>
+  </div></div>
+  <div class="rscp-sec"><h2><i>④</i>最多条目数</h2><div class="rscp-langs" id="rN">
+    <button type="button" class="rscp-lang" data-v="10" aria-pressed="false">10 条</button>
+    <button type="button" class="rscp-lang" data-v="20" aria-pressed="true">20 条</button>
+    <button type="button" class="rscp-lang" data-v="30" aria-pressed="false">30 条</button>
+    <button type="button" class="rscp-lang" data-v="50" aria-pressed="false">50 条</button>
+  </div></div>
+  <div class="rscp-out"><span class="rscp-url" id="rssUrl">{esc(base)}/rss/feed.atom</span><button type="button" class="rscp-copy" data-copy="rssUrl">复制链接</button></div>
+  <p class="rscp-note">链接由服务器按当前选项实时过滤生成，文献库每次发布后自动带上最新收录；选项变化时链接实时更新，更新后记得重新复制。订阅后按条目去重，不会重复推送。</p>
+  <div class="rscp-preset"><h2>预设订阅源（不筛选）</h2>
+    <div class="rscp-prow"><span class="rscp-plab">全部文献更新</span><span class="rscp-url2" id="rsAll">{esc(all_url)}</span><button type="button" class="rscp-pcopy" data-copy="rsAll">复制</button></div>
+    <div class="rscp-prow"><span class="rscp-plab">每周速递更新</span><span class="rscp-url2" id="rsWk">{esc(wk_url)}</span><button type="button" class="rscp-pcopy" data-copy="rsWk">复制</button></div>
+    <p class="rscp-note">文献更新 = 最近 3 期周报对应的文献卡片；每周速递更新 = 最近 3 期周报（含每篇的中文标题与摘要首句清单）。</p>
+  </div>
+</div>
+<script>
+(function(){{try{{
+  var base = {json.dumps(base)!r};
+  function sel(id){{
+    return Array.prototype.slice.call(
+      document.querySelectorAll("#" + id + " [aria-pressed='true']"))
+      .map(function(b){{ return b.getAttribute("data-v"); }});
+  }}
+  function q(k, v){{ return v.length ? "&" + k + "=" + encodeURIComponent(v.join("|")) : ""; }}
+  function upd(){{
+    var j = sel("rJ"), t = sel("rT");
+    var lang = sel("rL")[0] || "zh", n = sel("rN")[0] || "20";
+    var url = base + "/rss/feed.atom?lang=" + lang + "&n=" + n + q("j", j) + q("t", t);
+    document.getElementById("rssUrl").textContent = url;
+  }}
+  document.querySelectorAll("#rJ .rscp-chip, #rT .rscp-chip").forEach(function(b){{
+    b.addEventListener("click", function(){{
+      b.setAttribute("aria-pressed", String(b.getAttribute("aria-pressed") !== "true"));
+      upd();
+    }});
+  }});
+  ["rL", "rN"].forEach(function(id){{
+    document.querySelectorAll("#" + id + " .rscp-lang").forEach(function(b){{
+      b.addEventListener("click", function(){{
+        document.querySelectorAll("#" + id + " .rscp-lang").forEach(function(x){{
+          x.setAttribute("aria-pressed", "false");
+        }});
+        b.setAttribute("aria-pressed", "true");
+        upd();
+      }});
+    }});
+  }});
+  upd();
+}}catch(e){{}}}})();
+</script>"""
+    return page_shell(cfg, f"RSS 订阅 · {cfg['title']}", body, path="/rss/",
+                      description="按期刊与文章类型生成专属 RSS 订阅链接，"
+                                  "文献库更新时自动推送到你的 RSS 阅读器。")
+
+
 def build_about(cfg: dict) -> str:
     """关于本站页（/about/）：内容源 content/about.md（render_md 渲染），
     窄栏 prose 版式复用周报正文 .wk-content 排版；缺文件时只出标题不报错。"""
@@ -1300,7 +1397,7 @@ def main() -> int:
         # 与下方周报清理的 live 比对同一写法；空库时 live 为空集，详情页全部照搬。
         live = {p["id"] for p in items}
         for d in SITE.iterdir():
-            if (d.is_dir() and d.name not in ("assets", "search", "weekly", "statistics", "about")
+            if (d.is_dir() and d.name not in ("assets", "search", "weekly", "statistics", "about", "rss")
                     and d.name not in live
                     and (d / "index.html").exists()):
                 trash.mkdir(parents=True, exist_ok=True)
@@ -1410,6 +1507,7 @@ def main() -> int:
         urls = [("/", home_lastmod, "weekly", "1.0"),
                 ("/search/", today, "monthly", "0.4"),
                 ("/statistics/", today, "monthly", "0.5"),
+                ("/rss/", today, "monthly", "0.4"),
                 ("/about/", today, "yearly", "0.3")]
         urls += [("/" + p["id"] + "/", (p.get("added") or "").split("T")[0] or today,
                   "monthly", "0.8") for p in items]
@@ -1458,6 +1556,7 @@ def main() -> int:
 - [关于本站]({base}/about/): 站点定位、数据来源与说明
 - [RSS 文献订阅]({base}/atom.xml): 最近 3 期周报对应的文献卡片（Atom）
 - [RSS 周报订阅]({base}/weekly.xml): 最近 3 期每周速递（Atom）
+- [RSS 定制订阅]({base}/rss/): 按期刊 / 文章类型 / 标题语言生成专属订阅链接
 
 ## 主题标签（按篇数）
 
@@ -1668,6 +1767,11 @@ def main() -> int:
     about_dir = SITE / "about"
     about_dir.mkdir(parents=True, exist_ok=True)
     (about_dir / "index.html").write_text(build_about(cfg), encoding="utf-8")
+    # RSS 配置页 + feed 池（动态订阅的数据源，backend 在服务器上读 assets/feed-pool.json）
+    rss_dir = SITE / "rss"
+    rss_dir.mkdir(parents=True, exist_ok=True)
+    (rss_dir / "index.html").write_text(build_rss_page(cfg, items), encoding="utf-8")
+    build_feed_pool(cfg, items)
     for i, p in enumerate(items):
         d = SITE / p["id"]
         d.mkdir(parents=True, exist_ok=True)
