@@ -1062,7 +1062,6 @@ def build_rss_page(cfg: dict, items: list) -> str:
   <div class="rscp-sec"><h2><i>③</i>标题语言</h2><div class="rscp-langs" id="rL">
     <button type="button" class="rscp-lang" data-v="zh" aria-pressed="true">中文标题</button>
     <button type="button" class="rscp-lang" data-v="en" aria-pressed="false">英文标题</button>
-    <button type="button" class="rscp-lang" data-v="both" aria-pressed="false">中英双语</button>
   </div></div>
   <div class="rscp-sec"><h2><i>④</i>最多条目数</h2><div class="rscp-langs" id="rN">
     <button type="button" class="rscp-lang" data-v="10" aria-pressed="false">10 条</button>
