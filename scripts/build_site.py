@@ -1095,7 +1095,7 @@ def build_rss_page(cfg: dict, items: list) -> str:
   upd();
 }}catch(e){{}}}})();
 </script>"""
-    return page_shell(cfg, f"RSS 订阅 · {cfg['title']}", body, path="/rss/",
+    return page_shell(cfg, f"RSS 订阅 · {cfg['title']}", body, path="/rss/", depth=1,
                       description="按期刊与文章类型生成专属 RSS 订阅链接，"
                                   "文献库更新时自动推送到你的 RSS 阅读器。")
 
