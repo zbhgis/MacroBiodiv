@@ -539,7 +539,7 @@ html[data-theme=light] .st-tc3{--tc:#8250df}html[data-theme=light] .st-tc4{--tc:
 .st-cta{margin:26px 0 0;font-size:var(--fs-sm);color:var(--dim)}
 .st-cta a{color:var(--accent)}
 /* 关于本站页（/about/）：窄栏 prose，排版复用周报正文 .wk-content */
-.about-wrap{max-width:760px;margin:0 auto;padding:34px 20px 20px}
+.about-wrap{max-width:760px;margin:0;padding:34px 20px 20px}   /* 左对齐：与标题/kicker 同列（四路由版式统一 2026-10-14） */
 /* ── 统计页移动端（≤640px）：修复横溢与布局失衡 ——
    ① 日期筛选组独占一行、日期框互相收缩（此前固定宽导致 387>380 横向滚动）；
    ② 环形图改为上下结构居中（此前左对齐留大片空白）；
@@ -602,8 +602,7 @@ html[data-theme=light] .st-tc3{--tc:#8250df}html[data-theme=light] .st-tc4{--tc:
    菜单栏「RSS 订阅」入口 → 静态配置器：期刊/类型 chips（正向选中语义，
    与首页筛选的「全选剔除」模型相反）+ 标题语言单选 + 实时拼动态链接，
    feed 由服务器 FastAPI 按 query 参数实时生成（/rss/feed.atom 反代） */
-.rscp{max-width:860px;margin:0}   /* 左对齐 .wrap 左缘（与 spage-title 同列），
-                                     不居中——与搜索/统计页的左对齐版式一致 */
+.rscp{margin:0}   /* 全宽于 .wrap（与统计/搜索页一致，2026-10-14 统一四路由版式） */
 .rscp-sec{margin:0 0 26px}
 .rscp-sec h2{font-size:var(--fs-md);font-weight:600;margin:0 0 12px;color:var(--text)}
 .rscp-sec h2 i{font-style:normal;color:var(--accent);margin-right:8px}

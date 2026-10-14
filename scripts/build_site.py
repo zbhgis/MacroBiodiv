@@ -1053,6 +1053,7 @@ def build_rss_page(cfg: dict, items: list) -> str:
     all_url = (base + "/atom.xml") if base else "atom.xml"
     wk_url = (base + "/weekly.xml") if base else "weekly.xml"
     body = f"""<header class="site">
+  <p class="kicker">{esc(cfg['title'].upper())} · RSS</p>
   <h1 class="spage-title">RSS 订阅</h1>
   <p class="lede">按你关注的期刊与文章类型生成专属订阅链接，粘贴到任意 RSS 阅读器（Zotero / Feedly / Inoreader / Follow…），文献库更新时自动收到推送。</p>
 </header>
