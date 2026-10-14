@@ -1026,10 +1026,15 @@ def build_rss_page(cfg: dict, items: list) -> str:
             ty_counter[ty] += 1
 
     def rchips(counter: Counter) -> str:
-        return "".join(
+        chips = "".join(
             f'<button type="button" class="rscp-chip" data-v="{esc(v)}" aria-pressed="false">'
             f'{esc(v)}<i class="n">{c}</i></button>'
             for v, c in counter.most_common())
+        # 行尾两枚操作钮（首页筛选同款视觉）：全选 = 该维不过滤（链接省略参数），
+        # 反选 = 翻转全部选中态
+        return (chips
+                + '<button type="button" class="rscp-act" data-act="all">全选</button>'
+                + '<button type="button" class="rscp-act" data-act="invert">反选</button>')
 
     base = (cfg.get("site_url") or "").rstrip("/")
     all_url = (base + "/atom.xml") if base else "atom.xml"
@@ -1068,9 +1073,18 @@ def build_rss_page(cfg: dict, items: list) -> str:
       document.querySelectorAll("#" + id + " [aria-pressed='true']"))
       .map(function(b){{ return b.getAttribute("data-v"); }});
   }}
+  /* 组语义：全选 = 不过滤该维（返回空 → 链接省略参数，与「不选 = 全部」自洽） */
+  function grp(id){{
+    var all = document.querySelectorAll("#" + id + " .rscp-chip");
+    var on = Array.prototype.filter.call(all, function(b){{
+      return b.getAttribute("aria-pressed") === "true";
+    }});
+    return on.length === all.length
+      ? [] : on.map(function(b){{ return b.getAttribute("data-v"); }});
+  }}
   function q(k, v){{ return v.length ? "&" + k + "=" + encodeURIComponent(v.join("|")) : ""; }}
   function upd(){{
-    var j = sel("rJ"), t = sel("rT");
+    var j = grp("rJ"), t = grp("rT");
     var lang = sel("rL")[0] || "zh", n = sel("rN")[0] || "20";
     var url = base + "/rss/feed.atom?lang=" + lang + "&n=" + n + q("j", j) + q("t", t);
     document.getElementById("rssUrl").textContent = url;
@@ -1078,6 +1092,16 @@ def build_rss_page(cfg: dict, items: list) -> str:
   document.querySelectorAll("#rJ .rscp-chip, #rT .rscp-chip").forEach(function(b){{
     b.addEventListener("click", function(){{
       b.setAttribute("aria-pressed", String(b.getAttribute("aria-pressed") !== "true"));
+      upd();
+    }});
+  }});
+  document.querySelectorAll("#rJ .rscp-act, #rT .rscp-act").forEach(function(b){{
+    b.addEventListener("click", function(){{
+      var all = b.getAttribute("data-act") === "all";
+      b.closest(".rscp-chips").querySelectorAll(".rscp-chip").forEach(function(c){{
+        c.setAttribute("aria-pressed",
+          String(all ? true : c.getAttribute("aria-pressed") !== "true"));
+      }});
       upd();
     }});
   }});

@@ -617,6 +617,11 @@ html[data-theme=light] .st-tc3{--tc:#8250df}html[data-theme=light] .st-tc4{--tc:
   border-radius:999px;background:var(--accent-soft);color:var(--text);min-width:20px;
   display:inline-block;text-align:center}
 .rscp-chip[aria-pressed="true"] .n{background:rgba(0,0,0,.18);color:inherit}
+.rscp-act{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-sm);
+  padding:7px 14px;border:1px dashed var(--line2);border-radius:999px;background:transparent;
+  color:var(--faint);cursor:pointer;
+  transition:color .15s ease,border-color .15s ease}
+.rscp-act:hover{color:var(--accent);border-color:var(--accent)}
 .rscp-langs{display:flex;gap:8px;flex-wrap:wrap}
 .rscp-lang{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-sm);
   padding:8px 16px;border:1px solid var(--line2);border-radius:999px;background:transparent;
