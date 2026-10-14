@@ -612,6 +612,13 @@ html[data-theme=light] .st-tc3{--tc:#8250df}html[data-theme=light] .st-tc4{--tc:
 .rss-btn:hover{filter:brightness(1.12);transform:translateY(-1px)}
 .rss-btn svg{width:15px;height:15px;flex:none}
 @media (max-width:760px){.rss-top{position:static;display:flex;justify-content:flex-end;margin:-4px 0 10px}}
+/* 移动端（≤640px，与菜单栏汉堡同断点）：按钮收紧为仅图标的圆胶囊，
+   不与 clamp 大标题抢宽度、不显突兀；桌面端始终图标+文字 */
+@media (max-width:640px){
+  .rss-btn{padding:8px 10px}
+  .rss-btn .rss-txt{display:none}
+  .rss-btn svg{width:16px;height:16px}
+}
 .rss-dlg{position:relative;border:1px solid var(--line2);border-radius:10px;background:var(--card);
   color:var(--text);padding:26px 26px 20px;max-width:560px;width:calc(100vw - 48px);
   box-shadow:0 24px 70px rgba(0,0,0,.4)}
