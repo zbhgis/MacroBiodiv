@@ -343,13 +343,11 @@ mark{background:color-mix(in srgb,var(--accent) 24%,transparent);color:inherit;b
    --text-secondary/muted→--dim、--text-faint→--faint、--hairline→--line、
    --hairline-strong/--border→--line2、accent-soft-fade→transparent）。
    静态站裁剪：ViewToggle/RSS/分组分页/侧栏手风琴/TOC scrollspy 均不做 ── */
-.wk-col{max-width:760px;margin:0 auto;padding:56px 24px 96px}
-.wk-head{display:flex;align-items:flex-end;gap:16px;margin:0 0 40px}
-.wk-kicker{margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
 .wk-deco{margin:16px 0 0;font-size:clamp(28px,4vw,40px);font-weight:600;letter-spacing:-.03em;line-height:1.15;color:var(--text)}
-.wk-lede{margin:18px 0 0;font-size:var(--fs-base);line-height:1.75;color:var(--dim);max-width:46ch}
+/* 列表页页头已并入四路由统一版式（header.site kicker + spage-title + .lede，全宽
+   .wrap）——wk-col/wk-head/wk-kicker/wk-lede 已废（2026-10-14），仅文章页仍用 .wk-deco */
 /* QuickNav 月份跳转 chip（v3-btn 同源） */
-.wk-quicknav{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 36px}
+.wk-quicknav{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:24px 0 36px}
 /* 列表翻页（每页最多 3 个月）：按钮复用 .wk-btn 胶囊；当前页 accent 亮起；分组锚点避让吸顶菜单 */
 .wk-pgbar{display:flex;justify-content:center;align-items:center;gap:6px;margin:36px 0 8px;flex-wrap:wrap}
 .wk-pgbtn.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
@@ -538,8 +536,8 @@ html[data-theme=light] .st-tc3{--tc:#8250df}html[data-theme=light] .st-tc4{--tc:
 @media (prefers-reduced-motion:reduce){.st-cloud .st-w{animation:none}}
 .st-cta{margin:26px 0 0;font-size:var(--fs-sm);color:var(--dim)}
 .st-cta a{color:var(--accent)}
-/* 关于本站页（/about/）：窄栏 prose，排版复用周报正文 .wk-content */
-.about-wrap{max-width:760px;margin:0;padding:34px 20px 20px}   /* 左对齐：与标题/kicker 同列（四路由版式统一 2026-10-14） */
+/* 关于本站页（/about/）：prose 排版复用周报正文 .wk-content（容器全宽，见 .about-wrap） */
+.about-wrap{margin:0;padding:34px 0 20px}   /* 全宽：prose 左缘与标题/kicker 同线、宽度以统计页 .wrap 为准（四路由版式统一 2026-10-14） */
 /* ── 统计页移动端（≤640px）：修复横溢与布局失衡 ——
    ① 日期筛选组独占一行、日期框互相收缩（此前固定宽导致 387>380 横向滚动）；
    ② 环形图改为上下结构居中（此前左对齐留大片空白）；
@@ -592,7 +590,6 @@ html[data-theme=light] .st-tc3{--tc:#8250df}html[data-theme=light] .st-tc4{--tc:
 .wk-pn-ttl{font-size:var(--fs-sm);line-height:1.5;letter-spacing:-.008em;color:var(--text);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .wk-pn-empty{min-height:68px;border:1px dashed var(--line2);border-radius:6px}
 @media (max-width:640px){
-  .wk-col{padding:40px 16px 80px}
   .wk-shell{display:block}
   .wk-main{padding:32px 16px}
   .wk-prevnext{grid-template-columns:1fr}

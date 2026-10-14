@@ -1373,18 +1373,22 @@ def build_weekly(cfg: dict) -> tuple[list[str], list[dict]]:
     else:
         pager = ""
     n_week = len(posts)
-    body = f"""<div class="wk-col">
-<div class="wk-head"><div><p class="wk-kicker">{esc(cfg['title'].upper())}</p><h1 class="wk-deco">每周速递</h1></div></div>
-<p class="wk-lede">Nature / Science / Cell 系列大尺度生物多样性研究每周精选，共 {n_week} 期；点击条目阅读本期文献速递全文。</p>
+    # 列表页版式并入四路由统一（2026-10-14）：header.site（kicker + spage-title +
+    # lede）+ 全宽 .wrap 内容（quicknav/分组/翻页条），左缘与统计页同线
+    body = f"""<header class="site">
+  <p class="kicker">{esc(cfg['title'].upper())} · WEEKLY</p>
+  <h1 class="spage-title">每周速递</h1>
+  <p class="lede">Nature / Science / Cell 系列大尺度生物多样性研究每周精选，共 {n_week} 期；点击条目阅读本期文献速递全文。</p>
+</header>
+
 <div class="wk-quicknav">{chips}</div>
 <div class="wk-groups">{sections}</div>
-{pager}
-</div>"""
+{pager}"""
     (SITE / "weekly").mkdir(parents=True, exist_ok=True)
     (SITE / "weekly" / "index.html").write_text(
         page_shell(cfg, f"每周速递 · {cfg['title']}", body, depth=1,
                    description=f"Nature / Science / Cell 系列大尺度生物多样性研究每周精选，共 {n_week} 期。",
-                   path="/weekly/", bare=True, rstyle="plain"), encoding="utf-8")
+                   path="/weekly/"), encoding="utf-8")
     # 过期的周报页目录（期次被删后的残留）→ 改名移入 site_trash/，绝不原地删除
     #（与上面过期详情页同一模式：shutil.rmtree 会触发沙箱批量删除保护，纯改名无此问题）
     trash = ROOT / "site_trash"

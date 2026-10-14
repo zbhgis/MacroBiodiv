@@ -65,6 +65,12 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   WebKit 全局 10px、track 透明、thumb 透明边 3px + background-clip 内缩成 4px 视觉细条
   （命中区仍 10px 好拖）、hover 加深、corner 透明
 - 断点：1100px（首页瀑布流卡片 4→3 列）、760px（3→2 列）、640px（队列横排）
+- **次级路由版式统一（2026-10-14，以全站统计为基准）**：搜索 / 统计 / RSS 订阅 /
+  每周速递列表 / 关于本站五页同为「`header.site`（`kicker` 小标 `MACROBIODIV · XX` +
+  `.spage-title` 大标题，搜索/统计/周报列表另有 `.lede` 引语）+ 全宽 `.wrap` 内容」——
+  kicker / 标题 / 内容三层左缘同线（构建期浏览器实测 left 一致），内容宽度一律
+  `.wrap`（1180px），不再有 760px 居中/左对齐窄栏（周报列表旧 `wk-col`、关于旧
+  窄栏 `.about-wrap` 已废）。每周速递**文章页**例外：三栏阅读版式自带容器（bare）
 
 ### 2.3 右侧悬浮按钮队列
 
@@ -433,7 +439,9 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   一律不作为渲染与标签来源**——FM_RE 容忍 BOM/前导空白行，parse_md 的纯文本也取剥离后的正文
 - **标签行只保留年月**（2026-10-04 起）：文章页 tags 行与列表页条目右侧 tags 均只渲染
   一个 `wk-tag`（年月），`categoryTags`/`subCategoryTags` 不再输出
-- **列表页**：`wk-col` 760px → 页头（`wk-kicker` mono 大写 + `wk-deco` 大标题 + lede）→
+- **列表页**（2026-10-14 版式并入次级路由统一，见 §2.2）：`header.site`（`kicker`
+  「MACROBIODIV · WEEKLY」+ `spage-title` + `.lede`）+ 全宽 `.wrap` 内容——旧
+  `wk-col` 760px 居中容器与 `wk-head/wk-kicker/wk-lede` 已废（文章页仍用 `wk-deco`）→
   `wk-quicknav` 月份锚点 chip（`wk-btn` 带计数）→ 按月倒序分组：`wk-label`（月份 + N 篇）→
   `wk-line` 条目（标题 hover 变 accent + 摘要两行截断 + 右侧 tags（分类 accent + 月份）+ 日期 mono）
   → **翻页**（2026-10-10）：分组按**每页最多 3 个月**切片（`data-page` 构建期写死 + 页外组
@@ -452,7 +460,8 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   `--text-primary→--text`、`--text-secondary/muted→--dim`、`--text-faint→--faint`、
   `--hairline→--line`、`--hairline-strong/--border→--line2`、`accent-soft-fade→transparent`
 - **静态裁剪**（零 JS）：ViewToggle/RSS、分组分页 Pager/查看更多、侧栏手风琴、TOC scrollspy
-  与移动端抽屉不做；`page_shell(bare=True)` 让正文绕开 `.wrap`（全宽三栏自管容器）
+  与移动端抽屉不做；**仅文章页** `page_shell(bare=True)` 让正文绕开 `.wrap`（全宽三栏
+  自管容器）——列表页 2026-10-14 起回归 `.wrap`（次级路由统一）
 - **渲染颜色切换**（2026-10 新增，与 §3.2 文献详情页共用）：meta 行尾五枚小圆点
   （透明斜杠圈 = plain 普通样式：系统色标题无装饰，本页默认；蓝/绿/淡紫/橘实心圈 =
   对应强调色渲染：标题与左竖线换色，去 md-h1 底线，即文献详情的公众号式同构）。
@@ -478,7 +487,9 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 
 - 内容源 **`content/about.md`**（`render_md.parse_md` 渲染，与周报同一套迷你渲染器）——
   改文案只需编辑该 md 重新构建；缺文件 / 缺渲染器时页面只出标题不报错
-- 版式：`.spage-title` 大标题 + `.about-wrap`（760px 窄栏）内 `.wk-content` prose
+- 版式：`header.site`（kicker + `.spage-title`）+ `.about-wrap`（**全宽**，prose 左缘与
+  标题/kicker 同线、宽度以统计页 `.wrap` 为准，2026-10-14 起；旧 760px 窄栏已废）内
+  `.wk-content` prose
   （复用周报正文排版：md-h1 降级剥离首个 `#` 标题避免与大标题重复、粗斜体、链接 accent）
 - 菜单：桌面导航与 ≤640px 汉堡均在「全站统计」后加「关于本站」（lucide info 圈图标），
   按 `path.startswith("/about")` 构建期标 `data-active` + aria-current
