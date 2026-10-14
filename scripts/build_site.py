@@ -1572,8 +1572,13 @@ def main() -> int:
             newest = sorted(items, key=lambda p: p.get("added") or "", reverse=True)[:10]
         # 时区按 +08:00 标注（站点在中文语境制作，此前写死 Z=UTC 是把日期谎称早 8 小时）
         cst = "+08:00"
+        # DC/PRISM 命名空间：Zotero 等文献管理器把 dc:source 读作「出版物」（期刊），
+        # PRISM 组（publicationName/volume/number/pageRange）是出版业 feed 惯例
+        # （Nature/Science 官方 feed 同款），补齐后 Zotero 条目信息不再缺期刊与卷期
         atom = ['<?xml version="1.0" encoding="utf-8"?>',
-                '<feed xmlns="http://www.w3.org/2005/Atom">',
+                '<feed xmlns="http://www.w3.org/2005/Atom" '
+                'xmlns:dc="http://purl.org/dc/elements/1.1/" '
+                'xmlns:prism="http://prismstandard.org/namespaces/basic/3.0/">',
                 f'<title>{xml_text(cfg["title"])} · 文献更新</title>',
                 f'<link rel="alternate" type="text/html" href="{base}/"/>',
                 f'<link rel="self" type="application/atom+xml" href="{base}/atom.xml"/>',
@@ -1582,17 +1587,31 @@ def main() -> int:
                 f'<author><name>{xml_text(cfg["title"])}</name><uri>{base}/</uri></author>']
         for p in newest:
             summ = (p.get("abstract_zh") or p.get("abstract") or "")[:300]
+            # published = 论文 online 发表日（papers.json 的 published 本就 online 优先，
+            # 缺则回落收录日）——Zotero 的「日期」字段读 Atom 的 <published>；
+            # updated = 收录进本站的时间（added）
+            d_pub = p.get("published") or p.get("added") or time.strftime("%Y-%m-%d")
+            d_add = p.get("added") or d_pub
             atom += ['<entry>',
                      f'<title>{xml_text(display_title(p))}</title>',
                      f'<link rel="alternate" type="text/html" href="{base}/{p["id"]}/"/>',
                      f'<id>urn:doi:{xml_text(p.get("doi", p["id"]))}</id>',
-                     f'<published>{p.get("added") or time.strftime("%Y-%m-%d")}T00:00:00{cst}</published>',
-                     f'<updated>{p.get("added") or time.strftime("%Y-%m-%d")}T00:00:00{cst}</updated>',
+                     f'<published>{d_pub}T00:00:00{cst}</published>',
+                     f'<updated>{d_add}T00:00:00{cst}</updated>',
                      f'<summary>{xml_text(summ)}</summary>']
             if display_type(p):
                 atom.append(f'<category term="{xml_text(display_type(p))}"/>')
             if p.get("journal"):
-                atom.append(f'<category term="{xml_text(p["journal"])}"/>')
+                j = xml_text(p["journal"])
+                atom.append(f'<dc:source>{j}</dc:source>')
+                atom.append(f'<prism:publicationName>{j}</prism:publicationName>')
+                atom.append(f'<category term="{j}"/>')
+            if p.get("volume"):
+                atom.append(f'<prism:volume>{xml_text(p["volume"])}</prism:volume>')
+            if p.get("issue"):
+                atom.append(f'<prism:number>{xml_text(p["issue"])}</prism:number>')
+            if p.get("pages"):
+                atom.append(f'<prism:pageRange>{xml_text(p["pages"])}</prism:pageRange>')
             for a in (p.get("authors") or [])[:5]:
                 atom.append(f'<author><name>{xml_text(a)}</name></author>')
             atom.append('</entry>')
