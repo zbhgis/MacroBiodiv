@@ -207,7 +207,7 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
     # theme-color 与 :root token 同值（深 #0d1117 / 浅 #fff，见样式表 :root 两行），
     # 移动端浏览器地址条配色跟随主题；apple-touch-icon 复用 favicon.png；
     # RSS 双源自动发现（2026-10-14 起双 feed：文献更新 atom.xml / 周报更新 weekly.xml，
-    # 均为构建期生成的 Atom，口径收敛到最新一期）——阅读器贴域名即可发现两源
+    # 均为构建期生成的 Atom，口径收敛到最近 3 期）——阅读器贴域名即可发现两源
     feed_href = (base + "/atom.xml") if base else f"{up}atom.xml"
     wk_feed_href = (base + "/weekly.xml") if base else f"{up}weekly.xml"
     head_extra = "\n".join([
@@ -607,7 +607,7 @@ def build_index(cfg: dict, items: list) -> str:
     <span class="rss-url" id="rssUrlDoc">{esc(base + "/atom.xml") if base else "atom.xml"}</span>
     <button type="button" class="rss-copy" data-copy="rssUrlDoc">复制</button>
   </div>
-  <p class="rss-note">订阅后，最新一期周报或其对应的文献卡片发布时会自动推送到你的阅读器。两种订阅可以同时使用。</p>
+  <p class="rss-note">订阅后，最近 3 期周报或其对应的文献卡片会进入你的阅读器，新内容发布时自动推送。两种订阅可以同时使用。</p>
 </dialog>
 
 <div class="toolbar">
@@ -1456,8 +1456,8 @@ def main() -> int:
 - [每周速递]({base}/weekly/): Nature / Science / Cell 系列大尺度生物多样性研究每周精选（{n_weekly} 期）
 - [全站统计]({base}/statistics/): 关键词 / 期刊 / 年份分布
 - [关于本站]({base}/about/): 站点定位、数据来源与说明
-- [RSS 文献订阅]({base}/atom.xml): 最近一期周报对应的文献卡片（Atom）
-- [RSS 周报订阅]({base}/weekly.xml): 最新一期每周速递（Atom）
+- [RSS 文献订阅]({base}/atom.xml): 最近 3 期周报对应的文献卡片（Atom）
+- [RSS 周报订阅]({base}/weekly.xml): 最近 3 期每周速递（Atom）
 
 ## 主题标签（按篇数）
 
@@ -1546,11 +1546,12 @@ def main() -> int:
         if key_file.exists():
             key = key_file.read_text(encoding="utf-8").strip()
             (SITE / (key + ".txt")).write_text(key, encoding="utf-8")
-        # ── RSS 双源（构建期生成，纯静态，Atom 格式）——口径收敛到「最近一期」：
-        #    周报源 weekly.xml 仅 1 条（最新一期）；文献源 atom.xml = 最新一期对应的
-        #    卡片。首次订阅时阅读器会把 feed 现有条目整批拉走，收敛到最近一期把
-        #    首订噪音压到最小（2026-10-14 裁定）；条目滚出 feed 后，已订阅用户的
-        #    阅读器里仍保留（按 id 去重不重复推送），网站归档始终是完整入口
+        # ── RSS 双源（构建期生成，纯静态，Atom 格式）——口径收敛到「最近 3 期」：
+        #    周报源 weekly.xml = 近 3 期（每期 1 条 entry）；文献源 atom.xml = 近 3 期
+        #    对应的卡片（跨期 DOI 去重，期新→旧、期内按 md 顺序）。首次订阅时阅读器
+        #    会把 feed 现有条目整批拉走，只放近 3 期把首订噪音压到最小（2026-10-14
+        #    裁定，初版 1 期扩为 3 期）；条目滚出 feed 后，已订阅用户的阅读器里仍
+        #    保留（按 id 去重不重复推送），网站归档始终是完整入口
         # XML 不允许的控制字符（\x00-\x08 等）会导致解析失败，先剥掉
         xml_bad = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
 
@@ -1558,11 +1559,16 @@ def main() -> int:
             return esc(xml_bad.sub("", s or ""))
 
         by_doi = {str(p.get("doi") or "").lower(): p for p in items}
-        latest_wk = weekly_index[0] if weekly_index else None
-        if latest_wk and latest_wk.get("dois"):
-            newest = [by_doi[d.lower()] for d in latest_wk["dois"]
-                      if d.lower() in by_doi]        # 该期顺序；未入库的 DOI 跳过
-        else:                                        # 无周报索引的兜底
+        recent_wks = weekly_index[:3]
+        newest, _seen = [], set()
+        for wk in recent_wks:                        # 期新→旧、期内按 md 顺序
+            for d in wk.get("dois") or []:
+                k = d.lower()
+                if k in _seen or k not in by_doi:    # 跨期去重；未入库的 DOI 跳过
+                    continue
+                _seen.add(k)
+                newest.append(by_doi[k])
+        if not newest:                               # 无周报索引的兜底
             newest = sorted(items, key=lambda p: p.get("added") or "", reverse=True)[:10]
         # 时区按 +08:00 标注（站点在中文语境制作，此前写死 Z=UTC 是把日期谎称早 8 小时）
         cst = "+08:00"
@@ -1593,10 +1599,11 @@ def main() -> int:
         atom.append('</feed>')
         (SITE / "atom.xml").write_text("\n".join(atom) + "\n", encoding="utf-8")
 
-        # 周报源：仅最新一期 1 条 entry，content = 期简介 + 文献清单（标题 + 摘要首句）
-        if latest_wk:
+        # 周报源：近 3 期各 1 条 entry，content = 期简介 + 文献清单（标题 + 摘要首句）
+        wk_entries = []
+        for wk in recent_wks:
             lis = []
-            for d in latest_wk.get("dois") or []:
+            for d in wk.get("dois") or []:
                 p = by_doi.get(d.lower())
                 if not p:
                     continue
@@ -1606,28 +1613,30 @@ def main() -> int:
                     first = first[:90] + "…"
                 lis.append(f"<li>{xml_text(display_title(p))}"
                            + (f" — {xml_text(first)}" if first else "") + "</li>")
-            content = (f"<p>{xml_text(latest_wk['summary'])}</p>"
+            content = (f"<p>{xml_text(wk['summary'])}</p>"
                        + ("<ul>" + "".join(lis) + "</ul>" if lis else ""))
+            d0 = wk["date"] or time.strftime("%Y-%m-%d")
+            wk_entries += ['<entry>',
+                           f'<title>{xml_text(wk["title"])}</title>',
+                           f'<link rel="alternate" type="text/html" href="{base}/weekly/{wk["slug"]}/"/>',
+                           f'<id>{base}/weekly/{wk["slug"]}/</id>',
+                           f'<published>{d0}T00:00:00{cst}</published>',
+                           f'<updated>{d0}T00:00:00{cst}</updated>',
+                           f'<content type="html">{xml_text(content)}</content>',
+                           '</entry>']
+        if wk_entries:
             wk_atom = ['<?xml version="1.0" encoding="utf-8"?>',
                        '<feed xmlns="http://www.w3.org/2005/Atom">',
                        f'<title>{xml_text(cfg["title"])} · 每周速递更新</title>',
                        f'<link rel="alternate" type="text/html" href="{base}/weekly/"/>',
                        f'<link rel="self" type="application/atom+xml" href="{base}/weekly.xml"/>',
                        f'<id>{base}/weekly/</id>',
-                       f'<updated>{latest_wk["date"] or time.strftime("%Y-%m-%d")}T00:00:00{cst}</updated>',
-                       f'<author><name>{xml_text(cfg["title"])}</name><uri>{base}/</uri></author>',
-                       '<entry>',
-                       f'<title>{xml_text(latest_wk["title"])}</title>',
-                       f'<link rel="alternate" type="text/html" href="{base}/weekly/{latest_wk["slug"]}/"/>',
-                       f'<id>{base}/weekly/{latest_wk["slug"]}/</id>',
-                       f'<published>{latest_wk["date"] or time.strftime("%Y-%m-%d")}T00:00:00{cst}</published>',
-                       f'<updated>{latest_wk["date"] or time.strftime("%Y-%m-%d")}T00:00:00{cst}</updated>',
-                       f'<content type="html">{xml_text(content)}</content>',
-                       '</entry>',
-                       '</feed>']
+                       f'<updated>{recent_wks[0]["date"] or time.strftime("%Y-%m-%d")}T00:00:00{cst}</updated>',
+                       f'<author><name>{xml_text(cfg["title"])}</name><uri>{base}/</uri></author>']
+            wk_atom += wk_entries + ['</feed>']
             (SITE / "weekly.xml").write_text("\n".join(wk_atom) + "\n", encoding="utf-8")
-        wk_feed_note = " + weekly.xml（最新一期）" if latest_wk else ""
-        print(f"· robots.txt + sitemap.xml（{len(urls)} 个 URL）+ atom.xml（{len(newest)} 篇·最新一期）{wk_feed_note}")
+        wk_feed_note = f" + weekly.xml（近 {len(recent_wks)} 期）" if recent_wks else ""
+        print(f"· robots.txt + sitemap.xml（{len(urls)} 个 URL）+ atom.xml（{len(newest)} 篇·近 3 期）{wk_feed_note}")
 
     (SITE / "index.html").write_text(build_index(cfg, items), encoding="utf-8")
     search_dir = SITE / "search"
