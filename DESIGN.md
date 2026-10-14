@@ -297,7 +297,12 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   （按 id 去重——文献 `urn:doi:` / 周报永久 URL），网站归档始终是完整入口。
   自动发现链接双份（`page_shell` head：`atom.xml` 文献更新 + `weekly.xml`
   每周速递更新，title 区分），页脚加「RSS 周报 / RSS 文献」两枚链接，
-  llms.txt 索引行同步双源
+  llms.txt 索引行同步双源；**首页订阅入口**（2026-10-14 补）：header 右上角
+  accent 实底胶囊「订阅 RSS」按钮（全站唯一实底 CTA，刻意显眼；≤760px 转流式
+  右对齐）→ `<dialog>` 原生弹窗（showModal 自带遮罩/Esc/焦点圈；两行订阅源
+  各带「复制」按钮，复用 papers.js 的 data-copy 通用机制；遮罩点击用几何判定
+  关闭 —— ::backdrop 的点击 target 归属跨浏览器不一致，坐标落在 dialog 矩形
+  外即关），点 × / Esc / 遮罩均可关闭
 - **页面内 atom 自动发现链接**（2026-10-10）：`<link rel="alternate" type="application/atom+xml">`
   ——feed 早就在生成，但没有任何页面引用它，等于不可发现
 - **llms.txt / llms-full.txt（GEO，2026-10-10 分两层）**，遵循 llms.txt 规范"索引小文件 +

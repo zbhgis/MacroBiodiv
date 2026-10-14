@@ -598,3 +598,41 @@ html[data-theme=light] .st-tc3{--tc:#8250df}html[data-theme=light] .st-tc4{--tc:
   .wk-main{padding:32px 16px}
   .wk-prevnext{grid-template-columns:1fr}
 }
+
+/* ── RSS 订阅按钮 + 弹窗（首页，2026-10-14）────────────────────────────
+   右上角 accent 实底胶囊（全站唯一实底 CTA，刻意显眼）；弹窗用 <dialog> 原生
+   元素（showModal 自带遮罩/Esc/焦点圈），复制按钮复用 papers.js data-copy */
+.site{position:relative}
+.rss-top{position:absolute;top:2px;right:0;z-index:5}
+.rss-btn{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;
+  border:1px solid var(--accent);border-radius:999px;background:var(--accent);
+  color:var(--bg);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:var(--fs-sm);cursor:pointer;box-shadow:0 4px 16px var(--accent-soft);
+  transition:filter .15s ease,transform .15s ease}
+.rss-btn:hover{filter:brightness(1.12);transform:translateY(-1px)}
+.rss-btn svg{width:15px;height:15px;flex:none}
+@media (max-width:760px){.rss-top{position:static;display:flex;justify-content:flex-end;margin:-4px 0 10px}}
+.rss-dlg{position:relative;border:1px solid var(--line2);border-radius:10px;background:var(--card);
+  color:var(--text);padding:26px 26px 20px;max-width:560px;width:calc(100vw - 48px);
+  box-shadow:0 24px 70px rgba(0,0,0,.4)}
+.rss-dlg::backdrop{background:rgba(0,0,0,.55)}
+.rss-dlg h2{margin:0 0 6px;font-size:var(--fs-h2);font-weight:600;letter-spacing:-.01em}
+.rss-x{position:absolute;top:12px;right:12px;width:34px;height:34px;display:flex;
+  align-items:center;justify-content:center;border:0;border-radius:50%;
+  background:transparent;color:var(--dim);cursor:pointer;
+  transition:background .15s ease,color .15s ease}
+.rss-x:hover{background:var(--accent-soft);color:var(--text)}
+.rss-x svg{width:16px;height:16px}
+.rss-hint{color:var(--dim);font-size:var(--fs-sm);margin:0 0 16px;line-height:1.7}
+.rss-row{display:flex;align-items:center;gap:10px;padding:11px 13px;
+  border:1px solid var(--line);border-radius:8px;background:var(--bg);margin-bottom:10px}
+.rss-lab{flex:none;width:6.8em;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:var(--fs-xs);color:var(--dim)}
+.rss-url{flex:1;min-width:0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:12.5px;color:var(--text);word-break:break-all}
+.rss-copy{flex:none;padding:5px 12px;border:1px solid var(--line2);border-radius:999px;
+  background:transparent;color:var(--dim);cursor:pointer;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);
+  transition:color .15s ease,border-color .15s ease}
+.rss-copy:hover{color:var(--accent);border-color:var(--accent)}
+.rss-note{color:var(--faint);font-size:var(--fs-xs);margin:12px 0 0;line-height:1.8}

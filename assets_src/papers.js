@@ -116,6 +116,22 @@
     });
   });
 
+  /* ── 首页：RSS 订阅弹窗（<dialog> 原生元素，Esc 自带关闭；复制按钮走 data-copy
+     机制）。仅首页有 #rssBtn，详情页/搜索页无此节点自然跳过 ── */
+  var rssBtn = document.getElementById("rssBtn"), rssDlg = document.getElementById("rssDlg");
+  if (rssBtn && rssDlg) {
+    rssBtn.addEventListener("click", function () { rssDlg.showModal(); });
+    var rssX = document.getElementById("rssClose");
+    if (rssX) rssX.addEventListener("click", function () { rssDlg.close(); });
+    /* 点遮罩关闭：::backdrop 的点击 target 归属跨浏览器不一致（可能派发到
+       dialog 也可能穿透），用几何判定最稳 —— 点击落在 dialog 矩形外即遮罩 */
+    rssDlg.addEventListener("click", function (e) {
+      var r = rssDlg.getBoundingClientRect();
+      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom)
+        rssDlg.close();
+    });
+  }
+
   /* ── 全站搜索独立页（/search/）：静态站没有检索后端，直接在 papers-data.js 的
      文献元数据 + weekly-data.js 的周报全文上做客户端匹配（文献：标题/作者/DOI/期刊/
      关键词/标签/摘要；周报：期标题/日期/摘要行/正文全文。多词空格分隔 = 同时命中）。

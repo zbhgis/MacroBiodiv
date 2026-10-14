@@ -554,6 +554,8 @@ b.setAttribute("aria-pressed",String(b.getAttribute("data-sort")===v))})
 
 
 def build_index(cfg: dict, items: list) -> str:
+    # site_url 提前计算：RSS 弹窗里的绝对 feed URL 也要用（尾处 JSON-LD 同源）
+    base = (cfg.get("site_url") or "").rstrip("/")
     tag_counter: Counter = Counter()
     journal_counter: Counter = Counter()
     type_counter: Counter = Counter()
@@ -582,10 +584,32 @@ def build_index(cfg: dict, items: list) -> str:
                 'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
                 '<path d="M6 3l5 5-5 5"/></svg>')
     body = f"""<header class="site">
+  <div class="rss-top">
+    <button type="button" class="rss-btn" id="rssBtn" aria-haspopup="dialog" aria-controls="rssDlg" title="订阅 RSS 更新（每周速递 / 文献）">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1.5" fill="currentColor" stroke="none"/></svg><span>订阅 RSS</span>
+    </button>
+  </div>
   <h1 class="home-title"><img class="logo" src="assets/logo.png?v={BUILD_VER}" alt="MacroBiodiv logo">{esc(cfg['title'])}</h1>
   <a class="gh-note" href="https://github.com/{esc(cfg.get('owner') or 'OWNER')}/{esc(cfg['repo'])}" rel="noopener" target="_blank" title="在 GitHub 查看数据与索引">{ghsvg}<span>文献数据存储于 <b>GitHub</b>，访问需具备 <b>GitHub</b> 访问能力（点此查看仓库）</span></a>
   <p class="lede">{esc(cfg['lede'])}</p>
 </header>
+
+<dialog id="rssDlg" class="rss-dlg" aria-labelledby="rssTtl">
+  <button type="button" class="rss-x" id="rssClose" aria-label="关闭"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+  <h2 id="rssTtl">订阅 RSS</h2>
+  <p class="rss-hint">把链接粘贴到你的 RSS 阅读器（Feedly、Inoreader、Follow 等）：</p>
+  <div class="rss-row">
+    <span class="rss-lab">每周速递更新</span>
+    <span class="rss-url" id="rssUrlWk">{esc(base + "/weekly.xml") if base else "weekly.xml"}</span>
+    <button type="button" class="rss-copy" data-copy="rssUrlWk">复制</button>
+  </div>
+  <div class="rss-row">
+    <span class="rss-lab">文献更新</span>
+    <span class="rss-url" id="rssUrlDoc">{esc(base + "/atom.xml") if base else "atom.xml"}</span>
+    <button type="button" class="rss-copy" data-copy="rssUrlDoc">复制</button>
+  </div>
+  <p class="rss-note">订阅后，最新一期周报或其对应的文献卡片发布时会自动推送到你的阅读器。两种订阅可以同时使用。</p>
+</dialog>
 
 <div class="toolbar">
   <span class="searchbox"><svg class="sic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.2"/><path d="M10.2 10.2 14 14"/></svg><input id="q" class="search" type="search" placeholder="搜索 标题 / 作者 / DOI / 期刊 / 关键词 / 摘要…" autocomplete="off"><button id="qBtn" type="button" title="搜索" aria-label="搜索">搜索</button></span>
@@ -628,7 +652,6 @@ def build_index(cfg: dict, items: list) -> str:
 <script>window.MBD_PAGE = {PAGE_SIZE};</script>"""
     # SEO/GEO：首页 title 带中文关键词（只写 "MacroBiodiv" 时，搜"宏观生物多样性
     # 文献库"在 title 上无命中）；附站点级 WebSite JSON-LD，中英双名都给引擎。
-    base = (cfg.get("site_url") or "").rstrip("/")
     ld_site = ""
     if base:
         ld = {
