@@ -602,7 +602,8 @@ html[data-theme=light] .st-tc3{--tc:#8250df}html[data-theme=light] .st-tc4{--tc:
    菜单栏「RSS 订阅」入口 → 静态配置器：期刊/类型 chips（正向选中语义，
    与首页筛选的「全选剔除」模型相反）+ 标题语言单选 + 实时拼动态链接，
    feed 由服务器 FastAPI 按 query 参数实时生成（/rss/feed.atom 反代） */
-.rscp{max-width:860px;margin:0 auto}
+.rscp{max-width:860px;margin:0}   /* 左对齐 .wrap 左缘（与 spage-title 同列），
+                                     不居中——与搜索/统计页的左对齐版式一致 */
 .rscp-sec{margin:0 0 26px}
 .rscp-sec h2{font-size:var(--fs-md);font-weight:600;margin:0 0 12px;color:var(--text)}
 .rscp-sec h2 i{font-style:normal;color:var(--accent);margin-right:8px}
