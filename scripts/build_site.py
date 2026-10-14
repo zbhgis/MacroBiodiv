@@ -1726,17 +1726,16 @@ def main() -> int:
                 f'<author><name>{xml_text(cfg["title"])}</name><uri>{base}/</uri></author>']
         for p in newest:
             summ = (p.get("abstract_zh") or p.get("abstract") or "")[:300]
-            # published = 论文 online 发表日（papers.json 的 published 本就 online 优先，
-            # 缺则回落收录日）——Zotero 的「日期」字段读 Atom 的 <published>；
-            # updated = 收录进本站的时间（added）
+            # published/updated 都用论文 online 发表日（缺则回落收录日）——
+            # Zotero 的「日期」字段读 updated 而非 published（实证 2026-10-14），
+            # 两个都给 online 日才能让阅读器显示用户期望的日期
             d_pub = p.get("published") or p.get("added") or time.strftime("%Y-%m-%d")
-            d_add = p.get("added") or d_pub
             atom += ['<entry>',
                      f'<title>{xml_text(display_title(p))}</title>',
                      f'<link rel="alternate" type="text/html" href="{base}/{p["id"]}/"/>',
                      f'<id>urn:doi:{xml_text(p.get("doi", p["id"]))}</id>',
                      f'<published>{d_pub}T00:00:00{cst}</published>',
-                     f'<updated>{d_add}T00:00:00{cst}</updated>',
+                     f'<updated>{d_pub}T00:00:00{cst}</updated>',
                      f'<summary>{xml_text(summ)}</summary>']
             if display_type(p):
                 atom.append(f'<category term="{xml_text(display_type(p))}"/>')
