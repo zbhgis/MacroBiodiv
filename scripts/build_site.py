@@ -855,6 +855,8 @@ def build_detail(cfg: dict, items: list, idx: int) -> str:
         "sameAs": (f"https://doi.org/{p['doi']}" if p.get("doi") else None),
         "url": (base + f"/{p['id']}/") if base else None,
         "image": og_image or None,
+        # 全站文献免费可读：与主站文章页 BlogPosting 的同名字段语义一致
+        "isAccessibleForFree": True,
         "keywords": ", ".join(kw_all) or None,
         "genre": (p.get("article_type") or "").strip() or None,
         "volume": (p.get("volume") or "").strip() or None,
@@ -865,6 +867,16 @@ def build_detail(cfg: dict, items: list, idx: int) -> str:
     # "</script>" 会出现于标题/摘要时会把内嵌 script 提前截断：把 "<" 转成 Unicode 转义
     ld_html = (json.dumps(ld, ensure_ascii=False).replace("<", "\\u003c") if base else "")
     ld_block = ('<script type="application/ld+json">' + ld_html + "</script>") if ld_html else ""
+    # 面包屑（首页 → 文献详情）：与主站文章页同构，帮引擎把文献实体挂到站内层级
+    if base:
+        bc = {"@context": "https://schema.org", "@type": "BreadcrumbList",
+              "itemListElement": [
+                  {"@type": "ListItem", "position": 1, "name": "首页", "item": base + "/"},
+                  {"@type": "ListItem", "position": 2, "name": display_title(p),
+                   "item": base + f"/{p['id']}/"},
+              ]}
+        bc_html = json.dumps(bc, ensure_ascii=False).replace("<", "\\u003c")
+        ld_block += '<script type="application/ld+json">' + bc_html + "</script>"
     body = body + ld_block
     return page_shell(cfg, seo_title, body, depth=1,
                       gh_url=f"https://github.com/{cfg.get('owner') or 'OWNER'}/{cfg['repo']}",
@@ -1068,7 +1080,7 @@ def build_rss_page(cfg: dict, items: list) -> str:
 </div>
 <script>
 (function(){{try{{
-  var base = {json.dumps(base)!r};
+  var base = {json.dumps(base)};
   function sel(id){{
     return Array.prototype.slice.call(
       document.querySelectorAll("#" + id + " [aria-pressed='true']"))
@@ -1594,6 +1606,10 @@ def main() -> int:
 ## 每周速递（{n_weekly} 期，新→旧）
 
 {weekly_lines}
+
+## 引用说明
+
+引用本站内容请注明整理者「{cfg['title']}」并附原文链接；文献元数据来自 Crossref / OpenAlex，原文版权归原出版方，学术引用请以 DOI 指向原论文。
 """
         (SITE / "llms.txt").write_text(llms, encoding="utf-8")
         # 全文文件：每篇一段，字段顺序固定（题名 / 出处 / DOI / 作者 / 关键词 / 摘要），
