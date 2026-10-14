@@ -293,15 +293,17 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   display_type 体裁；无周报索引时兜底 added 最新 10 篇）+
   **weekly.xml = 每周速递更新**（最近 3 期、每期 1 条 entry，content type="html" =
   期简介 + 文献清单「中文标题 — 摘要首句」，published/updated 用周区间日期）。
+  **published 与 updated 都用论文 online 发表日**（缺则回落收录日）——Zotero 的
+  「日期」字段读 updated 而非 published（2026-10-14 实证），两个都给 online 日
+  才能让阅读器显示用户期望的日期。
   **口径收敛到最近 3 期**是刻意设计：首次订阅时阅读器会把 feed 现有条目整批拉走，
   只放近 3 期把首订噪音压到最小（初版 1 期、同日扩为 3 期）；条目滚出 feed 后
   已订阅用户的阅读器仍保留（按 id 去重——文献 `urn:doi:` / 周报永久 URL），
   网站归档始终是完整入口。**文献源面向 Zotero 等文献管理器补全元数据**（2026-10-14）：
-  entry `<published>` = 论文 online 发表日（papers.json 的 published 本就 online
-  优先；Zotero「日期」字段读它，此前误用收录日）、`<updated>` = 收录日；加
   DC/PRISM 命名空间（Nature/Science 官方 feed 同款惯例）——`dc:source` +
   `prism:publicationName` 期刊名（Zotero「出版物」字段读 dc:source，此前只放
   category 管理器读不到）、`prism:volume/number/pageRange` 卷期页（有值才输出）。
+  文字/译文修改不会触发推送（id 与日期字段均稳定，见「重传自愈」约定）。
   自动发现链接双份（`page_shell` head：`atom.xml` 文献更新 + `weekly.xml`
   每周速递更新，title 区分），llms.txt 索引行同步双源；页脚 RSS 链接曾加即撤
   （2026-10-14，首页已有显眼入口，页脚重复）——**首页订阅入口**：header 右上角
