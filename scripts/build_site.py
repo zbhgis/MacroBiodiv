@@ -206,14 +206,18 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
         canonical = f'<link rel="canonical" href="{esc(base + path)}">'
     # theme-color 与 :root token 同值（深 #0d1117 / 浅 #fff，见样式表 :root 两行），
     # 移动端浏览器地址条配色跟随主题；apple-touch-icon 复用 favicon.png；
-    # atom.xml 早就在生成但页面从不引用 —— 补自动发现链接才算真的可订阅
+    # RSS 双源自动发现（2026-10-14 起双 feed：文献更新 atom.xml / 周报更新 weekly.xml，
+    # 均为构建期生成的 Atom，口径收敛到最新一期）——阅读器贴域名即可发现两源
     feed_href = (base + "/atom.xml") if base else f"{up}atom.xml"
+    wk_feed_href = (base + "/weekly.xml") if base else f"{up}weekly.xml"
     head_extra = "\n".join([
         '<meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)">',
         '<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">',
         f'<link rel="apple-touch-icon" href="{up}assets/favicon.png?v={BUILD_VER}">',
         f'<link rel="alternate" type="application/atom+xml" '
-        f'title="{esc(cfg["title"])} · {esc(cfg["subtitle"])}" href="{esc(feed_href)}">',
+        f'title="{esc(cfg["title"])} · 文献更新" href="{esc(feed_href)}">',
+        f'<link rel="alternate" type="application/atom+xml" '
+        f'title="{esc(cfg["title"])} · 每周速递更新" href="{esc(wk_feed_href)}">',
     ] + ([f'<meta name="keywords" content="{esc(keywords)}">'] if keywords else []))
     # ── 顶部菜单栏：全部页面共用，样式对齐主站 zbhgis.com（v3-nav 同源）。
     #    左站点名 / 右导航组：每周速递（/weekly/）· 全站统计（/statistics/，按 path 标 active）
@@ -261,7 +265,7 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
     fab = f"""<div class="fab"><a class="tbtn" href="{up}search/" title="全站搜索" aria-label="全站搜索"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.2"/><path d="M10.2 10.2 14 14"/></svg></a><a class="tbtn" href="/" title="返回 Home（文献库首页）" aria-label="返回 Home"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 8 8 3l5.5 5M4 7v6h8V7"/></svg></a><a class="tbtn" href="{gh}" rel="noopener" target="_blank" title="在 GitHub 查看仓库（数据与索引）"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a><button type="button" class="tbtn tbtn-fs" id="fsBtn" title="字号：标准">A</button><button type="button" class="tbtn" id="themeBtn" title="切换明暗主题" aria-label="切换明暗主题"><svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3.6"/><path d="M12 2.8v2.2m0 14v2.2M21.2 12H19M5 12H2.8m14.5 6.2-1.6-1.6M8.3 8.3 6.7 6.7m10.8 0-1.6 1.6M8.3 15.7l-1.6 1.6"/></svg><svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.354 15.354A9 9 0 0 1 8.646 3.646 9.003 9.003 0 0 0 12 21a9.003 9.003 0 0 0 8.354-5.646z"/></svg></button><button type="button" class="tbtn" id="topBtn" title="回到顶部" aria-label="回到顶部"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13.5v-9M4.5 8 8 4.5 11.5 8"/></svg></button></div>"""
     foot = f"""<footer class="site">
   <span>{esc(cfg['title'])} · {esc(cfg['subtitle'])}</span>
-  <span><a href="https://github.com/{esc(cfg.get('owner') or 'OWNER')}/{esc(cfg['repo'])}" rel="noopener">GitHub 仓库</a> · 元数据来自 Crossref / OpenAlex · 版权归原出版方</span>
+  <span><a href="https://github.com/{esc(cfg.get('owner') or 'OWNER')}/{esc(cfg['repo'])}" rel="noopener">GitHub 仓库</a> · <a href="{up}weekly.xml" title="每周速递更新订阅（Atom，最新一期）">RSS 周报</a> · <a href="{up}atom.xml" title="文献更新订阅（Atom，最新一期对应卡片）">RSS 文献</a> · 元数据来自 Crossref / OpenAlex · 版权归原出版方</span>
 </footer>"""
     inner = f"""{fab}
 <div class="wrap">
@@ -1040,19 +1044,25 @@ def build_weekly(cfg: dict) -> tuple[list[str], list[dict]]:
             period = date
         words = len(plain)
         reading = max(1, -(-words // 200))          # ceil(words/200)，主站同口径
-        n_papers = len([1 for lv, _, txt in toc if lv == 1])
+        # 篇数只数「文献N」标题（曾有期次带「# 说明」小节被误计入收录数）
+        n_papers = len([1 for lv, _, txt in toc
+                        if lv == 1 and re.match(r"^文献\d+", txt)])
         journals = list(dict.fromkeys(
             (j.strip() for j in re.findall(r"(?m)^期刊：(.+)$", text) if j.strip())))
         summ = f"本期收录 {n_papers} 篇 · " + " · ".join(journals[:3])
         if len(journals) > 3:
             summ += " 等"
         first_img = re.search(r'<p class="wk-img"><img src="([^"]+)"', doc)
+        # 该期文献的 DOI 列表（DOI 行：`DOI：https://doi.org/10.xxxx/...`）——
+        # RSS 文献源按「最新一期周报对应的卡片」口径取条目时用
+        dois = [d.strip() for d in
+                re.findall(r"(?m)^DOI[：:]\s*https?://doi\.org/(\S+?)\s*$", text)]
         posts.append({
             "slug": slug, "title": title, "date": date, "month": month,
             "period": period,
             "doc": doc, "toc": toc, "words": words, "reading": reading,
             "summary": summ, "og_image": first_img.group(1) if first_img else "",
-            "plain": plain,
+            "plain": plain, "dois": dois,
         })
     if not posts:
         return [], []
@@ -1237,7 +1247,8 @@ def build_weekly(cfg: dict) -> tuple[list[str], list[dict]]:
     # 纯文本正文截 4000 字）。周报是本站独有的中文解读内容，只给引擎一条 /weekly/
     # 链接等于没给——它需要的正是这批可读文本
     wk_index = [{"slug": p["slug"], "title": p["title"], "date": p["date"],
-                 "summary": p["summary"], "plain": p["plain"][:4000]} for p in posts]
+                 "summary": p["summary"], "plain": p["plain"][:4000],
+                 "dois": p.get("dois") or []} for p in posts]
     return ["/weekly/"] + [f"/weekly/{p['slug']}/" for p in posts], wk_index
 
 
@@ -1423,7 +1434,8 @@ def main() -> int:
 - [每周速递]({base}/weekly/): Nature / Science / Cell 系列大尺度生物多样性研究每周精选（{n_weekly} 期）
 - [全站统计]({base}/statistics/): 关键词 / 期刊 / 年份分布
 - [关于本站]({base}/about/): 站点定位、数据来源与说明
-- [Atom 订阅]({base}/atom.xml): 最新收录 20 篇
+- [RSS 文献订阅]({base}/atom.xml): 最近一期周报对应的文献卡片（Atom）
+- [RSS 周报订阅]({base}/weekly.xml): 最新一期每周速递（Atom）
 
 ## 主题标签（按篇数）
 
@@ -1512,19 +1524,29 @@ def main() -> int:
         if key_file.exists():
             key = key_file.read_text(encoding="utf-8").strip()
             (SITE / (key + ".txt")).write_text(key, encoding="utf-8")
-        # Atom 订阅源：最新 20 篇（按收录日期），文献库的订阅闭环
+        # ── RSS 双源（构建期生成，纯静态，Atom 格式）——口径收敛到「最近一期」：
+        #    周报源 weekly.xml 仅 1 条（最新一期）；文献源 atom.xml = 最新一期对应的
+        #    卡片。首次订阅时阅读器会把 feed 现有条目整批拉走，收敛到最近一期把
+        #    首订噪音压到最小（2026-10-14 裁定）；条目滚出 feed 后，已订阅用户的
+        #    阅读器里仍保留（按 id 去重不重复推送），网站归档始终是完整入口
         # XML 不允许的控制字符（\x00-\x08 等）会导致解析失败，先剥掉
         xml_bad = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
 
         def xml_text(s: str) -> str:
             return esc(xml_bad.sub("", s or ""))
 
-        newest = sorted(items, key=lambda p: p.get("added") or "", reverse=True)[:20]
+        by_doi = {str(p.get("doi") or "").lower(): p for p in items}
+        latest_wk = weekly_index[0] if weekly_index else None
+        if latest_wk and latest_wk.get("dois"):
+            newest = [by_doi[d.lower()] for d in latest_wk["dois"]
+                      if d.lower() in by_doi]        # 该期顺序；未入库的 DOI 跳过
+        else:                                        # 无周报索引的兜底
+            newest = sorted(items, key=lambda p: p.get("added") or "", reverse=True)[:10]
         # 时区按 +08:00 标注（站点在中文语境制作，此前写死 Z=UTC 是把日期谎称早 8 小时）
         cst = "+08:00"
         atom = ['<?xml version="1.0" encoding="utf-8"?>',
                 '<feed xmlns="http://www.w3.org/2005/Atom">',
-                f'<title>{xml_text(cfg["title"])} · {xml_text(cfg["subtitle"])}</title>',
+                f'<title>{xml_text(cfg["title"])} · 文献更新</title>',
                 f'<link rel="alternate" type="text/html" href="{base}/"/>',
                 f'<link rel="self" type="application/atom+xml" href="{base}/atom.xml"/>',
                 f'<id>{base}/</id>',
@@ -1539,6 +1561,8 @@ def main() -> int:
                      f'<published>{p.get("added") or time.strftime("%Y-%m-%d")}T00:00:00{cst}</published>',
                      f'<updated>{p.get("added") or time.strftime("%Y-%m-%d")}T00:00:00{cst}</updated>',
                      f'<summary>{xml_text(summ)}</summary>']
+            if display_type(p):
+                atom.append(f'<category term="{xml_text(display_type(p))}"/>')
             if p.get("journal"):
                 atom.append(f'<category term="{xml_text(p["journal"])}"/>')
             for a in (p.get("authors") or [])[:5]:
@@ -1546,7 +1570,42 @@ def main() -> int:
             atom.append('</entry>')
         atom.append('</feed>')
         (SITE / "atom.xml").write_text("\n".join(atom) + "\n", encoding="utf-8")
-        print(f"· robots.txt + sitemap.xml（{len(urls)} 个 URL）+ atom.xml（{len(newest)} 条）")
+
+        # 周报源：仅最新一期 1 条 entry，content = 期简介 + 文献清单（标题 + 摘要首句）
+        if latest_wk:
+            lis = []
+            for d in latest_wk.get("dois") or []:
+                p = by_doi.get(d.lower())
+                if not p:
+                    continue
+                ab = (p.get("abstract_zh") or p.get("abstract") or "").strip()
+                first = re.split(r"[。．.!？?\n]", ab, maxsplit=1)[0].strip() if ab else ""
+                if len(first) > 90:
+                    first = first[:90] + "…"
+                lis.append(f"<li>{xml_text(display_title(p))}"
+                           + (f" — {xml_text(first)}" if first else "") + "</li>")
+            content = (f"<p>{xml_text(latest_wk['summary'])}</p>"
+                       + ("<ul>" + "".join(lis) + "</ul>" if lis else ""))
+            wk_atom = ['<?xml version="1.0" encoding="utf-8"?>',
+                       '<feed xmlns="http://www.w3.org/2005/Atom">',
+                       f'<title>{xml_text(cfg["title"])} · 每周速递更新</title>',
+                       f'<link rel="alternate" type="text/html" href="{base}/weekly/"/>',
+                       f'<link rel="self" type="application/atom+xml" href="{base}/weekly.xml"/>',
+                       f'<id>{base}/weekly/</id>',
+                       f'<updated>{latest_wk["date"] or time.strftime("%Y-%m-%d")}T00:00:00{cst}</updated>',
+                       f'<author><name>{xml_text(cfg["title"])}</name><uri>{base}/</uri></author>',
+                       '<entry>',
+                       f'<title>{xml_text(latest_wk["title"])}</title>',
+                       f'<link rel="alternate" type="text/html" href="{base}/weekly/{latest_wk["slug"]}/"/>',
+                       f'<id>{base}/weekly/{latest_wk["slug"]}/</id>',
+                       f'<published>{latest_wk["date"] or time.strftime("%Y-%m-%d")}T00:00:00{cst}</published>',
+                       f'<updated>{latest_wk["date"] or time.strftime("%Y-%m-%d")}T00:00:00{cst}</updated>',
+                       f'<content type="html">{xml_text(content)}</content>',
+                       '</entry>',
+                       '</feed>']
+            (SITE / "weekly.xml").write_text("\n".join(wk_atom) + "\n", encoding="utf-8")
+        wk_feed_note = " + weekly.xml（最新一期）" if latest_wk else ""
+        print(f"· robots.txt + sitemap.xml（{len(urls)} 个 URL）+ atom.xml（{len(newest)} 篇·最新一期）{wk_feed_note}")
 
     (SITE / "index.html").write_text(build_index(cfg, items), encoding="utf-8")
     search_dir = SITE / "search"

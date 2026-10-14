@@ -269,7 +269,7 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 - **图片 alt 携带题名**（2026-10-10）：卡片 `alt="《题名》封面图"`、详情页
   `alt="《题名》文章图表 / 图形摘要"`（截 40 字防超长中文标题）——此前全是「封面图」，
   图片检索与无障碍拿不到任何信息
-- 构建时生成 **robots.txt + sitemap.xml** 与 **atom.xml**（最新 20 篇订阅源，中文摘要优先），
+- 构建时生成 **robots.txt + sitemap.xml** 与 RSS 双 feed（见下方「RSS 双源订阅」），
   同样依赖 `site_url` 配置：
   - robots.txt 含 **AI 爬虫白名单**（与主站 zbhgis.com robots.ts 同一份 UA 清单），
     2026-10-10 补 **中文搜索引擎**（Baiduspider / 360Spider / YisouSpider）与
@@ -287,6 +287,17 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   （指自身）+ feed 级 `author`；entry 补 `rel="alternate"` 的 type/href、`published`、
   `category`（期刊名，无期刊则不输出）；**时区改标 `+08:00`**——此前日期硬写 `Z`，
   把中文语境制作的日期谎称成 UTC（早 8 小时）
+- **RSS 双源订阅**（2026-10-14 重构口径，构建期生成 Atom）：**atom.xml = 文献更新**
+  （最新一期周报对应的卡片，entry 按该期 md 的 DOI 顺序、未入库的 DOI 跳过，
+  category 补 display_type 体裁；无周报索引时兜底 added 最新 10 篇）+
+  **weekly.xml = 每周速递更新**（仅最新一期 1 条 entry，content type="html" =
+  期简介 + 文献清单「中文标题 — 摘要首句」，published/updated 用周区间日期）。
+  **口径收敛到最近一期**是刻意设计：首次订阅时阅读器会把 feed 现有条目整批拉走，
+  只放最新一期可把首订噪音压到最小；条目滚出 feed 后已订阅用户的阅读器仍保留
+  （按 id 去重——文献 `urn:doi:` / 周报永久 URL），网站归档始终是完整入口。
+  自动发现链接双份（`page_shell` head：`atom.xml` 文献更新 + `weekly.xml`
+  每周速递更新，title 区分），页脚加「RSS 周报 / RSS 文献」两枚链接，
+  llms.txt 索引行同步双源
 - **页面内 atom 自动发现链接**（2026-10-10）：`<link rel="alternate" type="application/atom+xml">`
   ——feed 早就在生成，但没有任何页面引用它，等于不可发现
 - **llms.txt / llms-full.txt（GEO，2026-10-10 分两层）**，遵循 llms.txt 规范"索引小文件 +
