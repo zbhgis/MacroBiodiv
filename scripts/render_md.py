@@ -16,6 +16,10 @@ IMG_RE = re.compile(r"^!\[([^\]]*)\]\(([^)\s]+)\)\s*$")
 BOLD_RE = re.compile(r"\*\*(.+?)\*\*")
 EM_RE = re.compile(r"(?<!\*)\*([^*\n]+?)\*(?!\*)")
 URL_RE = re.compile(r"https?://[^\s<>\"'）)\]}，。；：！？]+")
+# [文字](URL) 行内链接。与裸 URL 合并为同一 alternation 单趟替换——若分两趟，
+# URL_RE 会把刚生成的 href 属性里的 URL 再包一层 <a>，直接炸掉 HTML
+INLINE_LINK_RE = re.compile(
+    r"\[([^\]]+)\]\((https?://[^)\s]+)\)|" + URL_RE.pattern)
 
 
 def parse_front_matter(text: str) -> tuple[dict, str]:
@@ -49,17 +53,21 @@ def _esc(s: str) -> str:
 
 
 def _inline(text: str) -> str:
-    """行内标记：先转义，再粗体/斜体/裸 URL 自动链接。"""
+    """行内标记：先转义，再链接 / 粗体 / 斜体（链接与裸 URL 单趟替换）。"""
     s = _esc(text)
     s = BOLD_RE.sub(r"<strong>\1</strong>", s)
     s = EM_RE.sub(r"<em>\1</em>", s)
 
     def _link(m: re.Match) -> str:
+        if m.group(1):            # [文字](URL)：外层 _esc 后的 URL 需按属性位重转义
+            url = html.escape(html.unescape(m.group(2)), quote=True)
+            return (f'<a href="{url}" target="_blank" rel="noopener">'
+                    f'{m.group(1)}</a>')
         url = m.group(0)
         # 剥掉粘在 URL 尾部的中文标点（DOI 行「…03025-1 中国…」类正文粘连不含标点）
         return f'<a href="{url}" target="_blank" rel="noopener">{url}</a>'
 
-    s = URL_RE.sub(_link, s)
+    s = INLINE_LINK_RE.sub(_link, s)
     return s
 
 
