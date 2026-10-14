@@ -310,6 +310,16 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   各带「复制」按钮，复用 papers.js 的 data-copy 通用机制；遮罩点击用几何判定
   关闭 —— ::backdrop 的点击 target 归属跨浏览器不一致，坐标落在 dialog 矩形
   外即关），点 × / Esc / 遮罩均可关闭
+- **RSS 定制订阅 v3**（2026-10-14，动态版——用户裁定架构）：菜单栏新增「RSS 订阅」
+  （每周速递/全站统计/**RSS 订阅**/关于本站/更多▾，汉堡面板同步）→ `/rss/` 静态
+  配置页：期刊 chips、体裁 chips（**正向多选**「选中=订阅」，与首页筛选的全选剔除
+  相反，故用页面内联脚本不用 papers.js 的 chips 机制）+ 标题语言（中/英/双语）+
+  条数（10/20/30/50），实时拼动态链接（data-copy 复制）；页底保留两个预设源。
+  **feed 生成 = 服务器动态层**：构建期生成 `assets/feed-pool.json`（items 带
+  预计算 dt 体裁，~875KB，随发布整体上传——同步零新增步骤），mystation backend
+  新增 `/api/v1/mbd/feed.atom`（读池 mtime 缓存 → 过滤 → 拼 Atom，元数据与静态
+  源同构），nginx `location = /rss/feed.atom` 反代（conf 副本 deploy/，改后需
+  scp + reload）。首页右上角 RSS 按钮/弹窗已删（入口统一到菜单栏）
 - **页面内 atom 自动发现链接**（2026-10-10）：`<link rel="alternate" type="application/atom+xml">`
   ——feed 早就在生成，但没有任何页面引用它，等于不可发现
 - **llms.txt / llms-full.txt（GEO，2026-10-10 分两层）**，遵循 llms.txt 规范"索引小文件 +
