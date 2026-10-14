@@ -1061,7 +1061,7 @@ def build_rss_page(cfg: dict, items: list) -> str:
   <div class="rscp-out"><span class="rscp-url" id="rssUrl">{esc(base)}/rss/feed.atom</span><button type="button" class="rscp-copy" data-copy="rssUrl">复制链接</button></div>
   <p class="rscp-note">链接由服务器按当前选项实时过滤生成，文献库每次发布后自动带上最新收录；选项变化时链接实时更新，更新后记得重新复制。订阅后按条目去重，不会重复推送。</p>
   <div class="rscp-preset"><h2>预设订阅源（不筛选）</h2>
-    <div class="rscp-prow"><span class="rscp-plab">全部文献更新</span><span class="rscp-url2" id="rsAll">{esc(all_url)}</span><button type="button" class="rscp-pcopy" data-copy="rsAll">复制</button></div>
+    <div class="rscp-prow"><span class="rscp-plab">文献详情更新</span><span class="rscp-url2" id="rsAll">{esc(all_url)}</span><button type="button" class="rscp-pcopy" data-copy="rsAll">复制</button></div>
     <div class="rscp-prow"><span class="rscp-plab">每周速递更新</span><span class="rscp-url2" id="rsWk">{esc(wk_url)}</span><button type="button" class="rscp-pcopy" data-copy="rsWk">复制</button></div>
     <p class="rscp-note">文献更新 = 最近 3 期周报对应的文献卡片；每周速递更新 = 最近 3 期周报（含每篇的中文标题与摘要首句清单）。</p>
   </div>
