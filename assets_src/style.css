@@ -136,13 +136,12 @@ select{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-siz
 .fgroup{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 0;padding-bottom:8px;border-bottom:1px solid var(--line)}
 .flabel{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--faint);min-width:44px;letter-spacing:.06em}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
-/* 筛选 chips（多选模型，GSP 同源）：默认全选=可读描边胶囊 + 计数徽标；点击剔除=
-   置灰删除线；hover=accent-soft 预选；行尾 全选/反选 为虚线胶囊。
-   accent 实底只给真单选组（排序胶囊）——默认全选的 chips 用实底就是满屏蓝 */
+/* 筛选 chips（多选模型，正向选择，GSP 同步 2026-10-14）：默认全不选=灰描边胶囊 +
+   计数徽标；点击=选中（accent 实底，选中值之间 OR）；行尾 全选/反选 为虚线胶囊 */
 .chips button{display:inline-flex;align-items:center;gap:7px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-sm);padding:5px 13px;border:1px solid var(--line2);border-radius:999px;background:transparent;color:var(--text);cursor:pointer;transition:color .16s,border-color .16s,background-color .16s,opacity .16s}
 .chips button:hover{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
 .chips button .n{font-style:normal;min-width:22px;padding:0 7px;border-radius:999px;background:var(--line);color:var(--faint);font-size:var(--fs-xs);line-height:19px;text-align:center;font-variant-numeric:tabular-nums}
-.chips button[aria-pressed=false]{color:var(--faint);border-color:var(--line);text-decoration:line-through;opacity:.75}
+.chips button[aria-pressed=false]{color:var(--faint);border-color:var(--line)}
 .chips button[aria-pressed=false] .n{opacity:.55;text-decoration:none}
 .chips .chip-act{border-style:dashed;color:var(--faint);font-size:var(--fs-xs);padding:5px 11px}
 .chips .chip-act:hover{color:var(--accent);border-color:var(--accent);background:transparent}

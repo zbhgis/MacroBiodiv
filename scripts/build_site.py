@@ -377,11 +377,12 @@ def flat(values, default: str = "—") -> Counter:
 
 
 def chips(values: Counter, key: str) -> str:
-    """多选 chips（GSP 同源）：默认全选（aria-pressed=true），点击剔除，
+    """多选 chips（正向选择语义，2026-10-14 与 RSS 配置页统一）：默认全不选
+    （aria-pressed=false），点击=选中该标签（选中值之间 OR = 只显示命中项），
     行尾提供 全选/反选 虚线胶囊；计数徽标 <i class="n">（mini 胶囊、定宽防跳动）。"""
     items = []
     for name, n in sorted(values.items(), key=lambda kv: (-kv[1], str(kv[0]))):
-        items.append(f'<button type="button" class="chip" data-v="{esc(name)}" aria-pressed="true">{esc(name)}<i class="n">{n}</i></button>')
+        items.append(f'<button type="button" class="chip" data-v="{esc(name)}" aria-pressed="false">{esc(name)}<i class="n">{n}</i></button>')
     items.append('<button type="button" class="chip chip-act" data-act="all">全选</button>')
     items.append('<button type="button" class="chip chip-act" data-act="invert">反选</button>')
     return f'<div class="chips" data-key="{key}">\n  ' + "\n  ".join(items) + "\n</div>"

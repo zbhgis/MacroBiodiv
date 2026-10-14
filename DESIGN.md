@@ -130,16 +130,17 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   可见跳变（卡片网格本身的重排为静态首屏设计的固有行为，不在消除之列）；
   **搜索页同享预置**（2026-10-11）：`STATE_PRESTATE` 同时注入 `/search/`，
   `?q=` 在首帧前回填 `#spage-q`（该页输入框 id 与首页不同）
-- **chips 多选语义（GeoSciPlot 同源，2026-10 重做）**：默认全选（构建期
-  `aria-pressed="true"`），点击某枚=剔除，行尾固定两枚虚线胶囊「全选」「反选」；计数
-  徽标 `<i class="n">` 为 chip 内 mini 胶囊（`--line` 底、`min-width:22px` 定宽、
-  `tabular-nums`）。状态矩阵：入选=透明底 + `--text` 字 + `--line2` 描边；剔除=
-  `--faint` 字 + `--line` 边 + **删除线** + `opacity .75`；hover=accent 字/边 +
-  `--accent-soft` 底。入选标签之间 **OR**（任一命中即显示）；全部选中=不筛选；
-  被剔除的 ≤3 个时筛选摘要显示「标签/期刊 排除 X、Y」，否则「仅 入选值」；筛选激活时
-  无标签/无期刊/无类型的内容随之隐藏。**标签行在 tags 数据为空时整行不输出**（管理员在后台
-  补录 tags 后自动出现）——期刊同理走同一组件。chips 的 `aria-pressed` 是唯一状态
-  真源，重置 = 全部写回 pressed=true（旧单选「只留第一枚」的写法已删净）
+- **chips 多选语义（正向选择，2026-10-14 与 RSS 配置页统一、GSP 同步）**：默认
+  **全不选**（构建期 `aria-pressed="false"`）= 不筛选（state[key]=null）；点击某枚
+  = **选中**（accent 实底，旧版「剔除划掉」语义已废）；选中值之间 **OR**（任一命中
+  即显示）；行尾固定两枚虚线胶囊「全选」（全亮 = 等同不过滤，链接/URL 自动省略
+  参数）「反选」（翻转）；计数徽标 `<i class="n">` 为 chip 内 mini 胶囊（`--line` 底、
+  `min-width:22px` 定宽、`tabular-nums`）。状态矩阵：未选中=灰描边；选中=accent
+  实底 + `--bg` 字；hover=accent-soft 预选。**旧分享链接天然兼容**——URL 参数
+  （`?tag=A|B`）新旧语义同为「显示这些」；重置 = 全部写回 pressed=false。
+  chips 的 `aria-pressed` 是唯一状态真源；筛选摘要显示选中值列表（≤3 全列，
+  更多取前 3 + 计数）。**标签行在 tags 数据为空时整行不输出**（管理员在后台
+  补录 tags 后自动出现）——期刊/类型同理走同一组件
 - 文献卡片（`.card`，GeoSciPlot 瀑布流同源语言）：**封面通栏顶图**（自然宽高比不裁切，
   底色作加载占位；**有 `cover_thumb` 时优先引用图床缩略外链**（`ct`/`data-full` 静态与
   JS 渲染一致），**`img` 带 width/height 预留位 + `.c-covbox::before`「加载中」呼吸层**——

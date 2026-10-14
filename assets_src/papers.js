@@ -312,8 +312,8 @@
   }
 
   function pass(it) {
-    /* 多选语义（GSP 同源）：tag/journal/type 为 null = 全部选中 = 不筛选；
-       否则为「入选值」数组，命中任一即通过（OR），无标签/期刊/类型的内容随之隐藏 */
+    /* 多选语义（正向选择，GSP 同步）：tag/journal/type 为 null = 无选中 = 不筛选；
+       否则为「选中的值」数组，命中任一即通过（OR），未选中的内容随之隐藏 */
     if (state.tag && !(it.tg || []).some(function (t) { return state.tag.indexOf(t) > -1; })) return false;
     if (state.journal && state.journal.indexOf(it.j || "") === -1) return false;
     if (state.type && state.type.indexOf(it.pt || "") === -1) return false;
@@ -431,20 +431,22 @@
   }
   function resetPage() { state.page = 1; render(); }
 
-  /* ── 多选 chips（GSP 同源）：aria-pressed 是唯一状态真源，state 从 DOM 派生。
-     默认全选（构建期即 pressed=true）= 不筛选（state[key]=null）；
-     点击 chip = 剔除/恢复；全选/反选 为虚线胶囊 chip-act ── */
+  /* ── 多选 chips（正向选择，2026-10-14 与 RSS 配置页统一）：aria-pressed 是唯一
+     状态真源，state 从 DOM 派生。默认全不选 = 不过滤（state[key]=null）；
+     点击 chip = 选中/取消（选中值之间 OR，只显示命中项）；
+     全选/反选 为虚线胶囊 chip-act ── */
   function chipBoxes() { return Array.prototype.slice.call(document.querySelectorAll(".chips[data-key]")); }
   function boxChips(box) { return box.querySelectorAll("button.chip[data-v]"); }
   function readChips(box) {
     var key = box.getAttribute("data-key"), sel = [], c = boxChips(box);
     c.forEach(function (b) { if (b.getAttribute("aria-pressed") === "true") sel.push(b.getAttribute("data-v")); });
-    state[key] = sel.length === c.length ? null : sel;   // 全部选中 = 不筛选
+    /* 全不选或全选（全选=等同不过滤）→ state=null，链接/URL 省参数 */
+    state[key] = (sel.length === 0 || sel.length === c.length) ? null : sel;
   }
   function writeChips(box) {
     var sel = state[box.getAttribute("data-key")];
     boxChips(box).forEach(function (b) {
-      b.setAttribute("aria-pressed", String(!sel || sel.indexOf(b.getAttribute("data-v")) > -1));
+      b.setAttribute("aria-pressed", String(!!sel && sel.indexOf(b.getAttribute("data-v")) > -1));
     });
   }
   chipBoxes().forEach(function (box) {
@@ -506,8 +508,8 @@
     if (fF) fF.value = "";
     if (fT) fT.value = "";
     if (q) q.value = "";
-    /* 重置 = 恢复默认全选：所有 chip 写回 pressed=true（老单选时代「只留第一枚」
-       的写法必须删净，否则在 URL 写回后执行会覆盖状态 —— 实际踩坑） */
+    /* 重置 = 恢复默认全不选：所有 chip 写回 pressed=false（writeChips 对 null 的
+       写法；老单选时代「只留第一枚」与全选时代「写回 true」的写法均已过时） */
     chipBoxes().forEach(function (box) { writeChips(box); });
     render();
   });
@@ -526,16 +528,14 @@
   /* ── 筛选区折叠（状态记在 localStorage） ── */
   var filterBtn = document.getElementById("filterBtn");
   var filterBox = document.getElementById("filters");
-  /* 筛选摘要（GSP 同源）：被剔除的 ≤3 个显示「排除 X、Y」，否则「仅 入选值」 */
+  /* 筛选摘要（正向选择语义）：显示选中的值（≤3 全列，更多取前 3 + 计数） */
   function chipSummary(key, label) {
     if (!state[key]) return null;
     var box = document.querySelector('.chips[data-key="' + key + '"]');
     if (!box) return null;
-    var off = [];
-    boxChips(box).forEach(function (b) {
-      if (b.getAttribute("aria-pressed") === "false") off.push(b.getAttribute("data-v"));
-    });
-    return label + " " + (off.length > 0 && off.length <= 3 ? "排除 " + off.join("、") : "仅 " + state[key].join("、"));
+    var sel = state[key];
+    return label + " " + (sel.length <= 3 ? sel.join("、")
+      : sel.slice(0, 3).join("、") + " 等 " + sel.length + " 项");
   }
   function activeFilters() {
     var parts = [], s;
