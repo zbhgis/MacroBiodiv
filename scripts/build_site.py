@@ -1740,7 +1740,10 @@ def main() -> int:
             atom += ['<entry>',
                      f'<title>{xml_text(display_title(p))}</title>',
                      f'<link rel="alternate" type="text/html" href="{base}/{p["id"]}/"/>',
-                     f'<id>urn:doi:{xml_text(p.get("doi", p["id"]))}</id>',
+                     # guid 带 mbd 命名空间：Zotero 对 feed 条目按 guid 全局去重（跨订阅源），
+                     # 与动态 feed 的 urn:doi 同 id 会互相吞条目（2026-10-14 实证，
+                     # 三订阅重叠时后处理者静默丢条目），静态/动态各用独立命名空间
+                     f'<id>urn:mbd:atom:{xml_text(p.get("doi", p["id"]))}</id>',
                      f'<published>{d_pub}</published>',
                      f'<updated>{d_pub}</updated>',
                      f'<summary>{xml_text(summ)}</summary>']

@@ -305,9 +305,17 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   feed 级 updated 同）：带时区的整点时间戳（`T00:00:00+08:00`）会被 Zotero 换算成
   本地时刻显示成「2026-03-25 16:00:00」（同日实证），RFC 3339 date-only 各阅读器
   均只显示日期；动态 feed（backend）同规则。
+  **guid 按订阅变体命名空间化**（2026-10-14）：Zotero 对 feed 条目按 guid **全局**
+  去重（跨订阅源）——三个订阅（静态 atom.xml、j=NC 动态、t=Review 动态）曾共用
+  `urn:doi:{doi}`，同一篇先被谁收录其他订阅就静默丢条目（实证：静态源缺的恰是
+  t=Review 先收走的三篇 Review；nginx 日志见 Zotero 刷新全程 200 拿到完整内容，
+  排除服务端）。现静态源 `urn:mbd:atom:{doi}`、动态源 `urn:mbd:{过滤参数 md5
+  签名}:{doi}`（签名含 j/t/lang、不含 n——改条数不该全量重推），同一订阅 guid
+  稳定不重复推送、跨订阅互不冲突。代价：方案切换一次，老订阅会整批重灌一遍
+  （旧 guid 条目残留在 Zotero 可手动清理）。
   **口径收敛到最近 3 期**是刻意设计：首次订阅时阅读器会把 feed 现有条目整批拉走，
   只放近 3 期把首订噪音压到最小（初版 1 期、同日扩为 3 期）；条目滚出 feed 后
-  已订阅用户的阅读器仍保留（按 id 去重——文献 `urn:doi:` / 周报永久 URL），
+  已订阅用户的阅读器仍保留（按 guid 去重——文献 `urn:mbd:*:{doi}` / 周报永久 URL），
   网站归档始终是完整入口。**文献源面向 Zotero 等文献管理器补全元数据**（2026-10-14）：
   DC/PRISM 命名空间（Nature/Science 官方 feed 同款惯例）——`dc:source` +
   `prism:publicationName` 期刊名（Zotero「出版物」字段读 dc:source，此前只放
