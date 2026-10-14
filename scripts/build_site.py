@@ -597,7 +597,6 @@ def build_index(cfg: dict, items: list) -> str:
 <dialog id="rssDlg" class="rss-dlg" aria-labelledby="rssTtl">
   <button type="button" class="rss-x" id="rssClose" aria-label="关闭"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
   <h2 id="rssTtl">订阅 RSS</h2>
-  <p class="rss-hint">把链接粘贴到你的 RSS 阅读器（Feedly、Inoreader、Follow 等）：</p>
   <div class="rss-row">
     <span class="rss-lab">每周速递更新</span>
     <span class="rss-url" id="rssUrlWk">{esc(base + "/weekly.xml") if base else "weekly.xml"}</span>
