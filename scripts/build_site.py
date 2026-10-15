@@ -987,7 +987,7 @@ def build_stats_page(cfg: dict, items: list) -> str:
 #    md 经 scripts/render_md.py（标准库迷你渲染器）转 HTML ──
 WEEKLY_SRC = ROOT / "content" / "weekly"
 WK_AUTHOR = "zbhgis 浩瀚地学"
-WK_AUTHOR_URL = "https://www.zbhgis.com/about"   # 文章页 meta 行作者外链（主站关于页）
+WK_AUTHOR_URL = "https://github.com/zbhgis"      # 文章页 meta 行作者外链（GitHub 主页）
 WK_ICO_USER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>'
 WK_ICO_DOC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>'
 WK_ICO_CLOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
@@ -1270,7 +1270,7 @@ def build_weekly(cfg: dict) -> tuple[list[str], list[dict]]:
 <main class="wk-main"><article>
 <h1 class="wk-deco wk-h1">{esc(p["title"])}</h1>
 <div class="wk-tagsrow">{'<span class="dot">·</span>'.join(tags)}</div>
-<div class="wk-meta"><a href="{WK_AUTHOR_URL}" target="_blank" rel="noopener" title="关于作者（主站）">{WK_ICO_USER}{WK_AUTHOR}</a><span>{WK_ICO_DOC}{p["words"]} 字</span><span>{WK_ICO_CLOCK}约 {p["reading"]} 分钟</span>{rstyle_toggle("plain")}</div>
+<div class="wk-meta"><a href="{WK_AUTHOR_URL}" target="_blank" rel="noopener" title="作者 GitHub 主页">{WK_ICO_USER}{WK_AUTHOR}</a><span>{WK_ICO_DOC}{p["words"]} 字</span><span>{WK_ICO_CLOCK}约 {p["reading"]} 分钟</span>{rstyle_toggle("plain")}</div>
 <div class="wk-dates"><span>{'收录周期' if p["period"] != p["date"] else '创建于'} <time datetime="{p["date"]}">{p["period"]}</time></span></div>
 <div class="wk-content">{p["doc"]}</div>
 <nav class="wk-prevnext" aria-label="文章导航">{pn_cell(prev_p, False)}{pn_cell(next_p, True)}</nav>
