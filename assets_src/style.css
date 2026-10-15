@@ -560,6 +560,8 @@ html[data-theme=light] .st-tc3{--tc:#8250df}html[data-theme=light] .st-tc4{--tc:
 .wk-tagsrow .dot{color:var(--faint)}
 .wk-meta{display:flex;flex-wrap:wrap;align-items:center;gap:16px;margin:0 0 12px;padding-bottom:16px;border-bottom:1px solid var(--line);font-size:var(--fs-xs);color:var(--dim)}
 .wk-meta span,.wk-meta a{display:inline-flex;align-items:center;gap:6px}
+.wk-meta a{color:var(--dim);transition:color .16s}
+.wk-meta a:hover{color:var(--accent)}
 .wk-meta svg{width:16px;height:16px;flex:none}
 .wk-dates{display:flex;flex-wrap:wrap;align-items:center;gap:16px;margin:0 0 40px;padding-bottom:16px;border-bottom:1px solid var(--line);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--faint)}
 /* 正文排版（blog-content 同源） */

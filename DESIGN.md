@@ -462,7 +462,9 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   行为同旧版长页（渐进兜底）
 - **文章页**：三栏 `wk-shell`（max-1400）—— 左 `wk-side` 250px「文章导航」（sticky、
   <1024px 隐藏、全部 14 篇 `wk-side-link`，当前篇构建期写死 `data-active`）；中 `wk-main`
-  760px（`wk-deco` 大标题 → tags 行 → meta 行（作者/字数/时长，12.5px 图标行）→ 日期行 →
+  760px（`wk-deco` 大标题 → tags 行 → meta 行（作者/字数/时长，12.5px 图标行；
+  **作者「zbhgis 浩瀚地学」为外链** → 主站关于页 zbhgis.com/about，新窗口打开，
+  hover 变 accent，2026-10-15）→ 日期行 →
   `wk-content` 正文 → `wk-prevnext` 上一篇/下一篇双栏卡 + 虚线空位）；右 `wk-toc` 180px
   「此页内容」（<1280px 隐藏、`wk-toc-link` data-lv 层级缩进 + 导轨竖线、静态锚点无 scrollspy）
 - **正文排版 `wk-content`**（blog-content 同源）：`h2.md-h1` 24px border-b、`h3.md-h2` 20px、
