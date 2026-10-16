@@ -64,6 +64,8 @@ MAX_BODY = 20 * 1024 * 1024
 COVERS = ROOT / "assets_src" / "covers"
 COVER_EXTS = ("png", "jpg", "jpeg", "webp", "gif")
 # prepare_thumbs 本地化产物（与 scripts/prepare_thumbs.py 的 FULL_DIR/THUMB_DIR 同址）：
+# 按入库年份分目录 —— images/full/{年}/{id}.{ext}、images/thumb/{年}/{id}.webp
+# （year = 条目 added 前 4 位；存量已于 2026-10 迁入 2025/，清理由 do_delete 的 rglob 跨年匹配）。
 # 随 git 入库且经 jsDelivr 公网可达，删除文献时必须一并清掉
 IMAGES_FULL = ROOT / "images" / "full"
 IMAGES_THUMB = ROOT / "images" / "thumb"
@@ -747,10 +749,10 @@ def do_sync_server() -> dict:
 def pipeline_after_content(log: list[dict], message: str, push: bool, sync: bool) -> dict:
     """内容变更后的公共收尾：封面缩略图 → 生成站点 → git 提交推送 →（可选）同步服务器。
     所有步骤用 step() 执行，前端能看到每一步的实时状态。"""
-    # 增量本地化封面（下载原图入本仓库 images/ → 压缩缩略图 → cover/cover_thumb
-    # 改写为本仓库 jsDelivr 链接）。必须在 build 之前：新引用要进本次构建产物。
+    # 增量本地化封面（下载原图入本仓库 images/{full,thumb}/{入库年}/ → 压缩缩略图 →
+    # cover/cover_thumb 改写为本仓库 jsDelivr 链接）。必须在 build 之前：新引用要进本次构建产物。
     # 失败不阻断发布 —— 缺缩略图的卡片自动回退原图外链，下次发布自动重试
-    ok_t, out_t = step(log, "封面图片本地化（增量 → 本仓库 images/）",
+    ok_t, out_t = step(log, "封面图片本地化（增量 → images/{full,thumb}/{入库年}/）",
                        [PYTHON, "scripts/prepare_thumbs.py", "--quiet"], timeout=580)
     if not ok_t:
         log.append({"step": "封面缩略图（未阻断发布）", "ok": False,
