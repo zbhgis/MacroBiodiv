@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 """MacroBiodiv 封面图片本地化管线（GeoSciPlot images/ 同款存储，2026-10-05 起）：
 
-把 papers.json 里的外链封面收进**本仓库**，原图与缩略图都在：
-    images/full/{id}.{ext}     原图（逐字节复制，不压缩）
-    images/thumb/{id}.webp     缩略图（长边 ≤480 · WEBP quality 78 · LANCZOS ·
-                               EXIF 转正 · 透明垫白；已在本仓库的旧图床缩略图直接复用）
+把 papers.json 里的外链封面收进**本仓库**，原图与缩略图都在（按入库年份分目录，
+同 GeoSciPlot 的 added 日期目录机制、粒度为年）：
+    images/full/{year}/{id}.{ext}     原图（逐字节复制，不压缩）
+    images/thumb/{year}/{id}.webp     缩略图（长边 ≤480 · WEBP quality 78 · LANCZOS ·
+                                      EXIF 转正 · 透明垫白；已在本仓库的旧图床缩略图直接复用）
+    year = 条目 added 的年份（缺省当前年）；存量已于 2026-10 统一迁入 2025/
 并把引用改写为本仓库的 jsDelivr 链接（fallback 链自动跟随到 raw.githubusercontent）：
-    cover       → https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/{id}.{ext}
-    cover_thumb → https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/{id}.webp
+    cover       → https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/{year}/{id}.{ext}
+    cover_thumb → https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/{year}/{id}.webp
     cover_thumb_w/h → 缩略图像素尺寸（卡片预留位）
 
 与旧版（缩略图推 BlogImg 图床）的差异：原图 + 缩略图全部自持，BlogImg 仅作历史备份；
@@ -27,8 +29,10 @@ from __future__ import annotations
 import argparse
 import io
 import json
+import re
 import sys
 from concurrent.futures import ThreadPoolExecutor
+from datetime import date
 from pathlib import Path
 from urllib.request import Request, urlopen
 
@@ -38,9 +42,18 @@ IMAGES_DIR = ROOT / "images"
 FULL_DIR = IMAGES_DIR / "full"
 THUMB_DIR = IMAGES_DIR / "thumb"
 OWN_BASE = "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images"
+# 已本地化 = cover 指向本仓库且已带年份目录（/full/{4位年}/），旧的平铺形式不算
+OWN_LOCALIZED_RE = re.compile(r"^" + re.escape(OWN_BASE) + r"/(?:full|thumb)/\d{4}/")
 LEGACY_THUMBS = ROOT.parent / "BlogImg" / "blog" / "thumb"   # 旧图床缩略图，可复用
 THUMB_MAX = 480
 THUMB_Q = 78
+
+
+def item_year(item: dict) -> str:
+    """入库年份（added 前 4 位），缺省当前年 —— 图片年份目录的依据。"""
+    added = str(item.get("added") or "")
+    m = re.match(r"^(\d{4})", added)
+    return m.group(1) if m else str(date.today().year)
 
 
 def sniff_ext(raw: bytes, fallback: str = "png") -> str:
@@ -87,20 +100,24 @@ def webp_size(path: Path) -> tuple[int, int]:
 
 
 def process_one(item: dict, force: bool) -> dict:
-    """下载原图 → 本地化。返回 {id, ok, ext, w, h, orig_kb, err}。
-    changed 恒为 True（本地化必然改写 cover/cover_thumb 两个字段）。"""
+    """下载原图 → 按入库年份本地化。返回 {id, ok, ext, w, h, orig_kb, err}。"""
     fid = str(item.get("id") or "")
     cover = str(item.get("cover") or "")
     if not fid or not cover.startswith(("http://", "https://")):
         return {"id": fid or "?", "ok": False, "err": "无外链封面", "ext": "", "w": 0, "h": 0}
-    if cover.startswith(OWN_BASE) and not force:
+    if OWN_LOCALIZED_RE.match(cover) and not force:
         return {"id": fid, "ok": None, "err": "已本地化，跳过", "ext": "", "w": 0, "h": 0}
+    year = item_year(item)
     try:
         raw = fetch_bytes(cover)
         ext = sniff_ext(raw)
-        full_path = FULL_DIR / f"{fid}.{ext}"
+        full_dir = FULL_DIR / year
+        thumb_dir = THUMB_DIR / year
+        full_dir.mkdir(parents=True, exist_ok=True)
+        thumb_dir.mkdir(parents=True, exist_ok=True)
+        full_path = full_dir / f"{fid}.{ext}"
         full_path.write_bytes(raw)                      # 原图逐字节复制
-        thumb_path = THUMB_DIR / f"{fid}.webp"
+        thumb_path = thumb_dir / f"{fid}.webp"
         legacy = LEGACY_THUMBS / f"{fid}.webp"
         if legacy.exists() and not force:
             w, h = webp_size(legacy)                    # 旧图床缩略图直接复用
@@ -109,7 +126,7 @@ def process_one(item: dict, force: bool) -> dict:
             tb, w, h = make_thumb(raw)                  # 现场压缩
             thumb_path.write_bytes(tb)
         return {"id": fid, "ok": True, "ext": ext, "w": w, "h": h,
-                "orig_kb": len(raw) // 1024}
+                "orig_kb": len(raw) // 1024, "year": year}
     except Exception as e:                    # 网络/解码失败：留待下次增量重跑
         return {"id": fid, "ok": False, "err": f"{type(e).__name__}: {e}"[:120],
                 "ext": "", "w": 0, "h": 0}
@@ -162,8 +179,9 @@ def main() -> int:
     for r in ok:
         for it in papers["items"]:
             if it.get("id") == r["id"]:
-                it["cover"] = f"{OWN_BASE}/full/{r['id']}.{r['ext']}"
-                it["cover_thumb"] = f"{OWN_BASE}/thumb/{r['id']}.webp"
+                y = r.get("year") or item_year(it)
+                it["cover"] = f"{OWN_BASE}/full/{y}/{r['id']}.{r['ext']}"
+                it["cover_thumb"] = f"{OWN_BASE}/thumb/{y}/{r['id']}.webp"
                 it["cover_thumb_w"] = r["w"]
                 it["cover_thumb_h"] = r["h"]
                 break

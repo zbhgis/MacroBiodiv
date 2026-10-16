@@ -1,0 +1,8 @@
+feat(images): 封面图按入库年份分目录（images/{full,thumb}/{year}/）
+
+- 存量 658 张（full+thumb 各 329）迁入 2025/，papers.json 的 cover/cover_thumb
+  658 条 URL 同步重写，与磁盘一一对应（同 GeoSciPlot added 日期目录机制、粒度为年）
+- prepare_thumbs.py：新图按 added 年份落盘（item_year，缺省当前年）；
+  已本地化判断升级为 /(full|thumb)/\d{4}/ 正则（防旧平铺 URL 误判重复下载）
+- admin.py：删除文献的图片清理 glob → rglob（跨年份目录）
+- build_site.py 无需改动（cover URL 全部来自 papers.json 完整 jsDelivr 链接）

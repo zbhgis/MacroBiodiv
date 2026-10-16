@@ -676,11 +676,11 @@ def do_delete(ids) -> dict:
     for it in removed:
         fid = str(it.get("id") or "")
         remove_cover(fid)   # 封面文件随条目一起删（站点重建后不再引用）
-        # prepare_thumbs 落在 images/full 与 images/thumb 的原图/缩略一并清掉——
+        # prepare_thumbs 落在 images/full/{年}/ 与 images/thumb/{年}/ 的原图/缩略一并清掉——
         # 它们随 git 入库且经 jsDelivr 公网可达，不删则已删文献的封面图仍可下载
-        #（GSP 的 do_delete 有同款清理，此前单侧漂移漏了本仓）
+        #（GSP 的 do_delete 有同款清理，此前单侧漂移漏了本仓）；rglob 跨年份目录
         if re.fullmatch(r"[0-9a-f]{10}", fid):
-            for stale in list(IMAGES_FULL.glob(fid + ".*")) + list(IMAGES_THUMB.glob(fid + ".*")):
+            for stale in list(IMAGES_FULL.rglob(fid + ".*")) + list(IMAGES_THUMB.rglob(fid + ".*")):
                 try:
                     stale.unlink()
                 except OSError:
