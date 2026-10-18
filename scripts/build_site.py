@@ -651,7 +651,26 @@ def build_index(cfg: dict, items: list) -> str:
         }
         ld_html = json.dumps(ld, ensure_ascii=False).replace("<", "\\u003c")
         ld_site = '<script type="application/ld+json">' + ld_html + "</script>"
-    return page_shell(cfg, f"{cfg['subtitle']} · {cfg['title']}", body + ld_site, path="/")
+    # CollectionPage + 全量文献 ItemList（2026-10-18）：首页是文献库的主落地页，
+    # 详情页 ScholarlyArticle 是散点实体——这里给引擎一张全量清单（与 llms.txt
+    # 的 markdown 题录同源同序），与 /weekly/ 列表页 CollectionPage 同构
+    ld_col = ""
+    if base:
+        col = {
+            "@context": "https://schema.org", "@type": "CollectionPage",
+            "name": "全部文献",
+            "headline": f"{cfg['subtitle']} · {cfg['title']}",
+            "description": cfg["lede"],
+            "url": base + "/",
+            "inLanguage": "zh-CN",
+            "itemListElement": [
+                {"@type": "ListItem", "position": i + 1,
+                 "name": display_title(p), "url": base + f"/{p['id']}/"}
+                for i, p in enumerate(items)],
+        }
+        col_html = json.dumps(col, ensure_ascii=False).replace("<", "\\u003c")
+        ld_col = '<script type="application/ld+json">' + col_html + "</script>"
+    return page_shell(cfg, f"{cfg['subtitle']} · {cfg['title']}", body + ld_site + ld_col, path="/")
 
 
 def _volume_pages(p: dict) -> str:
