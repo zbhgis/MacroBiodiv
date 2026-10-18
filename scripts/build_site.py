@@ -1385,9 +1385,31 @@ def build_weekly(cfg: dict) -> tuple[list[str], list[dict]]:
 <div class="wk-quicknav">{chips}</div>
 <div class="wk-groups">{sections}</div>
 {pager}"""
+    # CollectionPage + 全量期次 ItemList（2026-10-18）：列表页此前无任何结构化
+    # 数据；静态预渲染本就全量分组（hidden 页无 JS 也展开，爬虫可见全部），
+    # 结构化数据与可见内容同源——引擎按期次实体收录，而非只拿到一个 /weekly/ 链接
+    wbase_l = (cfg.get("site_url") or "").rstrip("/")
+    ld_c_block = ""
+    if wbase_l:
+        col = {
+            "@context": "https://schema.org", "@type": "CollectionPage",
+            "name": "每周速递",
+            "headline": f"每周速递 · {cfg['title']}",
+            "description": (f"Nature / Science / Cell 系列大尺度生物多样性研究每周精选，"
+                             f"共 {n_week} 期。"),
+            "url": wbase_l + "/weekly/",
+            "inLanguage": "zh-CN",
+            "isPartOf": {"@type": "WebSite", "name": cfg["title"], "url": wbase_l + "/"},
+            "itemListElement": [
+                {"@type": "ListItem", "position": i + 1,
+                 "name": p["title"], "url": wbase_l + f"/weekly/{p['slug']}/"}
+                for i, p in enumerate(posts)],
+        }
+        col_html = json.dumps(col, ensure_ascii=False).replace("<", "\\u003c")
+        ld_c_block = ('<script type="application/ld+json">' + col_html + "</script>")
     (SITE / "weekly").mkdir(parents=True, exist_ok=True)
     (SITE / "weekly" / "index.html").write_text(
-        page_shell(cfg, f"每周速递 · {cfg['title']}", body, depth=1,
+        page_shell(cfg, f"每周速递 · {cfg['title']}", body + ld_c_block, depth=1,
                    description=f"Nature / Science / Cell 系列大尺度生物多样性研究每周精选，共 {n_week} 期。",
                    path="/weekly/"), encoding="utf-8")
     # 过期的周报页目录（期次被删后的残留）→ 改名移入 site_trash/，绝不原地删除
