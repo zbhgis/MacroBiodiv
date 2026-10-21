@@ -496,7 +496,10 @@ html[data-theme=light] .st-tc3{--tc:#8250df}html[data-theme=light] .st-tc4{--tc:
 .st-n{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--faint);text-align:right}
 /* 环形图（文章类型构成）：stroke-dasharray 段 + 中心合计 + 图例联动高亮 */
 .st-donut{display:flex;align-items:center;gap:20px;margin-top:12px;flex-wrap:wrap}
-.st-donut svg{flex:none;width:158px;height:158px}
+/* overflow 必须 visible：.big 悬停放大描边外沿 = 15.9155 + 5/2 = 18.42，
+   超出 viewBox 半宽 18；默认 hidden 会把放大的扇区在 svg 边缘裁平——
+   环形图右缘紧贴图例，看起来就像被右侧挡住（GSP 同款修复，2026-10-21 同步） */
+.st-donut svg{flex:none;width:158px;height:158px;overflow:visible}
 .st-donut .seg{fill:none;stroke-width:3.6;transition:opacity .15s,stroke-width .15s;cursor:default}
 .st-donut .seg.big{stroke-width:5}
 .st-donut .seg.off{opacity:.22}
