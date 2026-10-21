@@ -1,7 +1,7 @@
 /**
  * stats —— 全站统计页（/statistics/，仅该页随 stats-data.js 注入）。
  *
- * 访客向数据面板：hero 总览（数字滚动）→ 热读文献 Top 5（全量口径）→
+ * 访客向数据面板：hero 总览（数字滚动）→ 访问量 Top 5（全量口径）→
  * 筛选（期刊/类型/年份区间）联动重算：Online 发表动态面积图（SVG）· 文章类型环形图
  * （SVG）· 期刊条形图 · 研究热词词云（关键词 / 标题·摘要 两个 tab）。
  * 手写 SVG + vanilla JS，无第三方库；数据 window.MBD_STATS 只含英文原文与分面字段。
@@ -372,13 +372,13 @@
   countUp(el("stv-journals"), new Set(DATA.map((d) => d.j).filter(Boolean)).size);
   countUp(el("stv-kw"), new Set(DATA.flatMap((d) => d.kw || []).filter(Boolean)).size);
 
-  /* ── 热读文献 Top 5 + hero「文献被浏览」：一次 fetch 同时喂两处；
+  /* ── 访问量 Top 5 + hero「文献被浏览」：一次 fetch 同时喂两处；
      全量口径不随筛选重算；只统计文献卡片页（排除 /weekly/ 与首页），
      浏览数相同按随机排序，只展示前 5 ── */
   const rankBox = el("st-rank");
   const viewsEl = el("stv-views");
   /* API 为空 = 同源（nginx 把 /api/ 反代到主站统计服务），不能当作「未配置」——
-     此前写成 if (!LOCAL && API)，线上 api 默认空串导致热读榜永远走本地预览分支（实测踩过） */
+     此前写成 if (!LOCAL && API)，线上 api 默认空串导致访问量榜永远走本地预览分支（实测踩过） */
   if (!LOCAL) {
     fetch((API || "") + "/api/v1/stats/views?prefix=/macrobiodiv/")
       .then((r) => (r.ok ? r.json() : null))

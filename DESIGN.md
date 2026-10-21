@@ -380,13 +380,13 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   仅 /statistics/ 页经 `extra_assets` 注入（stats-data.js + stats.js）
 - **访客向数据面板**（2026-10 重设计；此前为筛选+六张纯 CSS 条形卡的管理口径版）：
   页面流 = **hero 总览四 tile**（收录文献/来源期刊/研究关键词，数字滚动 count-up 700ms
-  ease-out，reduced-motion 直落；「文献被浏览」来自统计服务）→ **热读文献 Top 5** →
+  ease-out，reduced-motion 直落；「文献被浏览」来自统计服务）→ **访问量 Top 5** →
   筛选行 → 图表网格 → 末尾「去全站搜索 / 回首页」CTA 行
-- **hero / 热读榜为全量口径**，不随筛选重算：一次 fetch `/api/v1/stats/views?prefix=/macrobiodiv/`
-  同时喂 hero「文献被浏览」累计与热读榜（正则 `/^\/macrobiodiv\/[^/]+\/$/` 只留文献卡片页，
-  **每周速递两段路径被排除**）；热读榜排序 = 浏览数降序、**同数随机**（`Math.random()` 键），
+- **hero / 访问量榜为全量口径**，不随筛选重算：一次 fetch `/api/v1/stats/views?prefix=/macrobiodiv/`
+  同时喂 hero「文献被浏览」累计与访问量榜（正则 `/^\/macrobiodiv\/[^/]+\/$/` 只留文献卡片页，
+  **每周速递两段路径被排除**）；访问量榜排序 = 浏览数降序、**同数随机**（`Math.random()` 键），
   行内淡色底条 `--w` = 浏览量占比，No.1 实心章 / 2·3 描边章（`.top/.pod`），副行显示期刊·年份；
-  localhost / 无统计服务时 hero 显示「—」、热读榜显示本地预览提示，不发起请求
+  localhost / 无统计服务时 hero 显示「—」、访问量榜显示本地预览提示，不发起请求
 - **筛选 → 实时重算**（简化版即席查询：全站数据打底，不做 URL 分享与下钻）：
   期刊下拉 / 类型下拉 / **时间区间（两个原生 `type=date` 输入，按 online 发表日期
   年月日比较）** / 重置；筛选行与首页 fgroup 同语言（mono 小标签分组 + 胶囊控件 +

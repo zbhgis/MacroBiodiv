@@ -932,7 +932,7 @@ def build_stats_data(items: list) -> None:
     """全站统计数据 → site/assets/stats-data.js（仅 /statistics/ 页注入）。
     只带统计所需的英文原文与分面字段 —— 中文翻译字段与每周速递一律不进这份数据。"""
     data = [{
-        "id": p.get("id") or "",               # 路径 → 文献 映射（热读榜用）
+        "id": p.get("id") or "",               # 路径 → 文献 映射（访问量榜用）
         "t": p.get("title") or "",             # 英文原题
         "ab": p.get("abstract") or "",         # 英文摘要
         "kw": p.get("keywords") or [],         # OpenAlex 英文词表
@@ -950,9 +950,9 @@ def build_stats_data(items: list) -> None:
 
 
 def build_stats_page(cfg: dict, items: list) -> str:
-    """全站统计页（访客向数据面板）：hero 总览 + 热读榜 + SVG 环形图/Online 发表
+    """全站统计页（访客向数据面板）：hero 总览 + 访问量榜 + SVG 环形图/Online 发表
     动态面积图 + 条形图 + 词云 tab；数据来自 stats-data.js（仅本页注入）。
-    筛选（期刊 / 类型 / 年份区间）→ 图表实时重算；热读榜与 hero 浏览数为全量口径。"""
+    筛选（期刊 / 类型 / 年份区间）→ 图表实时重算；访问量榜与 hero 浏览数为全量口径。"""
     body = f"""<header class="site">
   <p class="kicker">{esc(cfg['title'].upper())} · STATS</p>
   <h1 class="spage-title">全站统计</h1>
@@ -965,7 +965,7 @@ def build_stats_page(cfg: dict, items: list) -> str:
   <div class="st-tile st-tc4"><b id="stv-views">…</b><span>文献被浏览 · 次</span></div>
 </section>
 
-<section class="st-card st-hot"><h3>热读文献<em>Top 5 · 按访客浏览量 · 全量口径</em></h3>
+<section class="st-card st-hot"><h3>访问量<em>Top 5 · 按访客浏览量 · 全量口径</em></h3>
 <div class="st-ranks" id="st-rank"><p class="st-none">加载中…</p></div></section>
 
 <div class="st-filter">
