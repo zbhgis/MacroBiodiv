@@ -108,7 +108,7 @@ header.site{padding:72px 0 0}
    header.site h1 都会以特异度反超 .spage-title 的设计字号 */
 .home-title{display:flex;align-items:center;gap:18px;flex-wrap:wrap;font-size:clamp(44px,6.5vw,68px);line-height:1.08;letter-spacing:-.03em;margin:24px 0 0;font-weight:700}
 h1 img.logo{height:clamp(44px,5.4vw,58px);width:auto;flex:none;border-radius:12px}
-.lede{font-size:var(--fs-base);color:var(--dim);max-width:52ch;margin:20px 0 0}
+.lede{font-size:var(--fs-base);color:var(--dim);margin:20px 0 0}
 .gh-note{display:inline-flex;align-items:center;gap:9px;margin:18px 0 0;padding:9px 16px;border:1px solid var(--accent);border-left-width:3px;border-radius:6px;background:var(--card);font-size:var(--fs-sm);color:var(--text)}
 .gh-note svg{width:16px;height:16px;flex:none;color:var(--accent)}
 .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:22px 0 6px}
