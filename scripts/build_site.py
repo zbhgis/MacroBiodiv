@@ -191,6 +191,9 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
             if og_article.get("published"):
                 og_rows.append('<meta property="article:published_time" content="'
                                f'{esc(og_article["published"])}">')
+            if og_article.get("modified"):
+                og_rows.append('<meta property="article:modified_time" content="'
+                               f'{esc(og_article["modified"])}">')
             if og_article.get("section"):
                 og_rows.append(f'<meta property="article:section" content="{esc(og_article["section"])}">')
             for _t in (og_article.get("tags") or [])[:8]:
@@ -1212,8 +1215,11 @@ def build_weekly(cfg: dict) -> tuple[list[str], list[dict]]:
             "headline": p["title"],
             "description": (p["summary"] or "").strip() or None,
             "datePublished": p["date"] or None,
+            "dateModified": p["date"] or None,
             "inLanguage": "zh-CN",
             "url": (wbase + f"/weekly/{p['slug']}/") if wbase else None,
+            "mainEntityOfPage": ({"@type": "WebPage", "@id": wbase + f"/weekly/{p['slug']}/"}
+                                 if wbase else None),
             "author": {"@type": "Organization", "name": cfg["title"], "url": wbase or None},
             "publisher": {"@type": "Organization", "name": cfg["title"], "url": wbase or None},
             "image": p["og_image"] or None,
@@ -1224,12 +1230,26 @@ def build_weekly(cfg: dict) -> tuple[list[str], list[dict]]:
                 for k, v in ld_w.items() if v}
         ld_w_html = (json.dumps(ld_w, ensure_ascii=False).replace("<", "\\u003c") if wbase else "")
         ld_w_block = ('<script type="application/ld+json">' + ld_w_html + "</script>") if ld_w_html else ""
+        # 面包屑：首页 → 每周速递 → 期次（此前周报只有 BlogPosting，缺站内层级信号）
+        if wbase:
+            bc_w = {
+                "@context": "https://schema.org", "@type": "BreadcrumbList",
+                "itemListElement": [
+                    {"@type": "ListItem", "position": 1, "name": "首页", "item": wbase + "/"},
+                    {"@type": "ListItem", "position": 2, "name": "每周速递", "item": wbase + "/weekly/"},
+                    {"@type": "ListItem", "position": 3, "name": p["title"],
+                     "item": wbase + f"/weekly/{p['slug']}/"},
+                ],
+            }
+            bc_w_html = json.dumps(bc_w, ensure_ascii=False).replace("<", "\\u003c")
+            ld_w_block += '<script type="application/ld+json">' + bc_w_html + "</script>"
         html_txt = page_shell(cfg, f"{p['title']} · {cfg['title']}", body + ld_w_block, depth=2,
                               description=p["summary"], path=f"/weekly/{p['slug']}/",
                               og_type="article", og_image=p["og_image"], bare=True,
                               rstyle="plain",
                               keywords="宏观生物多样性, 每周速递, Nature, Science, Cell 系列精选",
-                              og_article={"published": p["date"] or "", "section": "每周速递",
+                              og_article={"published": p["date"] or "", "modified": p["date"] or "",
+                                          "section": "每周速递",
                                           "tags": ["宏观生物多样性", "Nature", "Science", "Cell"]},
                               og_image_alt=f"{p['title']} 图表",
                               extra_assets=["image-lightbox.js", "article-toc.js"])
@@ -1482,8 +1502,8 @@ def main() -> int:
         # 中文搜索引擎（本站受众在中文侧）；Sogou 的 UA 名含空格，不符合 RFC 9309 的
         # UA-name 字符集（写了会被忽略），故不列——通配 * 已允许它抓取
         cn_engines = ("Baiduspider", "360Spider", "YisouSpider")
-        robots_lines = (["User-agent: *", "Allow: /", ""]
-                        + [f"User-agent: {ua}\nAllow: /" for ua in ai_crawlers + cn_engines]
+        robots_lines = (["User-agent: *", "Allow: /", "Disallow: /api/", ""]
+                        + [f"User-agent: {ua}\nAllow: /\nDisallow: /api/" for ua in ai_crawlers + cn_engines]
                         + ["", "Sitemap: " + base + "/sitemap.xml"])
         (SITE / "robots.txt").write_text("\n".join(robots_lines) + "\n", encoding="utf-8")
         today = time.strftime("%Y-%m-%d")
@@ -1558,6 +1578,11 @@ def main() -> int:
 ## 每周速递（{n_weekly} 期，新→旧）
 
 {weekly_lines}
+
+## 姊妹站点
+
+- [浩瀚地学主站](https://www.zbhgis.com): 个人技术博客 — 遥感 / GIS / Python / 地学研究
+- [GeoSciPlot 图库](https://geosciplot.zbhgis.com): 地学科研绘图参考图库 — 公开发表论文的图表、DOI 出处与取色工具
 
 ## 引用说明
 
