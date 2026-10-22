@@ -124,7 +124,7 @@ IndexNow key 文件 200、随机坏路径返回**真 404**（不是首页）。
 ```bash
 python scripts/fetch_doi.py 10.1038/s41467-021-24264-9   # 试试抓取，输出 JSON
 python scripts/llm.py "英文标题"                          # 试试翻译
-python scripts/build_site.py                              # 重建站点（改样式/脚本请编辑 assets_src/style.css 与 papers.js 后重跑）
+python scripts/build_site.py                              # 重建站点（改样式/脚本请编辑 assets_src/ 下对应文件后重跑：style.css、papers.js、stats.js、image-lightbox.js、article-toc.js、img-fallback.js、rss.js）
 python scripts/gen_logo.py                                # 由 assets_src/logo_source.png 重新派生 logo/favicon
 ```
 
