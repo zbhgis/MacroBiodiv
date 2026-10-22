@@ -807,6 +807,13 @@ build_site.py：整体拷到 site/assets/covers/（镜像式，删除不残留�
   `window.MBD` 配置（tracker/api，源文件不含配置）；两文件属构建特殊处理件，
   拷贝循环经 `GENERATED` 集合排除、不会被原样覆盖。与 GeoSciPlot 共享的部分
   （token、fab 队列、分页条、搜索页版式）修改前先比对原站，保持同源语言
+- **前端逻辑全部外置**（2026-10-15）：`build_site.py` 内联的浏览器端代码已按同一
+  模式抽出——`assets_src/img-fallback.js`（外链图多源降级 + 封面占位，head 同步
+  外链、parser-blocking 执行时机与内联等价，全部页面）与 `assets_src/rss.js`
+  （RSS 配置页交互，/rss/ 页 `extra_assets` 注入，站点 base 经 `.rscp[data-base]`
+  构建期写入，文件本身零构建依赖原样拷贝）。**渲染路径脚本刻意保持内联**：
+  主题/字号预置、rstyle、`STATE_PRESTATE`（筛选首帧预置）必须在首帧前同步执行，
+  外置会引入请求延迟与闪烁窗口；灯箱挂载一行守卫亦留内联
 - 资源引用统一带 `?v=构建时间戳` 防缓存（含 `<link rel="icon">`，2026-10-11 补齐）；
   改 CSS/JS 后必须重新 build_site.py
 - logo/图标：优先用户源图 —— `assets_src/logo_source.png` 存在时，`gen_logo.py`

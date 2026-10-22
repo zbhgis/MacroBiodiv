@@ -17,6 +17,8 @@
     site/assets/article-toc.js     文章目录（桌面侧栏高亮 + 移动端抽屉，同上两种页面注入）
     site/assets/stats-data.js      全站统计数据（英文原文与分面字段，仅 /statistics/ 页注入）
     site/assets/stats.js           全站统计客户端聚合（筛选 → 图表重算，仅 /statistics/ 页注入）
+    site/assets/img-fallback.js    外链图多源降级 + 封面占位（head 同步加载，全部页面）
+    site/assets/rss.js             RSS 配置页交互（/rss/ 页注入，base 经 .rscp[data-base] 传入）
 
 设计要点（样式与交互框架照搬 GeoSciPlot，把图片瀑布流换成文献信息卡片）：
   · 顶部菜单栏（.mnav）：sticky 毛玻璃，移植主站 zbhgis.com 的 header；全部页面由
@@ -304,56 +306,11 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
 <link rel="icon" type="image/png" href="{up}assets/favicon.png?v={BUILD_VER}">
 <script>try{{var t=localStorage.getItem("mbd-theme");if(t)document.documentElement.setAttribute("data-theme",t)}}catch(e){{}}</script>
 <script>try{{var f=localStorage.getItem("mbd-fs");if(f)document.documentElement.setAttribute("data-fs",f)}}catch(e){{}}</script>
-<script>
-/* ── 外链图多源降级（GeoSciPlot gallery.js 同源思路）：
-   jsdelivr gh 直链逐源切换 cdn → fastly → gcore → raw.githubusercontent；
-   首页卡片封面（.c-cov）在非 jsdelivr 直链失败、或所有候选耗尽时，
-   换成期刊缩写占位块（.c-ph，与无封面卡片同语言）——不留破图；
-   周报图表图维持原行为（候选耗尽即止，不做占位替换） ── */
-window.__coverPlaceholder = function (img) {{
-  var card = img.closest ? img.closest("a.card") : null;
-  if (!card) return;
-  var ph = document.createElement("span");
-  ph.className = "c-ph";
-  var jb = card.querySelector(".c-j");
-  ph.textContent = (jb && jb.textContent) || "—";
-  /* 连 c-covbox 一起换掉：占位块就位的同时把「加载中」层撤掉 */
-  (img.closest(".c-covbox") || img).replaceWith(ph);
-}};
-window.__imgFallback = function (img) {{
-  /* 缩略外链失败 → 先回退原图外链（data-full），原图走下面的多源降级链 */
-  if (img.dataset.full && !img.dataset.fullTried) {{
-    img.dataset.fullTried = "1";
-    img.src = img.dataset.full;
-    return;
-  }}
-  var orig = img.dataset.origSrc || "";
-  if (!orig) {{
-    orig = img.src;
-    if (orig.indexOf("https://cdn.jsdelivr.net/gh/") !== 0) {{ window.__coverPlaceholder(img); return; }}
-    img.dataset.origSrc = orig;
-    img.dataset.srcTry = "0";
-  }}
-  /* 真实外链形如 gh/{{user}}/{{repo}}@{{branch}}/{{path}}（@ 前是「用户/仓库」两段） */
-  var m = orig.match(/^https:\\/\\/cdn\\.jsdelivr\\.net\\/gh\\/([^\\/@\\s]+)\\/([^\\/@\\s]+)(?:@([^\\/\\s]+))?\\/(.+)$/);
-  if (!m) {{ window.__coverPlaceholder(img); return; }}
-  var spec = m[1] + "/" + m[2] + (m[3] ? "@" + m[3] : "");
-  var n = parseInt(img.dataset.srcTry || "0", 10);
-  var alts = ["https://fastly.jsdelivr.net/gh/" + spec + "/" + m[4],
-              "https://gcore.jsdelivr.net/gh/" + spec + "/" + m[4]];
-  if (m[3]) alts.push("https://raw.githubusercontent.com/" + m[1] + "/" + m[2] + "/" + m[3] + "/" + m[4]);
-  if (n < alts.length) {{
-    img.dataset.srcTry = String(n + 1);
-    img.src = alts[n];
-  }} else {{
-    window.__coverPlaceholder(img);
-  }}
-}};
-document.addEventListener("error", function (e) {{
-  var t = e.target;
-  if (t && t.tagName === "IMG" && (t.classList.contains("c-cov") || t.src.indexOf("jsdelivr") > -1)) window.__imgFallback(t);
-}}, true);
-</script>
+<!-- 外链图多源降级（assets_src/img-fallback.js）：head 同步外链脚本，parser-blocking
+     执行时机与内联等价（先于正文图片），捕获阶段 error 监听才能接到首张失败图。
+     渲染路径的防闪烁小脚本（主题/字号/rstyle/STATE_PRESTATE）刻意保持内联——
+     它们必须在首帧前同步执行，外置反而引入额外请求与闪烁窗口 -->
+<script src="{up}assets/img-fallback.js?v={BUILD_VER}"></script>
 {rstyle_head}
 </head>
 <body>
@@ -1048,7 +1005,8 @@ def build_rss_page(cfg: dict, items: list) -> str:
     """RSS 定制订阅配置页（/rss/）：期刊/类型 chips 正向多选 + 标题语言 + 条数，
     实时拼 /rss/feed.atom 动态链接（服务器 FastAPI 按 query 过滤生成 Atom）；
     页面为纯静态，chips 是「选中=订阅」的正向语义（与首页筛选的全选剔除相反），
-    因此用页面内联脚本而非 papers.js 的 chips 机制。复制按钮复用 data-copy。"""
+    因此用页面专属脚本 assets_src/rss.js（随 extra_assets 注入，站点 base 经
+    .rscp[data-base] 构建期写入）而非 papers.js 的 chips 机制。复制按钮复用 data-copy。"""
     jn_counter: Counter = Counter()
     ty_counter: Counter = Counter()
     for p in items:
@@ -1077,7 +1035,7 @@ def build_rss_page(cfg: dict, items: list) -> str:
   <h1 class="spage-title">RSS 订阅</h1>
   <p class="lede">按你关注的期刊与文章类型生成专属订阅链接，粘贴到任意 RSS 阅读器（Zotero / Feedly / Inoreader / Follow…），文献库更新时自动收到推送。</p>
 </header>
-<div class="rscp">
+<div class="rscp" data-base="{esc(base)}">
   <div class="rscp-sec"><h2><i>①</i>期刊（可多选，不选 = 全部期刊）</h2><div class="rscp-chips" id="rJ">{rchips(jn_counter)}</div></div>
   <div class="rscp-sec"><h2><i>②</i>文章类型（可多选，不选 = 全部类型）</h2><div class="rscp-chips" id="rT">{rchips(ty_counter)}</div></div>
   <div class="rscp-sec"><h2><i>③</i>标题语言</h2><div class="rscp-langs" id="rL">
@@ -1098,63 +1056,11 @@ def build_rss_page(cfg: dict, items: list) -> str:
     <p class="rscp-note">文献更新 = 最近 3 期周报对应的文献卡片；每周速递更新 = 最近 3 期周报（含每篇的中文标题与摘要首句清单）。</p>
   </div>
 </div>
-<script>
-(function(){{try{{
-  var base = {json.dumps(base)};
-  function sel(id){{
-    return Array.prototype.slice.call(
-      document.querySelectorAll("#" + id + " [aria-pressed='true']"))
-      .map(function(b){{ return b.getAttribute("data-v"); }});
-  }}
-  /* 组语义：全选 = 不过滤该维（返回空 → 链接省略参数，与「不选 = 全部」自洽） */
-  function grp(id){{
-    var all = document.querySelectorAll("#" + id + " .rscp-chip");
-    var on = Array.prototype.filter.call(all, function(b){{
-      return b.getAttribute("aria-pressed") === "true";
-    }});
-    return on.length === all.length
-      ? [] : on.map(function(b){{ return b.getAttribute("data-v"); }});
-  }}
-  function q(k, v){{ return v.length ? "&" + k + "=" + encodeURIComponent(v.join("|")) : ""; }}
-  function upd(){{
-    var j = grp("rJ"), t = grp("rT");
-    var lang = sel("rL")[0] || "zh", n = sel("rN")[0] || "20";
-    var url = base + "/rss/feed.atom?lang=" + lang + "&n=" + n + q("j", j) + q("t", t);
-    document.getElementById("rssUrl").textContent = url;
-  }}
-  document.querySelectorAll("#rJ .rscp-chip, #rT .rscp-chip").forEach(function(b){{
-    b.addEventListener("click", function(){{
-      b.setAttribute("aria-pressed", String(b.getAttribute("aria-pressed") !== "true"));
-      upd();
-    }});
-  }});
-  document.querySelectorAll("#rJ .rscp-act, #rT .rscp-act").forEach(function(b){{
-    b.addEventListener("click", function(){{
-      var all = b.getAttribute("data-act") === "all";
-      b.closest(".rscp-chips").querySelectorAll(".rscp-chip").forEach(function(c){{
-        c.setAttribute("aria-pressed",
-          String(all ? true : c.getAttribute("aria-pressed") !== "true"));
-      }});
-      upd();
-    }});
-  }});
-  ["rL", "rN"].forEach(function(id){{
-    document.querySelectorAll("#" + id + " .rscp-lang").forEach(function(b){{
-      b.addEventListener("click", function(){{
-        document.querySelectorAll("#" + id + " .rscp-lang").forEach(function(x){{
-          x.setAttribute("aria-pressed", "false");
-        }});
-        b.setAttribute("aria-pressed", "true");
-        upd();
-      }});
-    }});
-  }});
-  upd();
-}}catch(e){{}}}})();
-</script>"""
+"""
     return page_shell(cfg, f"RSS 订阅 · {cfg['title']}", body, path="/rss/", depth=1,
                       description="按期刊与文章类型生成专属 RSS 订阅链接，"
-                                  "文献库更新时自动推送到你的 RSS 阅读器。")
+                                  "文献库更新时自动推送到你的 RSS 阅读器。",
+                      extra_assets=["rss.js"])
 
 
 def build_about(cfg: dict) -> str:
