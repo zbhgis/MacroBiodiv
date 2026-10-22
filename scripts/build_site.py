@@ -74,6 +74,17 @@ DEFAULT_CFG = {
     "server": {"host": "", "webroot": "/var/www/macrobiodiv"},
 }
 
+# 作者实体：与主站 /about 的 Person 共用同一 URL 与 sameAs，把子域内容归因到
+# 同一作者（E-E-A-T / GEO）。站点是品牌，publisher 仍用 Organization。
+AUTHOR_LD = {
+    "@type": "Person",
+    "name": "zbhgis 浩瀚地学",
+    "url": "https://www.zbhgis.com/about",
+    "image": "https://www.zbhgis.com/avatar.jpg",
+    "sameAs": ["https://github.com/zbhgis", "https://zbhgis.github.io",
+               "https://zbhgis.blog.csdn.net"],
+}
+
 
 def load_cfg() -> dict:
     cfg = dict(DEFAULT_CFG)
@@ -209,6 +220,14 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
         twitter = "\n".join(tw_rows)
         # canonical 与 og:url 同值：多入口/带参数访问时搜索引擎只认这一份
         canonical = f'<link rel="canonical" href="{esc(base + path)}">'
+    # GEO：每页 head 声明 llms.txt / llms-full.txt，AI 引擎从任意落地页都能发现
+    # 语义索引；llms.txt 内部再指向全文
+    if base:
+        llms_links = (f'\n<link rel="alternate" type="text/plain" href="{esc(base + "/llms.txt")}" title="llms.txt">'
+                      f'\n<link rel="alternate" type="text/plain" href="{esc(base + "/llms-full.txt")}" title="llms-full.txt">')
+    else:
+        llms_links = (f'\n<link rel="alternate" type="text/plain" href="{up}llms.txt" title="llms.txt">'
+                      f'\n<link rel="alternate" type="text/plain" href="{up}llms-full.txt" title="llms-full.txt">')
     # theme-color 与 :root token 同值（深 #0d1117 / 浅 #fff，见样式表 :root 两行），
     # 移动端浏览器地址条配色跟随主题；apple-touch-icon 复用 favicon.png；
     # RSS 双源自动发现（2026-10-14 起双 feed：文献更新 atom.xml / 周报更新 weekly.xml，
@@ -293,6 +312,11 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
         rstyle_head = (f'<script>try{{var r=localStorage.getItem("mbd-rstyle");'
                        f'document.documentElement.setAttribute("data-rstyle",r||"{rstyle}")}}'
                        f'catch(e){{document.documentElement.setAttribute("data-rstyle","{rstyle}")}}</script>')
+    # 大图预览与摘要长度放开：文献库/周报都靠图表与摘要被检索到；
+    # noindex 页（404）不能同时声明 index
+    robots_meta = ('<meta name="robots" content="noindex">' if noindex else
+                   '<meta name="robots" content="index, follow, max-image-preview:large,'
+                   ' max-snippet:-1, max-video-preview:-1">')
     return f"""<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -300,10 +324,11 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{esc(title)}</title>
 <meta name="description" content="{esc(desc)}">
-{'<meta name="robots" content="noindex">' if noindex else ''}
+{robots_meta}
 {og}
 {canonical}
 {twitter}
+{llms_links}
 {head_extra}
 <link rel="stylesheet" href="{up}assets/style.css?v={BUILD_VER}">
 <link rel="icon" type="image/png" href="{up}assets/favicon.png?v={BUILD_VER}">
@@ -602,6 +627,8 @@ def build_index(cfg: dict, items: list) -> str:
             "@context": "https://schema.org", "@type": "WebSite",
             "name": cfg["title"], "alternateName": cfg["subtitle"],
             "url": base, "description": cfg["lede"], "inLanguage": "zh-CN",
+            # 站点品牌与作者实体分离：publisher 挂主站同一 Person，形成跨域实体图谱
+            "publisher": AUTHOR_LD,
             # SearchAction：站点有 /search/ 全文检索，声明后引擎可把站内检索挂进结果
             "potentialAction": {
                 "@type": "SearchAction",
@@ -623,14 +650,22 @@ def build_index(cfg: dict, items: list) -> str:
             "description": cfg["lede"],
             "url": base + "/",
             "inLanguage": "zh-CN",
-            "itemListElement": [
-                {"@type": "ListItem", "position": i + 1,
-                 "name": display_title(p), "url": base + f"/{p['id']}/"}
-                for i, p in enumerate(items)],
+            "isPartOf": {"@type": "WebSite", "name": cfg["title"], "url": base + "/"},
+            # itemListElement 属于 ItemList：CollectionPage 用 hasPart 挂全量清单
+            "hasPart": {
+                "@type": "ItemList",
+                "numberOfItems": len(items),
+                "itemListElement": [
+                    {"@type": "ListItem", "position": i + 1,
+                     "name": display_title(p), "url": base + f"/{p['id']}/"}
+                    for i, p in enumerate(items)],
+            },
         }
         col_html = json.dumps(col, ensure_ascii=False).replace("<", "\\u003c")
         ld_col = '<script type="application/ld+json">' + col_html + "</script>"
-    return page_shell(cfg, f"{cfg['subtitle']} · {cfg['title']}", body + ld_site + ld_col, path="/")
+    return page_shell(cfg, f"{cfg['subtitle']} · {cfg['title']}", body + ld_site + ld_col,
+                      description=f"{cfg['lede']} 收录 {len(items)} 篇，支持搜索、筛选、排序与每周速递。",
+                      path="/")
 
 
 def _volume_pages(p: dict) -> str:
@@ -833,6 +868,9 @@ def build_detail(cfg: dict, items: list, idx: int) -> str:
                         "value": p["doi"]} if p.get("doi") else None),
         "sameAs": (f"https://doi.org/{p['doi']}" if p.get("doi") else None),
         "url": (base + f"/{p['id']}/") if base else None,
+        # 把文献实体显式锚定到本页 canonical，避免同 DOI 的多来源页面抢归属
+        "mainEntityOfPage": ({"@type": "WebPage", "@id": base + f"/{p['id']}/"}
+                             if base else None),
         "image": og_image or None,
         # 全站文献免费可读：与主站文章页 BlogPosting 的同名字段语义一致
         "isAccessibleForFree": True,
@@ -885,6 +923,8 @@ def build_search_page(cfg: dict, items: list) -> str:
 <div class="spage-count" id="spage-count"></div>
 <div class="spage-list" id="spage-list" data-up="../"></div>"""
     return page_shell(cfg, f"全站搜索 · {cfg['title']}", body, depth=1, path="/search/",
+                      description=(f"搜索全部 {len(items)} 篇宏观生态与生物多样性文献："
+                                   "标题、作者、DOI、期刊、关键词、摘要与每周速递正文。"),
                       extra_assets=["weekly-data.js"])
 
 
@@ -958,6 +998,8 @@ def build_stats_page(cfg: dict, items: list) -> str:
 </div>
 <p class="st-cta">想找某篇文献？<a href="../search/">去全站搜索</a>，或回<a href="../">文献库首页</a>按标签与期刊浏览。</p>"""
     return page_shell(cfg, f"全站统计 · {cfg['title']}", body, depth=1, path="/statistics/",
+                      description=(f"全站统计：{len(items)} 篇文献的期刊分布、发表年份、"
+                                   "文章类型、标签与高频词，以及每周速递概览。"),
                       extra_assets=["stats-data.js", "stats.js"])
 
 
@@ -1086,7 +1128,23 @@ def build_about(cfg: dict) -> str:
 <div class="about-wrap">
 <article class="wk-content">{doc}</article>
 </div>"""
-    return page_shell(cfg, f"关于本站 · {cfg['title']}", body, depth=1, path="/about/")
+    desc_about = "关于 MacroBiodiv：站点定位、数据来源（Crossref / OpenAlex）、AI 中文摘要说明、每周速递与引用方式。"
+    base = (cfg.get("site_url") or "").rstrip("/")
+    ld_about = ""
+    if base:
+        ld = {
+            "@context": "https://schema.org", "@type": "AboutPage",
+            "name": f"关于本站 · {cfg['title']}",
+            "url": base + "/about/",
+            "description": desc_about,
+            "inLanguage": "zh-CN",
+            "mainEntity": AUTHOR_LD,
+            "isPartOf": {"@type": "WebSite", "name": cfg["title"], "url": base + "/"},
+        }
+        ld_html = json.dumps(ld, ensure_ascii=False).replace("<", "\\u003c")
+        ld_about = '<script type="application/ld+json">' + ld_html + "</script>"
+    return page_shell(cfg, f"关于本站 · {cfg['title']}", body + ld_about, depth=1, path="/about/",
+                      description=desc_about)
 
 
 def build_weekly(cfg: dict) -> tuple[list[str], list[dict]]:
@@ -1220,8 +1278,14 @@ def build_weekly(cfg: dict) -> tuple[list[str], list[dict]]:
             "url": (wbase + f"/weekly/{p['slug']}/") if wbase else None,
             "mainEntityOfPage": ({"@type": "WebPage", "@id": wbase + f"/weekly/{p['slug']}/"}
                                  if wbase else None),
-            "author": {"@type": "Organization", "name": cfg["title"], "url": wbase or None},
-            "publisher": {"@type": "Organization", "name": cfg["title"], "url": wbase or None},
+            # 周报是本站作者写的解读，不是原论文作者：author 用主站同一 Person 实体
+            "author": AUTHOR_LD,
+            "publisher": {"@type": "Organization", "name": cfg["title"], "url": wbase or None,
+                          "logo": ({"@type": "ImageObject",
+                                    "url": wbase + "/assets/logo.png"} if wbase else None),
+                          "founder": AUTHOR_LD},
+            "isPartOf": ({"@type": "WebSite", "name": cfg["title"], "url": wbase + "/"}
+                         if wbase else None),
             "image": p["og_image"] or None,
             "articleSection": "每周速递",
             "keywords": "宏观生物多样性, 每周速递, Nature, Science, Cell 系列",
@@ -1244,7 +1308,8 @@ def build_weekly(cfg: dict) -> tuple[list[str], list[dict]]:
             bc_w_html = json.dumps(bc_w, ensure_ascii=False).replace("<", "\\u003c")
             ld_w_block += '<script type="application/ld+json">' + bc_w_html + "</script>"
         html_txt = page_shell(cfg, f"{p['title']} · {cfg['title']}", body + ld_w_block, depth=2,
-                              description=p["summary"], path=f"/weekly/{p['slug']}/",
+                              description=(f"{p['title']}｜{p['summary']}" if p.get("summary") else p["title"]),
+                              path=f"/weekly/{p['slug']}/",
                               og_type="article", og_image=p["og_image"], bare=True,
                               rstyle="plain",
                               keywords="宏观生物多样性, 每周速递, Nature, Science, Cell 系列精选",
@@ -1345,13 +1410,30 @@ def build_weekly(cfg: dict) -> tuple[list[str], list[dict]]:
             "url": wbase_l + "/weekly/",
             "inLanguage": "zh-CN",
             "isPartOf": {"@type": "WebSite", "name": cfg["title"], "url": wbase_l + "/"},
-            "itemListElement": [
-                {"@type": "ListItem", "position": i + 1,
-                 "name": p["title"], "url": wbase_l + f"/weekly/{p['slug']}/"}
-                for i, p in enumerate(posts)],
+            # itemListElement 属于 ItemList：CollectionPage 用 hasPart 挂全量期次
+            "hasPart": {
+                "@type": "ItemList",
+                "numberOfItems": n_week,
+                "itemListElement": [
+                    {"@type": "ListItem", "position": i + 1,
+                     "name": p["title"], "url": wbase_l + f"/weekly/{p['slug']}/"}
+                    for i, p in enumerate(posts)],
+            },
         }
         col_html = json.dumps(col, ensure_ascii=False).replace("<", "\\u003c")
         ld_c_block = ('<script type="application/ld+json">' + col_html + "</script>")
+        # 列表面包屑：首页 → 每周速递（文章页已有三层面包屑，列表页此前缺失）
+        bc_c = {
+            "@context": "https://schema.org", "@type": "BreadcrumbList",
+            "itemListElement": [
+                {"@type": "ListItem", "position": 1, "name": "首页", "item": wbase_l + "/"},
+                {"@type": "ListItem", "position": 2, "name": "每周速递",
+                 "item": wbase_l + "/weekly/"},
+            ],
+        }
+        ld_c_block += ('<script type="application/ld+json">'
+                       + json.dumps(bc_c, ensure_ascii=False).replace("<", "\\u003c")
+                       + "</script>")
     (SITE / "weekly").mkdir(parents=True, exist_ok=True)
     (SITE / "weekly" / "index.html").write_text(
         page_shell(cfg, f"每周速递 · {cfg['title']}", body + ld_c_block, depth=1,
@@ -1510,23 +1592,45 @@ def main() -> int:
         # lastmod 用每篇文献真实的收录日期（added），而非构建时间——
         # 否则每次重新构建全站都声称"今天改过"，引擎会学会忽略这个字段
         home_lastmod = max((p.get("added") or "" for p in items), default="") or today
+        about_src = ROOT / "content" / "about.md"
+        about_lastmod = (time.strftime("%Y-%m-%d", time.localtime(about_src.stat().st_mtime))
+                         if about_src.exists() else "")
+        wk_dates = {w["slug"]: (str(w.get("date") or "").split("T")[0] or today)
+                    for w in weekly_index}
+        wk_lastmod = max(wk_dates.values(), default=today)
         # (路径, lastmod, changefreq, priority)：文献详情页是主要落地页（0.8），
         # 首页聚合全部（1.0）；周报文章页一经发布不再变动 → yearly；
-        # /search/ 与 /statistics/ 是交互工具页，权重给低但不排除（保持既有收录策略）
+        # /search/、/statistics/、/rss/ 的数据都随收录量变化，跟随首页 lastmod；
+        # /about/ 用正文源文件时间。没有可靠时间的页面不写假 lastmod。
         urls = [("/", home_lastmod, "weekly", "1.0"),
-                ("/search/", today, "monthly", "0.4"),
-                ("/statistics/", today, "monthly", "0.5"),
-                ("/rss/", today, "monthly", "0.4"),
-                ("/about/", today, "yearly", "0.3")]
-        urls += [("/" + p["id"] + "/", (p.get("added") or "").split("T")[0] or today,
-                  "monthly", "0.8") for p in items]
-        urls += [(u, today, "weekly" if u == "/weekly/" else "yearly",
-                  "0.8" if u == "/weekly/" else "0.7") for u in weekly_urls]
+                ("/search/", home_lastmod, "monthly", "0.4"),
+                ("/statistics/", home_lastmod, "monthly", "0.5"),
+                ("/rss/", home_lastmod, "monthly", "0.4"),
+                ("/about/", about_lastmod, "yearly", "0.3")]
+        urls += [("/weekly/", wk_lastmod, "weekly", "0.8")]
+        urls += [("/weekly/" + w["slug"] + "/", wk_dates[w["slug"]], "yearly", "0.7")
+                 for w in weekly_index]
         sm = ['<?xml version="1.0" encoding="UTF-8"?>',
-              '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+              '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"'
+              ' xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">']
         for u, lm, cf, pr in urls:
-            sm.append(f"<url><loc>{base}{u}</loc><lastmod>{lm}</lastmod>"
+            lm_xml = f"<lastmod>{lm}</lastmod>" if lm else ""
+            sm.append(f"<url><loc>{base}{u}</loc>{lm_xml}"
                       f"<changefreq>{cf}</changefreq><priority>{pr}</priority></url>")
+        # 文献详情页：附封面图 image:loc，让 Google 图片搜索能发现封面
+        # （封面在站内 assets/covers/ 或外链；外链原样使用）
+        for p in items:
+            lm = (p.get("added") or "").split("T")[0] or today
+            img_xml = ""
+            cov = (p.get("cover") or "").strip()
+            if cov:
+                loc = cov if cov.startswith(("http://", "https://")) else f"{base}/assets/{cov}"
+                cap = " ".join(x for x in [(p.get("journal") or "").strip(), str(p.get("year") or "")] if x)
+                img_xml = (f"<image:image><image:loc>{esc(loc)}</image:loc>"
+                           f"<image:title>{esc(display_title(p))}</image:title>"
+                           f"<image:caption>{esc(cap)}</image:caption></image:image>")
+            sm.append(f"<url><loc>{base}/{p['id']}/</loc><lastmod>{lm}</lastmod>"
+                      f"<changefreq>monthly</changefreq><priority>0.8</priority>{img_xml}</url>")
         sm.append("</urlset>")
         (SITE / "sitemap.xml").write_text("\n".join(sm) + "\n", encoding="utf-8")
         # llms.txt / llms-full.txt（GEO）：分两层，与 llms.txt 规范一致 ——
@@ -1776,7 +1880,7 @@ def main() -> int:
             wk_atom += wk_entries + ['</feed>']
             (SITE / "weekly.xml").write_text("\n".join(wk_atom) + "\n", encoding="utf-8")
         wk_feed_note = f" + weekly.xml（近 {len(recent_wks)} 期）" if recent_wks else ""
-        print(f"· robots.txt + sitemap.xml（{len(urls)} 个 URL）+ atom.xml（{len(newest)} 篇·近 3 期）{wk_feed_note}")
+        print(f"· robots.txt + sitemap.xml（{len(urls) + len(items)} 个 URL）+ atom.xml（{len(newest)} 篇·近 3 期）{wk_feed_note}")
 
     (SITE / "index.html").write_text(build_index(cfg, items), encoding="utf-8")
     search_dir = SITE / "search"
