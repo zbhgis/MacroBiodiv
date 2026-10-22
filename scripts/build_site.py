@@ -266,9 +266,9 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
 <nav class="mnav-in">
 <a class="mnav-brand" href="/"><img src="{up}assets/favicon.png?v={BUILD_VER}" alt="" width="26" height="26">{esc(cfg['title'])}</a>
 <ul class="mnav-links">
+<li><a class="mnav-link" data-active="{str(is_rss).lower()}" href="/rss/"{cur_r}>{ico_rss}RSS 订阅</a></li>
 <li><a class="mnav-link" data-active="{str(is_weekly).lower()}" href="/weekly/"{cur_w}>{ico_send}每周速递</a></li>
 <li><a class="mnav-link" data-active="{str(is_stats).lower()}" href="/statistics/"{cur_s}>{ico_chart}全站统计</a></li>
-<li><a class="mnav-link" data-active="{str(is_rss).lower()}" href="/rss/"{cur_r}>{ico_rss}RSS 订阅</a></li>
 <li><a class="mnav-link" data-active="{str(is_about).lower()}" href="/about/"{cur_a}>{ico_info}关于本站</a></li>
 <li class="mnav-more"><button type="button" class="mnav-link mnav-more-trigger" aria-haspopup="true" title="更多站点">更多<svg class="mnav-more-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
 <ul class="mnav-dd">
@@ -279,9 +279,9 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
 <details class="mnav-m">
 <summary class="mnav-icon" title="菜单" aria-label="打开菜单"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
 <ul class="mnav-dd">
+<li><a href="/rss/"{cur_r}>{ico_rss}RSS 订阅</a></li>
 <li><a href="/weekly/"{cur_w}>{ico_send}每周速递</a></li>
 <li><a href="/statistics/"{cur_s}>{ico_chart}全站统计</a></li>
-<li><a href="/rss/"{cur_r}>{ico_rss}RSS 订阅</a></li>
 <li><a href="/about/"{cur_a}>{ico_info}关于本站</a></li>
 <li class="mnav-dd-sep"></li>
 <li><a href="https://zbhgis.com" rel="noopener" target="_blank">{ico_globe}zbhgis</a></li>

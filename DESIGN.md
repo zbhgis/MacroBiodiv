@@ -94,9 +94,10 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   图带 `--line` 细描边 —— zbhgis.com 头像 + 站名的同款规格，hover 变 accent）
 - 右：导航组 `.mnav-links`（**与主站 v3-nav 同源**：15px、`6px 10px` 内边距、前置 **14px
   stroke 图标**、hover 变 text 且下划线 scaleX 0→1、`data-active=true` → accent 常亮）。
-  现有项：**每周速递（纸飞机 → `/weekly/`，按 `path` 构建期标 `data-active` + aria-current）/
-  全站统计（柱状图 → `/statistics/`，同款 active 检测）/ 关于本站（info 圈 → `/about/`，
-  同款 active 检测）/ 更多▾**。
+  现有项（2026-10-22 调序：RSS 提到最前）：**RSS 订阅（rss 圈 → `/rss/`，按 `path`
+  构建期标 `data-active` + aria-current）/ 每周速递（纸飞机 → `/weekly/`，同款
+  active 检测）/ 全站统计（柱状图 → `/statistics/`，同款 active 检测）/ 关于本站
+  （info 圈 → `/about/`，同款 active 检测）/ 更多▾**。
   「更多」= 主站 v3-more 同款：触发钮为 button（text + 11px caret），hover 或
   focus-visible 展开 `.mnav-dd`（display 直切无动画、caret 旋转 180°；面板 `--bg` 实底 +
   描边 + 主站同款投影 `0 10px 28px rgba(0,0,0,.16)`，项 14px / `8px 11px` / 15px faint
