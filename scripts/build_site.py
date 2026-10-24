@@ -239,15 +239,16 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
     else:
         llms_links = (f'\n<link rel="alternate" type="text/plain" href="{up}llms.txt" title="llms.txt">'
                       f'\n<link rel="alternate" type="text/plain" href="{up}llms-full.txt" title="llms-full.txt">')
-    # theme-color 与 :root token 同值（深 #0d1117 / 浅 #fff，见样式表 :root 两行），
-    # 移动端浏览器地址条配色跟随主题；apple-touch-icon 复用 favicon.png；
+    # theme-color 与 :root token 同值（深 #0d1117 / 浅 #fff）。默认全暗色：地址条
+    # 固定深色跟随页面默认，访客手动切浅色时由 papers.js 同步改写（此前按系统
+    # 双值输出，浅色系统手机上是「暗页面 + 浅地址条」的错配）；apple-touch-icon
+    # 复用 favicon.png；
     # RSS 双源自动发现（2026-10-14 起双 feed：文献更新 atom.xml / 周报更新 weekly.xml，
     # 均为构建期生成的 Atom，口径收敛到最近 3 期）——阅读器贴域名即可发现两源
     feed_href = (base + "/atom.xml") if base else f"{up}atom.xml"
     wk_feed_href = (base + "/weekly.xml") if base else f"{up}weekly.xml"
     head_extra = "\n".join([
-        '<meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)">',
-        '<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">',
+        '<meta name="theme-color" content="#0d1117" id="themeColorMeta">',
         f'<link rel="apple-touch-icon" href="{up}assets/favicon.png?v={asset_ver("favicon.png")}">',
         f'<link rel="alternate" type="application/atom+xml" '
         f'title="{esc(cfg["title"])} · 文献更新" href="{esc(feed_href)}">',
@@ -343,7 +344,7 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
 {head_extra}
 <link rel="stylesheet" href="{up}assets/style.css?v={asset_ver('style.css')}">
 <link rel="icon" type="image/png" href="{up}assets/favicon.png?v={asset_ver('favicon.png')}">
-<script>try{{var t=localStorage.getItem("mbd-theme");if(t)document.documentElement.setAttribute("data-theme",t);else if(window.matchMedia&&window.matchMedia("(prefers-color-scheme: light)").matches)document.documentElement.setAttribute("data-theme","light")}}catch(e){{}}</script>
+<script>try{{var t=localStorage.getItem("mbd-theme");if(t)document.documentElement.setAttribute("data-theme",t)}}catch(e){{}}</script>
 <script>try{{var f=localStorage.getItem("mbd-fs");if(f)document.documentElement.setAttribute("data-fs",f)}}catch(e){{}}</script>
 <!-- 外链图多源降级（assets_src/img-fallback.js）：head 同步外链脚本，parser-blocking
      执行时机与内联等价（先于正文图片），捕获阶段 error 监听才能接到首张失败图。

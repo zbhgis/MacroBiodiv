@@ -72,12 +72,13 @@
   var themeBtn = document.getElementById("themeBtn");
   if (themeBtn) themeBtn.addEventListener("click", function () {
     var root = document.documentElement;
-    // 手动点击即写入偏好（此后不再跟随系统）；初始值由 head 内联脚本按
-    // prefers-color-scheme 定（此前固定暗色，浅色系统访客首屏即暗、
-    // 与按系统双值输出的 theme-color 地址栏配色互相矛盾）
+    // 默认暗色（不跟随系统偏好）；仅当访客手动切过才用其选择
     var light = root.getAttribute("data-theme") === "light";
     var t = light ? "dark" : "light";
     root.setAttribute("data-theme", t);
+    // 移动端地址条配色同步页面主题（meta 已固定深色为默认）
+    var m = document.getElementById("themeColorMeta");
+    if (m) m.setAttribute("content", t === "light" ? "#ffffff" : "#0d1117");
     try { localStorage.setItem("mbd-theme", t); } catch (e) {}
   });
   /* 移动端汉堡菜单（details/summary 展开式）：点击页面其他区域自动收起 */
