@@ -16,6 +16,9 @@
     4. 每周速递：上传周报 md → 落盘 content/weekly/（周报页自动收录）
        + 解析「# 文献N」的 DOI/图表 → 抓元数据入库（周报自带中文直接预填）
        + 图表图作封面（图表为无 → 站点 logo 兜底）
+       已收录期次可再编辑（mystation admin-server 同款）：正文浮层编辑器
+       （frontmatter 分离保留 + .bak 备份 + mtime 冲突检测）/ 行内改元数据 /
+       删除进本机回收站（content/.trash/weekly/）与恢复
     5. 点「发布」→ 自动执行：写 meta/papers.json → build_site.py
        → git add / commit / push →（可选）同步到服务器
 
@@ -37,6 +40,7 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.parse
 import uuid
 import webbrowser
 from datetime import date
@@ -81,6 +85,8 @@ MANUAL_LIST = ("tags", "keywords")
 # ── 每周速递：内容源 content/weekly/*.md（build_site.py 直接消费该目录），
 #    上传的周报 md 在此落盘；文献封面缺图时用站点 logo 兜底 ──
 WEEKLY_SRC = ROOT / "content" / "weekly"
+WEEKLY_TRASH = ROOT / "content" / ".trash" / "weekly"   # 本机回收站（gitignore，不进仓库）
+WEEKLY_FILE_MAX = 2 * 1024 * 1024          # 单期读写上限（与 mystation admin-server 一致）
 LOGO_SRC = ROOT / "assets_src" / "logo.png"
 
 
@@ -376,6 +382,12 @@ def start_job(kind: str, body: dict) -> str:
                     names = [body.get("name")]      # 兼容旧客户端的单文件名入参
                 res = do_weekly_delete_and_finish(names or [], body.get("message") or "",
                                                   bool(body.get("push", True)), bool(body.get("sync", True)))
+            elif kind == "weekly-restore":
+                names = body.get("names")
+                if not names and body.get("name"):
+                    names = [body.get("name")]
+                res = do_weekly_restore_and_finish(names or [], body.get("message") or "",
+                                                   bool(body.get("push", True)), bool(body.get("sync", True)))
             elif kind == "sync-server":
                 res = do_sync_server()
             elif kind == "init":
@@ -958,7 +970,7 @@ def weekly_issues() -> dict:
                 "dois": dois,
             })
     issues.sort(key=lambda x: (x["date"], x["file"]), reverse=True)
-    return {"issues": issues, "siteUrl": base}
+    return {"issues": issues, "siteUrl": base, "trash": weekly_trash_list()}
 
 
 def weekly_preview(name: str, content: str) -> dict:
@@ -1188,7 +1200,8 @@ def do_weekly_backfill_chinese() -> dict:
 
 
 def do_weekly_delete(names) -> dict:
-    """批量删除周报期次：names（列表；兼容单个文件名字符串）逐个删除落盘文件。
+    """批量删除周报期次：names（列表；兼容单个文件名字符串）逐个移入本机回收站
+    content/.trash/weekly/（mystation 同款软删除，git 不跟踪；可从「每周速递」页恢复）。
     只删周报页（content/weekly/*.md），已生成的文献卡片保留（在文献管理里单独删）。
     部分成功也算成功 —— 逐条记日志，返回 removed 供默认提交信息使用。"""
     want: list[str] = []
@@ -1205,15 +1218,289 @@ def do_weekly_delete(names) -> dict:
     for fname in want:
         fp = WEEKLY_SRC / fname
         if fp.exists():
-            fp.unlink()
+            try:
+                WEEKLY_TRASH.mkdir(parents=True, exist_ok=True)
+                target = WEEKLY_TRASH / fname
+                if target.exists():
+                    target = WEEKLY_TRASH / f"{Path(fname).stem}.deleted-{int(time.time())}.md"
+                fp.rename(target)
+                bak = fp.with_name(fp.name + ".bak")     # .bak 随正文一起进回收站
+                if bak.exists():
+                    bak.rename(WEEKLY_TRASH / bak.name)
+            except OSError as e:
+                log.append({"step": f"删除周报 {fname}", "ok": False, "out": f"移动失败：{e}"})
+                continue
             removed.append(fname)
             log.append({"step": f"删除周报 {fname}", "ok": True,
-                        "out": "周报页随构建消失；已生成的文献卡片保留，在文献管理里单独删除"})
+                        "out": "md 移入 content/.trash/weekly/（可恢复）；周报页随构建消失，"
+                               "已生成的文献卡片保留，在文献管理里单独删除"})
         else:
             log.append({"step": f"删除周报 {fname}", "ok": False, "out": "文件不存在（可能已删除）"})
     if not removed:
         return {"ok": False, "log": log}
     return {"ok": True, "removed": removed, "log": log}
+
+
+# ── 周报期次文件编辑（mystation admin-server 同款）──────────────
+# 列表页已有 /api/weekly（weekly_issues）；这里补单期正文/元数据的读取与写回。
+# 与图库同节奏：编辑只写本地文件（毫秒级、不碰 git），线上更新随发布流水线生效。
+
+FM_OPEN_RE = re.compile(r"\A[\s\uFEFF]*---[ \t]*\r?\n")
+
+
+def _split_fm(text: str) -> tuple[str, str, str]:
+    """拆 frontmatter → (fm 块含首尾 ---（无尾换行）, --- 行尾换行, 正文)。
+    分隔换行必须与正文分开保真：存量周报 closing --- 后有一个空行，重写元数据
+    按 `fm + sep + body` 拼回才能逐字节还原；无脑拼 `---\n` + 正文会把空行吃掉，
+    平白多出一行 diff。无 frontmatter 时前两项为空串。"""
+    m = FM_OPEN_RE.match(text)
+    if not m:
+        return "", "", text
+    rest = text[m.end():]
+    close = re.search(r"\r?\n---[ \t]*(?=\r?\n)", rest)      # closing --- 行（后面还有内容）
+    if close is None:
+        close = re.search(r"\r?\n---[ \t]*\Z", rest)          # 文件恰在 --- 结束
+        if close is None:
+            return "", "", text
+        return "---\n" + rest[:close.start()] + "\n---", "", ""
+    after = rest[close.end():]
+    nl = re.match(r"\r?\n", after)
+    return ("---\n" + rest[:close.start()] + "\n---",
+            nl.group(0) if nl else "",
+            after[1:] if nl else after)
+
+
+def _parse_fm_fields(fm_block: str) -> dict:
+    """frontmatter → {title, date, categoryTags: [...], subCategoryTags: [...]}。
+    极简 YAML 子集（数组优先按 JSON 解析，退回逗号拆分），与 render_md 同口径。"""
+    out: dict = {"title": "", "date": "", "categoryTags": [], "subCategoryTags": []}
+    for line in fm_block.splitlines():
+        if ":" not in line or line.strip().startswith("---"):
+            continue
+        key, _, val = line.partition(":")
+        key, val = key.strip(), val.strip()
+        if key not in out:
+            continue
+        if isinstance(out[key], list):
+            try:
+                parsed = json.loads(val)
+                if isinstance(parsed, list):
+                    out[key] = [str(x).strip() for x in parsed if str(x).strip()]
+                    continue
+            except ValueError:
+                pass
+            out[key] = [x.strip().strip('"').strip("'")
+                        for x in val.strip().strip("[]").split(",") if x.strip()]
+        else:
+            out[key] = val.strip().strip('"').strip("'")
+    return out
+
+
+def _build_fm(meta: dict) -> str:
+    """元数据 → 规范 frontmatter 块（双引号标量 + JSON 数组，与存量周报同款）。"""
+    def q(s: str) -> str:
+        return '"' + str(s or "").replace('"', "'") + '"'
+    lines = ["---",
+             f"title: {q(meta.get('title', ''))}",
+             f"date: {q(meta.get('date', ''))}"]
+    for k in ("categoryTags", "subCategoryTags"):
+        tags = meta.get(k) or []
+        lines.append(f"{k}: [" + ", ".join(q(t) for t in tags) + "]")
+    lines.append("---")
+    return "\n".join(lines)          # 不带尾换行 —— 拼回时用 _split_fm 的 sep 保真
+
+
+def _weekly_path(name: str) -> tuple[Path | None, str]:
+    """清洗并解析周报文件路径；返回 (路径, 错误信息)。防目录穿越。"""
+    fname = weekly_safe_name(name)
+    if not fname:
+        return None, "文件名不合法"
+    p = WEEKLY_SRC / fname
+    if not p.resolve().is_relative_to(WEEKLY_SRC.resolve()):
+        return None, "非法路径"
+    return p, ""
+
+
+def _mtime_conflict(p: Path, expected) -> str:
+    """乐观锁（mystation 同款）：expected 带了且与当前 mtime 对不上 → 提示冲突，
+    拒绝落盘 —— 防两处编辑互相静默覆盖。"""
+    if expected in (None, ""):
+        return ""
+    try:
+        cur = round(p.stat().st_mtime * 1000)
+    except OSError:
+        return "文件已不存在（可能被删除或移入回收站）——请刷新列表"
+    if abs(cur - float(expected)) > 1:
+        return ("期次已在后台被更新（其他标签页或外部编辑器），当前编辑已过期——"
+                "刷新列表取最新内容后重做，避免覆盖他人改动")
+    return ""
+
+
+def _backup_md(p: Path) -> None:
+    """写回前备份上一版为同名 .bak（覆盖式单份）：手滑改坏时有一步回退。"""
+    if p.exists():
+        p.with_name(p.name + ".bak").write_bytes(p.read_bytes())
+
+
+def weekly_file_read(name: str) -> dict:
+    """单期正文读取：frontmatter 与正文分体返回（编辑器只编辑正文）。"""
+    p, err = _weekly_path(name)
+    if err:
+        return {"ok": False, "error": err}
+    if not p.is_file():
+        return {"ok": False, "error": "文件不存在（可能已删除）"}
+    try:
+        st = p.stat()
+        if st.st_size > WEEKLY_FILE_MAX:
+            return {"ok": False, "error": "文件超过 2MB，不支持在线编辑"}
+        raw = p.read_text(encoding="utf-8").replace("\uFEFF", "")
+    except (OSError, UnicodeDecodeError) as e:
+        return {"ok": False, "error": f"读取失败：{e}"}
+    fm, sep, body = _split_fm(raw)
+    meta = _parse_fm_fields(fm)
+    title = str(meta.get("title") or "").strip()
+    if not title:
+        h1 = re.search(r"(?m)^#(?!#)\s*(.+)$", body)
+        title = (h1.group(1).strip() if h1 else "") or p.stem
+    return {"ok": True, "file": p.name, "title": title, "meta": meta,
+            "frontmatter": fm, "body": body,
+            "sizeBytes": st.st_size, "mtimeMs": round(st.st_mtime * 1000)}
+
+
+def weekly_file_save(name: str, body: str, expected_mtime) -> dict:
+    """保存正文：只写正文，文件自己的 frontmatter 原样保留。"""
+    p, err = _weekly_path(name)
+    if err:
+        return {"ok": False, "error": err}
+    if not p.is_file():
+        return {"ok": False, "error": "文件不存在（可能已删除）"}
+    if conflict := _mtime_conflict(p, expected_mtime):
+        return {"ok": False, "conflict": True, "error": conflict}
+    if len(body or "") > WEEKLY_FILE_MAX:
+        return {"ok": False, "error": "正文超过 2MB"}
+    try:
+        raw = p.read_text(encoding="utf-8").replace("\uFEFF", "")
+        fm, sep, _ = _split_fm(raw)
+        _backup_md(p)
+        # 正文里的 BOM 一并剥掉（Windows 剪贴板常带，卡在行首会让 ^ 锚点失配）
+        p.write_text(fm + sep + (body or "").replace("\uFEFF", ""),
+                     encoding="utf-8", newline="\n")
+    except OSError as e:
+        return {"ok": False, "error": f"写入失败：{e}"}
+    return {"ok": True, "mtimeMs": round(p.stat().st_mtime * 1000)}
+
+
+def weekly_file_meta(name: str, meta: dict, expected_mtime) -> dict:
+    """重写 frontmatter（title/date/两级标签），正文原样保留。
+
+    标题里的「精选N」期号决定 slug（build_site 与 weekly_slug 同规则），
+    改标题若动了期号，slug 与线上 URL 会随之变化 —— 由界面提示，不在这里拦。"""
+    p, err = _weekly_path(name)
+    if err:
+        return {"ok": False, "error": err}
+    if not p.is_file():
+        return {"ok": False, "error": "文件不存在（可能已删除）"}
+    if conflict := _mtime_conflict(p, expected_mtime):
+        return {"ok": False, "conflict": True, "error": conflict}
+    new_meta = {
+        "title": str((meta or {}).get("title") or "").strip(),
+        "date": str((meta or {}).get("date") or "").strip()[:10],
+        "categoryTags": [str(t).strip() for t in ((meta or {}).get("categoryTags") or []) if str(t).strip()],
+        "subCategoryTags": [str(t).strip() for t in ((meta or {}).get("subCategoryTags") or []) if str(t).strip()],
+    }
+    if not new_meta["title"]:
+        return {"ok": False, "error": "标题不能为空"}
+    if new_meta["date"] and not re.match(r"^\d{4}-\d{2}-\d{2}$", new_meta["date"]):
+        return {"ok": False, "error": "日期格式应为 YYYY-MM-DD"}
+    try:
+        raw = p.read_text(encoding="utf-8").replace("\uFEFF", "")
+        _, sep, body = _split_fm(raw)
+        _backup_md(p)
+        p.write_text(_build_fm(new_meta) + sep + body, encoding="utf-8", newline="\n")
+    except OSError as e:
+        return {"ok": False, "error": f"写入失败：{e}"}
+    return {"ok": True, "mtimeMs": round(p.stat().st_mtime * 1000)}
+
+
+def weekly_trash_list() -> list[dict]:
+    """content/.trash/weekly/ 下的已删期次。"""
+    out: list[dict] = []
+    if WEEKLY_TRASH.is_dir():
+        for md in WEEKLY_TRASH.glob("*.md"):
+            try:
+                st = md.stat()
+                text = md.read_text(encoding="utf-8").replace("\uFEFF", "")
+            except (OSError, UnicodeDecodeError):
+                continue
+            fm, sep, body = _split_fm(text)
+            meta = _parse_fm_fields(fm)
+            title = str(meta.get("title") or "").strip()
+            if not title:
+                h1 = re.search(r"(?m)^#(?!#)\s*(.+)$", body)
+                title = (h1.group(1).strip() if h1 else "") or md.stem
+            out.append({"name": md.name, "title": title, "date": str(meta.get("date") or "")[:10],
+                        "sizeBytes": st.st_size, "mtimeMs": round(st.st_mtime * 1000)})
+    out.sort(key=lambda r: r["mtimeMs"], reverse=True)
+    return out
+
+
+def jobs_running() -> bool:
+    """后台任务（发布 / 收录 / 删除 / 补译等）是否还有在跑的。
+    周报文件编辑与流水线都会碰 content/weekly 与 papers.json，
+    忙时直接拒绝而不是排队 —— 与 GeoSciPlot /api/save 的 PIPELINE_LOCK 同一防御。"""
+    with JOBS_LOCK:
+        return any(not j["done"] for j in JOBS.values())
+
+
+def do_weekly_restore(names) -> dict:
+    """从回收站恢复期次（逐个；改名冲突时用 .restored-<时间戳> 兜底）。
+    只移文件，不构建 —— 由调用方接发布流水线让周报页重新上线。"""
+    want: list[str] = []
+    for raw in (names if isinstance(names, list) else [names]):
+        fname = weekly_safe_name(str(raw or ""))
+        if fname and fname not in want:
+            want.append(fname)
+    if not want:
+        return {"ok": False,
+                "log": [{"step": "恢复周报", "ok": False, "out": "没有指定要恢复的期次"}]}
+    log: list[dict] = []
+    restored: list[str] = []
+    for fname in want:
+        src = WEEKLY_TRASH / fname
+        if not src.resolve().is_relative_to(WEEKLY_TRASH.resolve()) or not src.is_file():
+            log.append({"step": f"恢复周报 {fname}", "ok": False, "out": "回收站中不存在"})
+            continue
+        dest = WEEKLY_SRC / fname
+        if dest.exists():
+            dest = WEEKLY_SRC / f"{Path(fname).stem}.restored-{int(time.time())}.md"
+        try:
+            WEEKLY_SRC.mkdir(parents=True, exist_ok=True)
+            src.rename(dest)
+            bak = src.with_name(src.name + ".bak")   # .bak 跟着恢复，名字对齐恢复后的文件名
+            if bak.exists():
+                bak.rename(dest.with_name(dest.name + ".bak"))
+        except OSError as e:
+            log.append({"step": f"恢复周报 {fname}", "ok": False, "out": f"移动失败：{e}"})
+            continue
+        restored.append(dest.name)
+        log.append({"step": f"恢复周报 {dest.name}", "ok": True,
+                    "out": "md 已回到 content/weekly/，随本次构建重新上线"
+                           + ("（原名被占，已改名）" if dest.name != fname else "")})
+    if not restored:
+        return {"ok": False, "log": log}
+    return {"ok": True, "restored": restored, "log": log}
+
+
+def do_weekly_restore_and_finish(names, message: str, push: bool, sync: bool) -> dict:
+    res = do_weekly_restore(names)
+    if not res.get("ok"):
+        return res
+    log = res.get("log", [])
+    restored = res.get("restored") or []
+    if not message.strip():
+        preview = "、".join(restored[:3]) + (" 等" if len(restored) > 3 else "")
+        message = f"weekly: 恢复 {len(restored)} 期（{preview}）"
+    return pipeline_after_content(log, message, push, sync)
 
 
 def do_weekly_delete_and_finish(names, message: str, push: bool, sync: bool) -> dict:
@@ -1324,6 +1611,11 @@ class Handler(BaseHTTPRequestHandler):
             self._json(data)
         elif path == "/api/weekly":
             self._json(weekly_issues())
+        elif path == "/api/weekly/trash":
+            self._json({"items": weekly_trash_list()})
+        elif path == "/api/weekly/file":
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            self._json(weekly_file_read((q.get("name") or [""])[0]))
         elif path.startswith("/api/job/"):
             self._json(job_snapshot(path[len("/api/job/"):]))
         elif path.startswith("/api/cover/"):
@@ -1379,6 +1671,20 @@ class Handler(BaseHTTPRequestHandler):
             self._json({"job": start_job("weekly", body)})
         elif path == "/api/weekly-delete":
             self._json({"job": start_job("weekly-delete", body)})
+        elif path in ("/api/weekly/save", "/api/weekly/meta"):
+            # 期次文件编辑：本地纯文件写（毫秒级），同步返回。
+            # 有后台任务在跑时拒绝 —— 构建 / 收录可能正读写 content/weekly 与 papers.json
+            if jobs_running():
+                self._json({"ok": False, "error": "已有发布/收录/删除任务在运行，等下方日志结束后再编辑"})
+            elif path == "/api/weekly/save":
+                self._json(weekly_file_save(body.get("name") or "", body.get("body") or "",
+                                            body.get("expectedMtimeMs")))
+            else:
+                self._json(weekly_file_meta(body.get("name") or "", body.get("meta") or {},
+                                            body.get("expectedMtimeMs")))
+        elif path == "/api/weekly-restore":
+            # 恢复 = 移回文件 + 重新构建上线，长操作走后台任务
+            self._json({"job": start_job("weekly-restore", body)})
         elif path == "/api/weekly-backfill-zh":
             res = do_weekly_backfill_chinese()
             self._json(res)

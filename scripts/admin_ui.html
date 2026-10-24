@@ -149,6 +149,22 @@ details pre{margin:8px 0 0;padding:10px;border:1px solid var(--line);border-radi
 .tagpick button[aria-pressed=true]{color:var(--accent);border-color:var(--accent)}
 .tagnew{display:flex;gap:6px;margin-top:7px}
 .tagnew input{max-width:260px}
+/* 周报期次编辑器浮层（mystation admin-ui 同款）：元数据条 + 正文 textarea，frontmatter 分离保留 */
+#editorMask{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;z-index:98}
+#editorMask.on{display:block}
+.editor{position:absolute;inset:3vh 4vw;display:flex;flex-direction:column;background:var(--bg);border:1px solid var(--line2);border-radius:10px;padding:14px 16px;box-shadow:0 12px 40px rgba(0,0,0,.4)}
+.editor .ehead{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.editor .etitle{font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.editor .emeta{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;color:var(--faint);white-space:nowrap}
+.editor .espacer{flex:1}
+.emeta-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px;padding:9px 10px;border:1px dashed var(--line2);border-radius:6px;background:var(--card)}
+.emeta-row input{width:auto;max-width:230px;padding:4px 8px;font-size:12px}
+.emeta-row input#emDate{width:150px}
+.emeta-row .elabel{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:10.5px;color:var(--faint);letter-spacing:.05em}
+.editor textarea{flex:1;resize:none;width:100%;min-height:0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;line-height:1.7;padding:12px;color:var(--text);background:var(--card);border:1px solid var(--line2);border-radius:6px}
+.editor textarea:focus{outline:none;border-color:var(--accent)}
+.editor .efoot{display:flex;align-items:center;gap:12px;margin-top:10px}
+.editor .efoot #editorStatus{flex:1;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 </style>
 </head>
 <body>
@@ -250,6 +266,13 @@ details pre{margin:8px 0 0;padding:10px;border:1px solid var(--line);border-radi
     </div>
 
     <h2>已收录期次</h2>
+    <div class="row" style="margin:0 0 10px">
+      <input id="wkSearch" placeholder="搜索 文件名 / 标题 / 期号 slug…" style="flex:1 1 220px;max-width:320px" autocomplete="off">
+      <span class="note" id="wkCount"></span>
+      <span style="flex:1"></span>
+      <span class="note" id="wkStatus"></span>
+      <button id="btnWkTrash">回收站</button>
+    </div>
     <div class="row" style="margin:0 0 14px">
       <label class="mono" style="display:flex;align-items:center;gap:6px;margin:0;font-size:11px;cursor:pointer">
         <input type="checkbox" id="wkSelAll" style="width:auto"> 全选
@@ -260,6 +283,11 @@ details pre{margin:8px 0 0;padding:10px;border:1px solid var(--line);border-radi
     </div>
     <div id="wkList"><p class="note">读取中…</p></div>
     <div id="wkPager" class="mpager"></div>
+
+    <div id="wkTrashBox" style="display:none">
+      <h2>回收站（content/.trash/weekly/ · 本机目录，git 不跟踪）</h2>
+      <div id="wkTrashList"></div>
+    </div>
   </div>
 
   <div class="tabpage" id="tab-manage" style="display:none">
@@ -310,11 +338,39 @@ details pre{margin:8px 0 0;padding:10px;border:1px solid var(--line);border-radi
     · <b>每周速递</b>：上传周报 md 自动两件事 —— ① 落盘 content/weekly/，周报页随构建收录；
       ② 解析「# 文献N」小节，DOI 抓取元数据入库生成主页卡片（周报自带中文标题 / 摘要 / 体裁注记直接预填，
       不走大模型；缺中文可事后用「翻译缺中文的」回补）。文献封面优先用本期图表图，图表为无或下载失败用站点 logo 兜底。<br>
-    · 周报同名文件重复上传 = 覆盖更新该期（库内已有 DOI 自动跳过）；「删除此期」只删周报页，
-      已生成的文献卡片需到文献管理单独删除；期次列表同样支持<b>勾选多选</b>，
+    · 周报同名文件重复上传 = 覆盖更新该期（库内已有 DOI 自动跳过）；「删除此期」把 md 移入
+      content/.trash/weekly/（本机回收站，git 不跟踪，<b>回收站里可恢复</b>，恢复随发布区开关重建上线），
+      已生成的文献卡片需到文献管理单独删除；期次列表支持<b>勾选多选</b>与<b>搜索</b>，
       「删除所选」批量删并经页内确认列出期次清单。<br>
+    · <b>期次「编辑」</b>（mystation 同款）：正文浮层编辑器只改正文（frontmatter 原样保留，
+      保存前自动备份 .bak，带 mtime 冲突检测防并发覆盖）；上方元数据条可改 标题 / 日期 / 两级标签
+      （标题里的「精选N」期号决定线上 slug，改动会提示）。编辑只写本地文件（毫秒级），
+      点「添加文献」页的<b>发布</b>才构建站点并上线。<br>
     · 发布 = 写 meta/papers.json → build_site.py → git add/commit/push →（可选）同步服务器。
   </p>
+</div>
+
+<div id="editorMask">
+  <div class="editor">
+    <div class="ehead">
+      <span class="etitle" id="editorTitle"></span>
+      <span class="emeta" id="editorMeta"></span>
+      <span class="espacer"></span>
+      <button id="editorClose" class="tiny">关闭</button>
+    </div>
+    <div class="emeta-row">
+      <span class="elabel">标题</span><input id="emTitle" placeholder="期次标题（期号「精选N」决定 slug）">
+      <span class="elabel">日期</span><input id="emDate" type="date">
+      <span class="elabel">分类</span><input id="emCat" placeholder="逗号分隔">
+      <span class="elabel">二级标签</span><input id="emSub" placeholder="逗号分隔，可空">
+      <button id="editorMetaSave" class="tiny">保存信息</button>
+    </div>
+    <textarea id="editorBody" spellcheck="false"></textarea>
+    <div class="efoot">
+      <span id="editorStatus"></span>
+      <button id="editorSave" class="primary">保存正文</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -1408,9 +1464,14 @@ document.getElementById("btnTrMiss").addEventListener("click", function () {
 /* ── 每周速递：上传周报 md → 落盘收录 + 解析 DOI/图表生成文献卡片 ── */
 var wkIssues = [];
 var wkSiteUrl = "";
+var wkTrash = [];                            // 回收站（content/.trash/weekly/）
+var wkFilter = "";                           // 期次搜索词（文件名 / 标题 / slug）
+var wkTrashShown = false;
+/* 期次编辑器（mystation admin-server 同款）：正文浮层 + 元数据条，mtime 乐观锁 */
+var wkEditor = { file: null, mtimeMs: 0 };
 
-/* 期次多选批量删除：与文献管理同款交互（期次列表无筛选，「全选」即全部期次）。
-   勾选状态按文件名存 wkSelected，跨重渲染保留，刷新后剔除已不存在的期次。 */
+/* 期次多选批量删除：与文献管理同款交互（勾选状态按文件名存 wkSelected，
+   跨筛选 / 重渲染保留，刷新后剔除已不存在的期次；「全选」作用于全部期次）。 */
 var wkSelected = {};
 var WK_PER = 20, wkPage = 1;                 // 期次列表翻页：每页 20 期
 function wkSelUpdate() {
@@ -1430,33 +1491,47 @@ function loadWeekly() {
   return api("/api/weekly").then(function (r) {
     wkIssues = r.issues || [];
     wkSiteUrl = r.siteUrl || "";
+    wkTrash = r.trash || [];
     var exist = {};
     wkIssues.forEach(function (it) { exist[it.file] = 1; });
     Object.keys(wkSelected).forEach(function (f) { if (!exist[f]) delete wkSelected[f]; });
     wkRender();
   });
 }
+function wkVisible() {
+  var f = wkFilter.trim().toLowerCase();
+  if (!f) return wkIssues;
+  return wkIssues.filter(function (it) {
+    return (it.file + " " + it.title + " " + it.slug).toLowerCase().indexOf(f) > -1;
+  });
+}
 function wkRender() {
   var box = document.getElementById("wkList");
   box.innerHTML = "";
+  var list = wkVisible();
   if (!wkIssues.length) {
     box.appendChild(el("p", "note", "还没有周报 —— 把第一期 md 拖到上方框里收录"));
     renderPager(document.getElementById("wkPager"), 1, 0, null);
     wkSelUpdate();
+    wkRenderTrash();
     return;
   }
-  var maxP = Math.max(1, Math.ceil(wkIssues.length / WK_PER));
+  var maxP = Math.max(1, Math.ceil(list.length / WK_PER));
   if (wkPage > maxP) wkPage = maxP;
-  wkIssues.slice((wkPage - 1) * WK_PER, wkPage * WK_PER).forEach(function (it) {
+  list.slice((wkPage - 1) * WK_PER, wkPage * WK_PER).forEach(function (it) {
     box.appendChild(wkRow(it));
   });
   renderPager(document.getElementById("wkPager"), wkPage, maxP, function (p) {
     wkPage = p;
     wkRender();
-    var list = document.getElementById("wkList");
-    if (list) list.scrollIntoView({ block: "start" });
+    var list2 = document.getElementById("wkList");
+    if (list2) list2.scrollIntoView({ block: "start" });
   });
+  document.getElementById("wkCount").textContent =
+    list.length + " / " + wkIssues.length + " 期" + (wkTrash.length ? " · 回收站 " + wkTrash.length + " 期" : "");
+  document.getElementById("btnWkTrash").textContent = wkTrashShown ? "收起回收站" : ("回收站（" + wkTrash.length + "）");
   wkSelUpdate();
+  wkRenderTrash();
 }
 bindPager("wkPager");
 function wkRow(it) {
@@ -1501,10 +1576,13 @@ function wkRow(it) {
   }
   var btnRedo = el("button", "tiny", "覆盖重传");
   btnRedo.addEventListener("click", function () { wkPickFlow(); });
+  var btnEdit = el("button", "tiny", "编辑");
+  btnEdit.title = "正文浮层编辑器（mystation 同款）：改正文 / 标题日期标签，只写本地文件";
+  btnEdit.addEventListener("click", function () { wkOpenEditor(it.file); });
   var btnDel = el("button", "tiny danger", "删除此期");
   btnDel.addEventListener("click", function () {
-    askConfirm("确定删除这一期周报？\n《" + it.title + "》\n\n将删除 " + it.file + " 并重建站点；"
-      + "已生成的文献卡片保留（在文献管理里单独删）。", function () {
+    askConfirm("确定删除这一期周报？\n《" + it.title + "》\n\nmd 将移入 content/.trash/weekly/（本机回收站，可恢复），\n"
+      + "重建站点后周报页下线；已生成的文献卡片保留（在文献管理里单独删）。", function () {
       btnDel.disabled = true;
       btnDel.textContent = "删除中…";
       runJob("/api/weekly-delete", { name: it.file,
@@ -1514,9 +1592,148 @@ function wkRow(it) {
     });
   });
   act.appendChild(btnRedo);
+  act.appendChild(btnEdit);
   act.appendChild(btnDel);
   node.appendChild(act);
   return node;
+}
+
+/* ── 期次编辑（mystation admin-server 同款）：正文浮层 + 元数据条 ──
+   只写本地文件（毫秒级、不碰 git）；线上更新随下一次发布流水线生效。
+   frontmatter 分离：正文框只改正文；标题/日期/标签在元数据条里单独保存。
+   期号「精选N」决定 slug —— 改标题动了期号时页面 URL 会变，界面如实提示。 */
+function wkSetStatus(text, color) {
+  var s = document.getElementById("editorStatus");
+  s.textContent = text || "";
+  s.style.color = color || "";
+}
+
+function wkOpenEditor(file) {
+  api("/api/weekly/file?name=" + encodeURIComponent(file)).then(function (b) {
+    if (!b.ok) { toast("载入失败：" + (b.error || "")); return; }
+    wkEditor.file = b.file;
+    wkEditor.mtimeMs = b.mtimeMs;
+    wkEditor.slug = weekly_slug_client((b.meta && b.meta.title) || "");
+    document.getElementById("editorTitle").textContent = b.title;
+    document.getElementById("editorMeta").textContent =
+      b.file + " · " + (b.sizeBytes > 1024 ? (b.sizeBytes / 1024).toFixed(1) + "KB" : b.sizeBytes + "B") +
+      (b.frontmatter ? " · frontmatter 已保留" : " · 无 frontmatter");
+    document.getElementById("editorBody").value = b.body;
+    document.getElementById("emTitle").value = (b.meta && b.meta.title) || "";
+    document.getElementById("emDate").value = (b.meta && b.meta.date) || "";
+    document.getElementById("emCat").value = ((b.meta && b.meta.categoryTags) || []).join(", ");
+    document.getElementById("emSub").value = ((b.meta && b.meta.subCategoryTags) || []).join(", ");
+    delete document.getElementById("editorBody").dataset.dirty;
+    wkSetStatus("");
+    document.getElementById("editorMask").classList.add("on");
+    document.getElementById("editorBody").focus();
+  });
+}
+
+function wkSaveEditor() {
+  if (!wkEditor.file) return;
+  var btn = document.getElementById("editorSave");
+  btn.disabled = true;
+  wkSetStatus("保存中…");
+  api("/api/weekly/save", { name: wkEditor.file,
+                            body: document.getElementById("editorBody").value,
+                            expectedMtimeMs: wkEditor.mtimeMs })
+    .then(function (r) {
+      if (!r.ok) {
+        wkSetStatus("保存失败：" + (r.error || "") +
+          (r.conflict ? "——当前文本未丢弃，需要的话先全选复制，再关闭重开" : ""), "var(--bad)");
+        return;
+      }
+      wkEditor.mtimeMs = r.mtimeMs;            // 本机保存成功 → 乐观锁基准跟着走
+      delete document.getElementById("editorBody").dataset.dirty;
+      wkSetStatus("已保存 ✓（frontmatter 原样保留；上一版备份为同名 .bak）", "var(--ok)");
+      loadWeekly();
+    })
+    .catch(function (e) { wkSetStatus("保存失败：" + e, "var(--bad)"); })
+    .then(function () { btn.disabled = false; });
+}
+
+function wkSaveMeta() {
+  if (!wkEditor.file) return;
+  var meta = {
+    title: document.getElementById("emTitle").value.trim(),
+    date: document.getElementById("emDate").value.trim(),
+    categoryTags: document.getElementById("emCat").value.split(/[,，、]/).map(function (s) { return s.trim(); }).filter(Boolean),
+    subCategoryTags: document.getElementById("emSub").value.split(/[,，、]/).map(function (s) { return s.trim(); }).filter(Boolean)
+  };
+  if (!meta.title) { wkSetStatus("标题不能为空", "var(--bad)"); return; }
+  var btn = document.getElementById("editorMetaSave");
+  btn.disabled = true;
+  wkSetStatus("保存信息中…");
+  api("/api/weekly/meta", { name: wkEditor.file, meta: meta, expectedMtimeMs: wkEditor.mtimeMs })
+    .then(function (r) {
+      if (!r.ok) { wkSetStatus("保存失败：" + (r.error || ""), "var(--bad)"); return; }
+      wkEditor.mtimeMs = r.mtimeMs;
+      document.getElementById("editorTitle").textContent = meta.title;
+      var slugAfter = weekly_slug_client(meta.title);
+      wkSetStatus("已保存信息 ✓" +
+        (slugAfter !== wkEditor.slug && slugAfter !== "weekly-"
+          ? "（期号变化 → 线上 URL slug 变为 " + slugAfter + "，旧页随构建下线）" : ""), "var(--ok)");
+      wkEditor.slug = slugAfter;
+      loadWeekly();
+    })
+    .catch(function (e) { wkSetStatus("保存失败：" + e, "var(--bad)"); })
+    .then(function () { btn.disabled = false; });
+}
+
+function weekly_slug_client(title) {
+  var m = /精选(\d+)/.exec(String(title || ""));
+  return "weekly-" + (m ? m[1] : "");
+}
+
+function wkCloseEditor() {
+  var ta = document.getElementById("editorBody");
+  function close() {
+    wkEditor.file = null;
+    delete ta.dataset.dirty;
+    document.getElementById("editorMask").classList.remove("on");
+  }
+  if (ta.dataset.dirty) askConfirm("正文有未保存更改，关闭将丢弃。继续？", close);
+  else close();
+}
+
+/* ── 回收站（content/.trash/weekly/）：列表 + 逐期恢复 ── */
+function wkRenderTrash() {
+  var box = document.getElementById("wkTrashList");
+  box.innerHTML = "";
+  document.getElementById("wkTrashBox").style.display = wkTrashShown ? "" : "none";
+  if (!wkTrashShown) return;
+  if (!wkTrash.length) {
+    box.appendChild(el("p", "note", "回收站是空的。删除期次会先进这里（git 不跟踪），可随时恢复。"));
+    return;
+  }
+  wkTrash.forEach(function (t) {
+    var node = el("div", "mrow");
+    node.style.gridTemplateColumns = "1fr auto";
+    var info = el("div", "minfo");
+    info.appendChild(el("div", "t", t.title));
+    info.appendChild(el("div", "", t.name + " · " + (t.date || "无日期") +
+      " · " + (t.sizeBytes > 1024 ? (t.sizeBytes / 1024).toFixed(1) + "KB" : t.sizeBytes + "B")));
+    node.appendChild(info);
+    var act = el("div", "mact");
+    var resB = el("button", "tiny", "恢复");
+    resB.title = "移回 content/weekly/ 并重建站点（随「添加文献」页发布区开关推送）";
+    resB.addEventListener("click", function () {
+      askConfirm("恢复《" + t.title + "》？\nmd 将移回 content/weekly/ 并重建站点（"
+        + (document.getElementById("doPush").checked ? "推送 GitHub" : "不推送")
+        + (document.getElementById("doSync").checked ? "、同步服务器" : "、不同步服务器") + "）。", function () {
+        resB.disabled = true;
+        resB.textContent = "恢复中…";
+        runJob("/api/weekly-restore", { names: [t.name],
+                                        push: document.getElementById("doPush").checked,
+                                        sync: document.getElementById("doSync").checked },
+               function () { loadWeekly(); loadStatus(); }, "wkLog");
+      });
+    });
+    act.appendChild(resB);
+    node.appendChild(act);
+    box.appendChild(node);
+  });
 }
 
 /* 上传流：选/拖 .md（可多选）→ 逐个「预解析 → 确认 → 后台任务」；
@@ -1605,8 +1822,8 @@ function wkUploadOne(file, done) {
     });
     var shown = lines.slice(0, 8).join("\n") + (lines.length > 8 ? "\n… 等共 " + lines.length + " 期" : "");
     askConfirm("确定删除所选 " + names.length + " 期周报？\n" + shown
-      + "\n\n将删除对应 content/weekly/*.md 并重建站点；已生成的文献卡片保留"
-      + "（在文献管理里单独删）。", function () {
+      + "\n\nmd 将移入 content/.trash/weekly/（本机回收站，可恢复），重建站点后周报页下线；"
+      + "已生成的文献卡片保留（在文献管理里单独删）。", function () {
       var btn = document.getElementById("btnWkDelSel");
       btn.disabled = true;
       btn.textContent = "删除中…（下方看实时进度）";
@@ -1637,6 +1854,29 @@ function wkUploadOne(file, done) {
         loadWeekly();
       }, "wkLog");
     });
+  });
+
+  /* 期次编辑器 / 搜索 / 回收站（mystation admin-server 同款交互） */
+  document.getElementById("wkSearch").addEventListener("input", function () {
+    wkFilter = this.value;
+    wkPage = 1;
+    wkRender();
+  });
+  document.getElementById("btnWkTrash").addEventListener("click", function () {
+    wkTrashShown = !wkTrashShown;
+    wkRender();
+  });
+  document.getElementById("editorClose").addEventListener("click", wkCloseEditor);
+  document.getElementById("editorSave").addEventListener("click", wkSaveEditor);
+  document.getElementById("editorMetaSave").addEventListener("click", wkSaveMeta);
+  document.getElementById("editorBody").addEventListener("input", function (e) { e.target.dataset.dirty = "1"; });
+  document.getElementById("editorBody").addEventListener("keydown", function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); wkSaveEditor(); }
+  });
+  window.addEventListener("beforeunload", function (e) {
+    if (wkEditor.file && document.getElementById("editorBody").dataset.dirty) {
+      e.preventDefault(); e.returnValue = "";
+    }
   });
 })();
 

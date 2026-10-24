@@ -588,6 +588,20 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   后台任务（构建 + 推送 / 同步沿用发布区开关）。期次列表显示每篇 DOI 的收录状态
   （● 已入库 · ○ 待生成 · × 无 DOI）；同名文件重传 = 覆盖更新该期（库内 DOI 自动跳过）；
   「删除此期」与勾选多选「删除所选」（见上方多选批量删除）只删周报页，已生成卡片需到文献管理单独删
+- **期次在线编辑与回收站**（2026-10-24 新增，mystation admin-server 同款交互）：
+  期次行新增「编辑」按钮 → 浮层编辑器（`#editorMask` 全屏 mask + textarea）：**正文框只改正文**，
+  frontmatter 由 `_split_fm` 三段拆分（fm 块 / `---` 行尾换行 / 正文）原样保留——
+  存量周报 closing `---` 后的空行也逐字节保真，重写元数据不吃分隔；保存前备份同名 `.bak`
+  （`*.md.bak` 已 gitignore），**mtime 乐观锁**（`expectedMtimeMs` 与当前 mtime 差 >1ms 即 409 语义拒绝，
+  防两处编辑互相静默覆盖）；上方元数据条可改 标题 / 日期 / 两级标签（`/api/weekly/meta` 重写
+  frontmatter，正文原样保留；标题「精选N」期号决定线上 slug，改期号 UI 提示 URL 将变）。
+  编辑接口 `/api/weekly/save`、`/api/weekly/meta` 为同步本地文件写（毫秒级），**有后台任务运行时
+  拒绝**（`jobs_running()` 查 JOBS 表——构建 / 收录可能正读写 content/weekly 与 papers.json），
+  线上更新随发布流水线生效。**「删除此期」改为软删除**：md 移入本机回收站
+  `content/.trash/weekly/`（gitignore，已发布周报在 git 历史仍有底；`.bak` 随行），
+  `/api/weekly` 响应带 `trash` 数组；页签下方「回收站」面板列出可**恢复**——
+  `POST /api/weekly-restore` 后台任务移回文件（改名冲突用 `.restored-<时间戳>` 兜底）并走完整
+  流水线重建上线；期次列表另加搜索框（`wkFilter`，文件名 / 标题 / slug），「全选」仍作用于全部期次
 - **通用组件**：页内确认弹窗（替代原生 confirm，支持取消回调）、toast、任务日志步骤条
   （…/✓/✗，日志区两个：全局区 + 每周速递独立区）、同批重复 DOI 客户端即时标出；
   **任务进度区全局置顶**（2026-10-10）：日志区从「添加文献」底部移至标签页上方

@@ -14,3 +14,9 @@ Thumbs.db
 .trae/
 .zcode/
 debug.log
+
+# 周报回收站（管理界面软删除的本机暂存，不进仓库；已发布周报在 git 历史里仍有底）
+content/.trash/
+
+# 周报编辑备份（管理界面写回前的单份回退点，不进仓库）
+*.md.bak
