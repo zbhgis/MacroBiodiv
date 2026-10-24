@@ -155,9 +155,18 @@ DNS 子域 A 记录 → acme.sh 签证书 → 挂载 `deploy/nginx-macrobiodiv.c
   仅原图 >1200px 或 >512KB 生成，221/329 张）、`full/`（逐字节原图，灯箱放大专用）。
   新封面由 `prepare_thumbs.py` 自动产出 disp；存量补齐：
   `python scripts/prepare_thumbs.py --backfill-disp`。
-- **papers-data.js 按页注入**：只有首页网格与全站搜索页加载（1.4MB，其余页面零下载）；
-  `sub`/`ab` 死字段已删。搜索页的周报全文（488KB weekly-data.js）改为首次聚焦/输入时
-  懒加载（`data-wk` 带内容 hash URL），输入并带 160ms 防抖。
+- **papers-data.js 按页注入 + se 检索索引拆分（二轮）**：papers-data.js（1.4MB →
+  221KB）只带展示字段，首页网格与搜索页共用；全文索引独立成 search-data.js
+  （id → se 映射，仅 /search/ 注入），首页首访负载直降 ~1.2MB。首页搜索框按
+  展示字段匹配（与 GeoSciPlot 首页框同语义），摘要全文检索在 /search/，
+  首页零结果时给「去全站搜索」引导。`sub`/`ab` 死字段已删。搜索页的周报全文
+  （488KB weekly-data.js）改为首次聚焦/输入时懒加载（`data-wk` 带内容 hash URL），
+  输入并带 160ms 防抖。
+- **JS/CSS 构建期压缩（二轮）**：所有 js/css 产物经注释剥离压缩（保留一行一语句；
+  字面量状态机保证字符串/模板/正则内的注释样文本不受影响，产物过 node --check
+  校验）平均省 25-30%。首页 h1 改用构建期派生的 logo-sm.png（≤116px 高，2KB），
+  65KB 原图只留 og:image 兜底。详情页浏览计数带 10 分钟会话缓存（GSP 同款）。
+  移动端 ≤430px 网格转单列；键盘焦点态统一；汉堡菜单展开动画。
 - **资源版本号按内容 hash**：`?v=` 不再是构建时间戳，没改的文件跨发布缓存继续命中
   （nginx `/assets/` immutable 年缓存）；HTML 走 no-cache + 304。
 - **构建期预生成 .gz**：assets 与 llms/sitemap/atom 等文本产物带同名 `.gz`，

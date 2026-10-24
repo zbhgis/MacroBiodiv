@@ -798,6 +798,8 @@ build_site.py：整体拷到 site/assets/covers/（镜像式，删除不残留�
 | admin 只监听 127.0.0.1 | 免登录；发布用本机 git 凭据，服务器不存 token |
 | 封面加展示档 disp/（≤1200px webp，2026-10-24） | 详情页 LCP 此前直拉 MB 级原图（极值 13.6MB）；disp 供正文与 og:image（部分平台拒收 >8MB 原图），灯箱 data-lightbox-src 与下载仍走原图；仅 >1200px 或 >512KB 生成（221/329 张），小图直用原图。工具 `prepare_thumbs.py --backfill-disp` |
 | papers-data.js 按页注入 + weekly-data 懒加载（2026-10-24） | 1.4MB 数据只有首页网格/搜索页消费，404/关于/详情页等零下载；`sub`/`ab` 死字段删除；搜索页周报全文 488KB 改首次聚焦/输入时按 `data-wk`（内容 hash URL）动态注入，输入 160ms 防抖 |
+| se 检索索引拆分（2026-10-24 二轮） | 全文 haystack（占数据 70%）独立成 search-data.js 仅 /search/ 注入，papers-data.js 1.4MB→221KB、首页首访省 ~1.2MB；首页搜索框改按展示字段匹配（GSP 同语义），零结果给「去全站搜索」引导 |
+| JS/CSS 构建期注释剥离（2026-10-24 二轮） | 中文注释每字 3 字节，整行剥离平均省 25-30%；带字面量状态机（字符串/模板/正则感知），产物逐个过 node --check；保留一行一语句便于线上排错 |
 | `?v=` 按内容 hash + 构建期预生成 .gz（2026-10-24） | 时间戳版本号每次发布全站缓存失效；hash 后未改文件跨发布命中（nginx /assets/ immutable 年缓存，HTML no-cache+304）；文本产物同名 .gz 由 gzip_static 直出，低带宽云盘省动态压缩 CPU |
 | 周报图构建期探测尺寸 + alt 合成（2026-10-24） | `![img](…)` 无信息量 alt 在构建期按「期标题 · 图 N」合成；尺寸 HTTP Range 探测头部（缓存 meta/wk-img-dims.json，稳态零请求），`<img>` 带宽高预留位防长页滚动 CLS |
 | 主题未手动切换时跟随系统（2026-10-24） | 此前固定暗色与按系统双值输出的 theme-color 地址栏配色矛盾；rstyle 渲染色切换改属性热切换不再整页 reload |

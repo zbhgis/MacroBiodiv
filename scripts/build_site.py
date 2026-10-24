@@ -585,13 +585,13 @@ def build_index(cfg: dict, items: list) -> str:
                 'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
                 '<path d="M6 3l5 5-5 5"/></svg>')
     body = f"""<header class="site">
-  <h1 class="home-title"><img class="logo" src="assets/logo.png?v={asset_ver('logo.png')}" alt="MacroBiodiv logo">{esc(cfg['title'])}</h1>
+  <h1 class="home-title"><img class="logo" src="assets/logo-sm.png?v={asset_ver('logo-sm.png')}" alt="MacroBiodiv logo">{esc(cfg['title'])}</h1>
   <a class="gh-note" href="https://github.com/{esc(cfg.get('owner') or 'OWNER')}/{esc(cfg['repo'])}" rel="noopener" target="_blank" title="在 GitHub 查看数据与索引">{ghsvg}<span>文献数据存储于 <b>GitHub</b>，访问需具备 <b>GitHub</b> 访问能力（点此查看仓库）</span></a>
   <p class="lede">{esc(cfg['lede'])}</p>
 </header>
 
 <div class="toolbar">
-  <span class="searchbox"><svg class="sic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.2"/><path d="M10.2 10.2 14 14"/></svg><input id="q" class="search" type="search" placeholder="搜索 标题 / 作者 / DOI / 期刊 / 关键词 / 摘要…" autocomplete="off"><button id="qBtn" type="button" title="搜索" aria-label="搜索">搜索</button></span>
+  <span class="searchbox"><svg class="sic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.2"/><path d="M10.2 10.2 14 14"/></svg><input id="q" class="search" type="search" placeholder="搜索 标题 / 作者 / DOI / 期刊 / 关键词…" autocomplete="off"><button id="qBtn" type="button" title="搜索" aria-label="搜索">搜索</button></span>
   <select id="perpage" aria-label="每页数量">
     <option value="20">每页 20</option>
     <option value="30" selected>每页 30</option>
@@ -951,7 +951,7 @@ def build_search_page(cfg: dict, items: list) -> str:
     return page_shell(cfg, f"全站搜索 · {cfg['title']}", body, depth=1, path="/search/",
                       description=(f"搜索全部 {len(items)} 篇宏观生态与生物多样性文献："
                                    "标题、作者、DOI、期刊、关键词、摘要与每周速递正文。"),
-                      extra_assets=["papers-data.js"], noindex=True)
+                      extra_assets=["papers-data.js", "search-data.js"], noindex=True)
 
 
 def build_stats_data(items: list) -> None:
@@ -1558,6 +1558,155 @@ def build_weekly(cfg: dict) -> tuple[list[str], list[dict]]:
     return ["/weekly/"] + [f"/weekly/{p['slug']}/" for p in posts], wk_index
 
 
+def minify_js(src: str) -> str:
+    """构建期注释剥离（保留一行一语句、不合并压缩）：本仓库前端注释是中文大段
+    （UTF-8 每字 3 字节），实测省 30%+ 传输。带字面量状态机——单/双引号串、
+    模板串、正则字面量里的 "//" 与 "/*" 绝不误删（img-fallback 的正则含斜杠对、
+    灯箱模板里有 /* CSS 注释 */）。产物每次构建后过 node --check 校验。"""
+    SQ, DQ, TPL, BCOM, REGEX, RCLS = range(6)
+    state = None
+    prev = ""            # NORMAL 态最近非空白字符（正则起始 vs 除法判定）
+    out: list[str] = []
+    cur: list[str] = []
+
+    def flush() -> None:
+        nonlocal cur
+        line = "".join(cur).rstrip()
+        if line.strip():
+            out.append(line)
+        cur = []
+
+    for line in src.splitlines():
+        i, L = 0, len(line)
+        while i < L:
+            c = line[i]
+            nxt = line[i + 1] if i + 1 < L else ""
+            if state is None:
+                if c == "/" and nxt == "/":
+                    break                        # 行注释丢弃到行尾
+                if c == "/" and nxt == "*":
+                    state = BCOM
+                    i += 2
+                    continue
+                if c == "'":
+                    state = SQ
+                elif c == '"':
+                    state = DQ
+                elif c == "`":
+                    state = TPL
+                elif c == "/" and (prev == "" or prev in "(,=:[!&|?{};+-*%<>~^"):
+                    state = REGEX
+                cur.append(c)
+                if not c.isspace():
+                    prev = c
+                i += 1
+                continue
+            if state in (SQ, DQ, TPL):
+                if c == "\\":
+                    cur.append(c)
+                    if nxt:
+                        cur.append(nxt)
+                    i += 2
+                    continue
+                if (state == SQ and c == "'") or (state == DQ and c == '"') \
+                        or (state == TPL and c == "`"):
+                    state = None
+                    prev = c
+                cur.append(c)
+                i += 1
+                continue
+            if state in (REGEX, RCLS):
+                if c == "\\":
+                    cur.append(c)
+                    if nxt:
+                        cur.append(nxt)
+                    i += 2
+                    continue
+                if state == REGEX and c == "[":
+                    state = RCLS
+                elif state == RCLS and c == "]":
+                    state = REGEX
+                elif state == REGEX and c == "/":
+                    state = None
+                    prev = c
+                cur.append(c)
+                i += 1
+                continue
+            if state == BCOM:
+                if c == "*" and nxt == "/":
+                    state = None
+                    i += 2
+                    continue
+                i += 1
+                continue
+        if state == TPL:
+            cur.append("\n")          # 模板串跨行：换行是内容，整段并作一行输出
+            continue
+        flush()
+    flush()
+    return "\n".join(out) + "\n"
+
+
+def minify_css(src: str) -> str:
+    """CSS 注释剥离：只剥 /* … */ 与空行——"//" 不是 CSS 注释，url() 里的
+    https:// 与 data: 内容不受影响。引号内（content:"…"）不剥。"""
+    SQ, DQ, BCOM = range(3)
+    state = None
+    out: list[str] = []
+    cur: list[str] = []
+    for line in src.splitlines():
+        i, L = 0, len(line)
+        while i < L:
+            c = line[i]
+            nxt = line[i + 1] if i + 1 < L else ""
+            if state is None:
+                if c == "/" and nxt == "*":
+                    state = BCOM
+                    i += 2
+                    continue
+                if c == '"':
+                    state = DQ
+                elif c == "'":
+                    state = SQ
+                cur.append(c)
+                i += 1
+                continue
+            if state in (SQ, DQ):
+                if c == "\\":
+                    cur.append(c)
+                    if nxt:
+                        cur.append(nxt)
+                    i += 2
+                    continue
+                if (state == SQ and c == "'") or (state == DQ and c == '"'):
+                    state = None
+                cur.append(c)
+                i += 1
+                continue
+            if state == BCOM:
+                if c == "*" and nxt == "/":
+                    state = None
+                    i += 2
+                    continue
+                i += 1
+                continue
+        line_out = "".join(cur).rstrip()
+        if line_out.strip():
+            out.append(line_out)
+        cur = []
+    return "\n".join(out) + "\n"
+
+
+def minify_asset(src: Path, dst: Path) -> None:
+    """按扩展名走对应压缩器写盘；非 js/css 直接拷贝。"""
+    if src.suffix == ".js":
+        dst.write_text(minify_js(src.read_text(encoding="utf-8")), encoding="utf-8", newline="")
+    elif src.suffix == ".css":
+        dst.write_text(minify_css(src.read_text(encoding="utf-8")), encoding="utf-8", newline="")
+    else:
+        shutil.copyfile(src, dst)
+
+
 def precompress(site: Path) -> None:
     """为文本产物预生成同名 .gz（nginx gzip_static 直出，低带宽云盘省 CPU）。
     只处理 assets/ 与根目录数据/入口文件，不碰 HTML（HTML 走 no-cache + 304，
@@ -1621,7 +1770,19 @@ def main() -> int:
     GENERATED = {"style.css", "papers.js", "papers-data.js", "weekly-data.js", "stats-data.js"}
     for f in ASSETS_SRC.glob("*"):
         if f.is_file() and f.name not in GENERATED:
-            shutil.copyfile(f, SITE / "assets" / f.name)
+            minify_asset(f, SITE / "assets" / f.name)   # js/css 构建期注释剥离，其余原样拷贝
+    # logo-sm.png：首页 h1 用的 2 倍高分小图（高 ≤116px + 256 色量化）。65KB 的
+    # logo.png 只留给 og:image 兜底（爬虫侧），页面首载不再付全尺寸（Pillow 缺失时
+    # 回退原图拷贝，不阻断构建）
+    try:
+        from PIL import Image
+        with Image.open(ASSETS_SRC / "logo.png") as im:
+            im = im.copy()
+            im.thumbnail((400, 116), Image.LANCZOS)
+            im.quantize(colors=256, method=Image.FASTOCTREE).save(
+                SITE / "assets" / "logo-sm.png", "PNG", optimize=True)
+    except Exception:
+        shutil.copyfile(ASSETS_SRC / "logo.png", SITE / "assets" / "logo-sm.png")
 
     # 封面图整体随构建拷入站点（源文件在 assets_src/covers/，随 git 入库）。
     # 镜像式同步：管理端删过的封面不残留在构建产物里
@@ -1639,13 +1800,13 @@ def main() -> int:
 
     # newline="" 保持 \n 原样落盘：write_text 默认在 Windows 上把行尾翻成 CRLF，
     # 产物就会偏离 assets_src 源文件的「原样写出」口径
-    (SITE / "assets" / "style.css").write_text(CSS, encoding="utf-8", newline="")
+    (SITE / "assets" / "style.css").write_text(minify_css(CSS), encoding="utf-8", newline="")
     inline = {
         "tracker": cfg.get("tracker", ""),
         "api": cfg.get("api", ""),
     }
     (SITE / "assets" / "papers.js").write_text(
-        "window.MBD = " + json.dumps(inline, ensure_ascii=False) + ";\n" + JS,
+        "window.MBD = " + json.dumps(inline, ensure_ascii=False) + ";\n" + minify_js(JS),
         encoding="utf-8", newline="")
 
     # 全量元数据：首页网格与全站搜索页共用这一份数据（详情页没有内嵌数据，
@@ -1671,13 +1832,21 @@ def main() -> int:
         "ct": (p.get("cover_thumb") or "").strip(),
         "ctw": p.get("cover_thumb_w") or 0,
         "cth": p.get("cover_thumb_h") or 0,
-        "se": haystack(p),
     } for p in items]
+    # se = 检索 haystack（标题/作者/DOI/摘要全文拼接）占这份数据的 ~70%（1MB 级），
+    # 但只有全站搜索页消费——拆到 search-data.js（id → se 映射，仅 /search/ 注入），
+    # 首页网格只带展示字段，首访负载直降 ~1MB（压缩后 ~250KB）
+    se_map = {p["id"]: haystack(p) for p in items}
     (SITE / "assets" / "papers-data.js").write_text(
         # < 转义成 \u003c：与 stats-data.js / weekly-data.js 同一口径——数据若改为
         # 内联 <script>（首屏直嵌），原始 "</script>" 或标签文本会截断脚本
         "window.MBD_DATA = "
         + json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
+        + ";\n",
+        encoding="utf-8")
+    (SITE / "assets" / "search-data.js").write_text(
+        "window.MBD_SE = "
+        + json.dumps(se_map, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
         + ";\n",
         encoding="utf-8")
 

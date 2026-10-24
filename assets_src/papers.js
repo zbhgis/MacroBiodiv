@@ -22,16 +22,29 @@
      占位「…」回写「—」，避免停留在加载中状态 ── */
   var viewsEl = document.getElementById("views");
   if (viewsEl && !location.hostname.match(/^(localhost|127\.0\.0\.1|)$/)) {
-    fetch((CFG.api || "") + "/api/v1/stats/views?prefix=/macrobiodiv/")
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (d) {
-        if (!d || !d.items) throw 0;
-        var map = {};
-        d.items.forEach(function (x) { map[x.path.replace(/\/$/, "")] = x.views; });
-        var n = map["/macrobiodiv" + location.pathname.replace(/\/$/, "")] || 0;
-        viewsEl.textContent = n ? n + " 次" : "首次";
-        viewsEl.style.color = "var(--text)";
-      }).catch(function () { viewsEl.textContent = "—"; });
+    /* 全量 views 映射带 10 分钟会话缓存（GeoSciPlot 同款）：详情页只显示一个
+       数字却要拉全站 300+ 条计数，连续「下一篇」浏览时每次都白发一份全量 */
+    var VKEY = "mbd-views", VTTL = 600000;
+    var vCached = null;
+    try { vCached = JSON.parse(sessionStorage.getItem(VKEY) || "null"); } catch (e) {}
+    var vShow = function (map) {
+      var n = map["/macrobiodiv" + location.pathname.replace(/\/$/, "")] || 0;
+      viewsEl.textContent = n ? n + " 次" : "首次";
+      viewsEl.style.color = "var(--text)";
+    };
+    if (vCached && vCached.items && Date.now() - (vCached.t || 0) < VTTL) {
+      vShow(vCached.items);
+    } else {
+      fetch((CFG.api || "") + "/api/v1/stats/views?prefix=/macrobiodiv/")
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          if (!d || !d.items) throw 0;
+          var map = {};
+          d.items.forEach(function (x) { map[x.path.replace(/\/$/, "")] = x.views; });
+          try { sessionStorage.setItem(VKEY, JSON.stringify({ t: Date.now(), items: map })); } catch (e) {}
+          vShow(map);
+        }).catch(function () { viewsEl.textContent = "—"; });
+    }
   } else if (viewsEl) {
     viewsEl.textContent = "—";
   }
@@ -134,6 +147,9 @@
     var sList = document.getElementById("spage-list");
     var sCount = document.getElementById("spage-count");
     var sUp = sList ? (sList.getAttribute("data-up") || "") : "";
+    /* 检索 haystack 独立成 search-data.js（id → se，仅本页注入）：papers-data.js
+     只带展示字段（首页也用它），全文索引不再随首页下发 */
+    var SE = window.MBD_SE || {};
     /* 周报数据（u 路径 / t 标题 / d 日期 / s 摘要行 / w 字数 / x 正文全文，
        构建期已截 30000 字符）：488KB 不再随页面同步下载 —— 未输入任何词的
        访客不该白付这份成本。首次聚焦 / 输入时按 data-wk（内容 hash URL）动态
@@ -240,7 +256,7 @@
         return;
       }
       var hits = ITEMS.filter(function (it) {
-        var hay = (it.se || "").toLowerCase();
+        var hay = (SE[it.id] || "").toLowerCase();
         return tokens.every(function (t) { return hay.indexOf(t) > -1; });
       });
       var wkHits = WK ? WK.filter(function (w) {
@@ -363,8 +379,15 @@
       if (state.from && pe < state.from) return false;
       if (state.to && ps > state.to) return false;
     }
-    if (state.q && (it.se || "").indexOf(state.q) === -1) return false;
+    /* 首页搜索框按展示字段匹配（标题中英/作者/期刊/DOI/标签）——与 GeoSciPlot
+       首页框同语义；摘要全文检索走 /search/（其索引在 search-data.js） */
+    if (state.q && (dispHay(it)).indexOf(state.q) === -1) return false;
     return true;
+  }
+  function dispHay(it) {
+    return ((it.t || "") + " " + (it.tz || "") + " " + (it.te || "") + " "
+      + (it.a || "") + " " + (it.j || "") + " " + (it.doi || "") + " "
+      + (it.tg || []).join(" ")).toLowerCase();
   }
   function cmp(a, b) {
     var dir = state.sort === "pub_asc" ? 1 : -1;
@@ -445,7 +468,22 @@
     if (prev) prev.disabled = state.page <= 1;
     if (next) next.disabled = state.page >= pages;
     paintNums(state.page, pages);
-    if (empty) empty.style.display = list.length ? "none" : "block";
+    if (empty) {
+      /* 零结果 + 有关键词：引导去全站搜索（首页框只匹配展示字段，摘要全文在
+         /search/ 的 search-data.js 里） */
+      if (!list.length && state.q) {
+        var a = empty.querySelector("a.q-goto");
+        if (!a) {
+          a = document.createElement("a");
+          a.className = "q-goto";
+          empty.appendChild(document.createTextNode(" "));
+          empty.appendChild(a);
+        }
+        a.href = "../search/?q=" + encodeURIComponent(state.q);
+        a.textContent = "去全站搜索 “" + state.q + "”（含摘要全文与周报正文）";
+      }
+      empty.style.display = list.length ? "none" : "block";
+    }
     syncFilterBtn();
     syncUrl();
   }
