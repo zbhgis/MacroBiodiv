@@ -6,11 +6,14 @@
     images/full/{year}/{id}.{ext}     原图（逐字节复制，不压缩）
     images/thumb/{year}/{id}.webp     缩略图（长边 ≤480 · WEBP quality 78 · LANCZOS ·
                                       EXIF 转正 · 透明垫白；已在本仓库的旧图床缩略图直接复用）
+    images/disp/{year}/{id}.webp      详情页展示档（长边 ≤1200 · q82；仅原图 >1200px
+                                      或 >512KB 时生成，小图详情页直用原图）
     year = 条目 added 的年份（缺省当前年）；存量已于 2026-10 统一迁入 2025/
 并把引用改写为本仓库的 jsDelivr 链接（fallback 链自动跟随到 raw.githubusercontent）：
     cover       → https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/{year}/{id}.{ext}
     cover_thumb → https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/{year}/{id}.webp
-    cover_thumb_w/h → 缩略图像素尺寸（卡片预留位）
+    cover_disp  → https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/{year}/{id}.webp
+    cover_thumb_w/h → 缩略图像素尺寸（卡片预留位）；cover_disp_w/h → 展示档尺寸（详情页预留位）
 
 与旧版（缩略图推 BlogImg 图床）的差异：原图 + 缩略图全部自持，BlogImg 仅作历史备份；
 文件写入工作区后由发布流程的 git add -A 统一提交推送（本脚本不做 git 操作），
@@ -41,12 +44,17 @@ PAPERS_JSON = ROOT / "meta" / "papers.json"
 IMAGES_DIR = ROOT / "images"
 FULL_DIR = IMAGES_DIR / "full"
 THUMB_DIR = IMAGES_DIR / "thumb"
+DISP_DIR = IMAGES_DIR / "disp"
 OWN_BASE = "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images"
 # 已本地化 = cover 指向本仓库且已带年份目录（/full/{4位年}/），旧的平铺形式不算
-OWN_LOCALIZED_RE = re.compile(r"^" + re.escape(OWN_BASE) + r"/(?:full|thumb)/\d{4}/")
+OWN_LOCALIZED_RE = re.compile(r"^" + re.escape(OWN_BASE) + r"/(?:full|thumb|disp)/\d{4}/")
 LEGACY_THUMBS = ROOT.parent / "BlogImg" / "blog" / "thumb"   # 旧图床缩略图，可复用
 THUMB_MAX = 480
 THUMB_Q = 78
+DISP_MAX = 1200     # 详情页正文 677px 窄栏，2x 屏留余量
+DISP_Q = 82
+DISP_EDGE = 1200
+DISP_BYTES = 512 * 1024
 
 
 def item_year(item: dict) -> str:
@@ -77,6 +85,15 @@ def fetch_bytes(url: str, timeout: int = 60) -> bytes:
 
 def make_thumb(raw: bytes) -> tuple[bytes, int, int]:
     """原图字节 → (webp 缩略图字节, 宽, 高)（GeoSciPlot make_assets 同款处理链）。"""
+    return _resize_webp(raw, THUMB_MAX, THUMB_Q)
+
+
+def make_disp(raw: bytes) -> tuple[bytes, int, int]:
+    """原图字节 → (webp 展示档字节, 宽, 高)：详情页正文直载，免 MB 级原图。"""
+    return _resize_webp(raw, DISP_MAX, DISP_Q)
+
+
+def _resize_webp(raw: bytes, max_edge: int, quality: int) -> tuple[bytes, int, int]:
     from PIL import Image, ImageOps          # Pillow 仅此处需要
     with Image.open(io.BytesIO(raw)) as im:
         im = ImageOps.exif_transpose(im)
@@ -87,10 +104,32 @@ def make_thumb(raw: bytes) -> tuple[bytes, int, int]:
             im = bg
         elif im.mode != "RGB":
             im = im.convert("RGB")
-        im.thumbnail((THUMB_MAX, THUMB_MAX), Image.LANCZOS)
+        im.thumbnail((max_edge, max_edge), Image.LANCZOS)
         out = io.BytesIO()
-        im.save(out, "WEBP", quality=THUMB_Q, method=6)
+        im.save(out, "WEBP", quality=quality, method=6)
         return out.getvalue(), im.size[0], im.size[1]
+
+
+def img_dims(raw: bytes) -> tuple[int, int]:
+    from PIL import Image
+    with Image.open(io.BytesIO(raw)) as im:
+        return im.size[0], im.size[1]
+
+
+def needs_disp(full_bytes: int, path: Path | None = None) -> bool:
+    """是否需要展示档：尺寸或文件量超线的原图才压中间档。
+    path 给到本地 full 文件时可读取真实尺寸（bytes 不超线但 1400px 线稿 PNG
+    同样命中）。读不出尺寸时只按 bytes 判断。"""
+    if full_bytes > DISP_BYTES:
+        return True
+    if path is not None and path.is_file():
+        try:
+            with open(path, "rb") as f:
+                w, h = img_dims(f.read())
+            return max(w, h) > DISP_EDGE
+        except Exception:
+            pass
+    return False
 
 
 def webp_size(path: Path) -> tuple[int, int]:
@@ -125,17 +164,65 @@ def process_one(item: dict, force: bool) -> dict:
         else:
             tb, w, h = make_thumb(raw)                  # 现场压缩
             thumb_path.write_bytes(tb)
+        # 展示档：大图（>1200px 或 >512KB）压中间档供详情页直载；小图跳过
+        dw = dh = 0
+        if needs_disp(len(raw)):
+            db, dw, dh = make_disp(raw)
+            (DISP_DIR / year).mkdir(parents=True, exist_ok=True)
+            (DISP_DIR / year / f"{fid}.webp").write_bytes(db)
         return {"id": fid, "ok": True, "ext": ext, "w": w, "h": h,
+                "dw": dw, "dh": dh,
                 "orig_kb": len(raw) // 1024, "year": year}
     except Exception as e:                    # 网络/解码失败：留待下次增量重跑
         return {"id": fid, "ok": False, "err": f"{type(e).__name__}: {e}"[:120],
                 "ext": "", "w": 0, "h": 0}
 
 
+def backfill_disp(papers: dict, dry_run: bool = False) -> int:
+    """存量库展示档回填：cover 已本地化的条目，从本地 full 原图生成缺失的 disp，
+    并把 cover_disp（含尺寸）写回 papers.json。不下载、不重做缩略图、不删文件。"""
+    rx = re.compile(r"^" + re.escape(OWN_BASE) + r"/full/(\d{4})/([0-9a-f]+)\.([a-z]+)$")
+    n_new = n_keep = n_small = n_miss = 0
+    for it in papers.get("items", []):
+        m = rx.match(str(it.get("cover") or ""))
+        if not m:
+            continue
+        year, fid, ext = m.group(1), m.group(2), m.group(3)
+        fp = FULL_DIR / year / f"{fid}.{ext}"
+        dp = DISP_DIR / year / f"{fid}.webp"
+        if dp.exists():
+            n_keep += 1
+            continue
+        if not fp.is_file():
+            n_miss += 1
+            continue
+        raw = fp.read_bytes()
+        if not needs_disp(len(raw)):
+            n_small += 1
+            continue
+        if dry_run:
+            n_new += 1
+            continue
+        try:
+            db, dw, dh = make_disp(raw)
+            dp.parent.mkdir(parents=True, exist_ok=True)
+            dp.write_bytes(db)
+            it["cover_disp"] = f"{OWN_BASE}/disp/{year}/{fid}.webp"
+            it["cover_disp_w"] = dw
+            it["cover_disp_h"] = dh
+            n_new += 1
+        except Exception as e:
+            print(f"  ✗ {fid} 展示档失败（详情页回退原图）：{type(e).__name__}")
+    print(f"· 展示档回填：新生成 {n_new} · 已有 {n_keep} · 小图跳过 {n_small} · 本地原图缺失 {n_miss}")
+    return n_new
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[1])
     ap.add_argument("--force", action="store_true", help="已本地化的也重新下载重做")
     ap.add_argument("--dry-run", action="store_true", help="只报告目标清单")
+    ap.add_argument("--backfill-disp", action="store_true",
+                    help="只补详情页展示档（本地 full 原图 → disp），不下载不清理")
     ap.add_argument("--workers", type=int, default=6, help="并发下载数")
     ap.add_argument("--quiet", action="store_true",
                     help="不逐条打印（发布任务自动调用时保持日志简洁）")
@@ -148,6 +235,14 @@ def main() -> int:
         return 2
 
     papers = json.loads(PAPERS_JSON.read_text(encoding="utf-8"))
+
+    if args.backfill_disp:
+        n = backfill_disp(papers, args.dry_run)
+        if n and not args.dry_run:
+            PAPERS_JSON.write_text(
+                json.dumps(papers, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            print(f"写入 {PAPERS_JSON.relative_to(ROOT)}（新增 cover_disp 字段）")
+        return 0
     items = [it for it in papers.get("items", [])
              if str(it.get("cover") or "").startswith(("http://", "https://"))]
     targets = [it for it in items
@@ -184,6 +279,14 @@ def main() -> int:
                 it["cover_thumb"] = f"{OWN_BASE}/thumb/{y}/{r['id']}.webp"
                 it["cover_thumb_w"] = r["w"]
                 it["cover_thumb_h"] = r["h"]
+                if r.get("dw"):
+                    it["cover_disp"] = f"{OWN_BASE}/disp/{y}/{r['id']}.webp"
+                    it["cover_disp_w"] = r["dw"]
+                    it["cover_disp_h"] = r["dh"]
+                else:
+                    it.pop("cover_disp", None)
+                    it.pop("cover_disp_w", None)
+                    it.pop("cover_disp_h", None)
                 break
     PAPERS_JSON.write_text(
         json.dumps(papers, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

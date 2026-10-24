@@ -145,9 +145,26 @@ DNS 子域 A 记录 → acme.sh 签证书 → 挂载 `deploy/nginx-macrobiodiv.c
   （多值 `|` 分隔，旧单值链接兼容；sort 仅本次生效，不改写访客偏好；
   排序为 发表新→旧 / 旧→新 / 随机洗牌——站点不携带与展示被引数据）
 - **渲染颜色切换**：文献详情页与周报文章页头部圆点（斜杠圈 = 系统色；蓝/绿/淡紫/橘 =
-  对应强调色渲染），偏好两种页面共享
+  对应强调色渲染），偏好两种页面共享；点击热切换不整页刷新（2026-10 起）
 - **周报收录的封面策略**：图表图 jsdelivr 外链直显（不落盘不入库，前端多源降级兜底），
   图表为无用站点 logo 兜底——重传该期周报自动补真图
+
+## 性能优化备忘（2026-10-24）
+
+- **封面三档**：`thumb/`（≤480px 卡片）、`disp/`（≤1200px WebP 详情页正文与 og:image，
+  仅原图 >1200px 或 >512KB 生成，221/329 张）、`full/`（逐字节原图，灯箱放大专用）。
+  新封面由 `prepare_thumbs.py` 自动产出 disp；存量补齐：
+  `python scripts/prepare_thumbs.py --backfill-disp`。
+- **papers-data.js 按页注入**：只有首页网格与全站搜索页加载（1.4MB，其余页面零下载）；
+  `sub`/`ab` 死字段已删。搜索页的周报全文（488KB weekly-data.js）改为首次聚焦/输入时
+  懒加载（`data-wk` 带内容 hash URL），输入并带 160ms 防抖。
+- **资源版本号按内容 hash**：`?v=` 不再是构建时间戳，没改的文件跨发布缓存继续命中
+  （nginx `/assets/` immutable 年缓存）；HTML 走 no-cache + 304。
+- **构建期预生成 .gz**：assets 与 llms/sitemap/atom 等文本产物带同名 `.gz`，
+  nginx `gzip_static` 直出（配置已更新，需同步服务器 nginx 并 reload）。
+- **周报图 alt 与宽高**：md 里的 `![img](…)` 在构建期合成为「期标题 · 图 N」；
+  图片尺寸首次构建时远程探测（HTTP Range 只拉头部，缓存于 `meta/wk-img-dims.json`，
+  稳态零请求），`<img>` 带 width/height 预留位防长页滚动 CLS。
 
 ## 项目文档
 

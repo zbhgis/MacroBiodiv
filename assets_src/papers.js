@@ -59,12 +59,21 @@
   var themeBtn = document.getElementById("themeBtn");
   if (themeBtn) themeBtn.addEventListener("click", function () {
     var root = document.documentElement;
-    // 默认暗色（不跟随系统偏好）；仅当访客手动切过才用其选择
+    // 手动点击即写入偏好（此后不再跟随系统）；初始值由 head 内联脚本按
+    // prefers-color-scheme 定（此前固定暗色，浅色系统访客首屏即暗、
+    // 与按系统双值输出的 theme-color 地址栏配色互相矛盾）
     var light = root.getAttribute("data-theme") === "light";
     var t = light ? "dark" : "light";
     root.setAttribute("data-theme", t);
     try { localStorage.setItem("mbd-theme", t); } catch (e) {}
   });
+  /* 移动端汉堡菜单（details/summary 展开式）：点击页面其他区域自动收起 */
+  var mnavM = document.querySelector("details.mnav-m");
+  if (mnavM) {
+    document.addEventListener("click", function (e) {
+      if (mnavM.open && !mnavM.contains(e.target)) mnavM.removeAttribute("open");
+    });
+  }
   var topBtn = document.getElementById("topBtn");
   if (topBtn) {
     topBtn.addEventListener("click", function () { window.scrollTo({ top: 0, behavior: "smooth" }); });
@@ -125,12 +134,31 @@
     var sList = document.getElementById("spage-list");
     var sCount = document.getElementById("spage-count");
     var sUp = sList ? (sList.getAttribute("data-up") || "") : "";
-    /* 周报数据（仅搜索页注入 weekly-data.js）：u 路径 / t 标题 / d 日期 /
-       s 摘要行 / w 字数 / x 正文全文（构建期已截 30000 字符） */
-    var WK = window.MBD_WK || [];
-    WK.forEach(function (w) {
-      w.se = (w.t + " " + (w.d || "") + " " + (w.s || "") + " " + (w.x || "")).toLowerCase();
-    });
+    /* 周报数据（u 路径 / t 标题 / d 日期 / s 摘要行 / w 字数 / x 正文全文，
+       构建期已截 30000 字符）：488KB 不再随页面同步下载 —— 未输入任何词的
+       访客不该白付这份成本。首次聚焦 / 输入时按 data-wk（内容 hash URL）动态
+       注入；载入前文献检索照常、周报计数显示加载中，载入后补跑当前查询。
+       WK=null 未加载（或加载失败前的窗口期）；[]= 已加载（可能为空） */
+    var WK = window.MBD_WK ? [].concat(window.MBD_WK) : null;
+    var wkPending = null;
+    var wkLoading = false;
+    function wkReady() {
+      WK.forEach(function (w) {
+        w.se = (w.t + " " + (w.d || "") + " " + (w.s || "") + " " + (w.x || "")).toLowerCase();
+      });
+      if (wkPending !== null) { var q = wkPending; wkPending = null; renderSearch(q); }
+    }
+    function loadWeekly() {
+      if (WK || wkLoading) return;
+      var url = sList ? (sList.getAttribute("data-wk") || "") : "";
+      if (!url) { WK = []; wkReady(); return; }   // 兜底：老页面无 data-wk 时降级为仅文献
+      wkLoading = true;
+      var s = document.createElement("script");
+      s.src = url;
+      s.onload = function () { wkLoading = false; WK = window.MBD_WK || []; wkReady(); };
+      s.onerror = function () { wkLoading = false; WK = []; wkReady(); };
+      document.head.appendChild(s);
+    }
 
     function escHtml(s) {
       return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
@@ -215,11 +243,12 @@
         var hay = (it.se || "").toLowerCase();
         return tokens.every(function (t) { return hay.indexOf(t) > -1; });
       });
-      var wkHits = WK.filter(function (w) {
+      var wkHits = WK ? WK.filter(function (w) {
         return tokens.every(function (t) { return w.se.indexOf(t) > -1; });
-      });
+      }) : [];
+      if (WK === null) { wkPending = raw; loadWeekly(); }
       sCount.textContent = "找到 " + hits.length + " / " + ITEMS.length + " 篇文献 · "
-        + wkHits.length + " / " + WK.length + " 期周报";
+        + (WK === null ? "周报数据加载中…" : wkHits.length + " / " + WK.length + " 期周报");
       if (!hits.length && !wkHits.length) {
         sList.innerHTML = '<p class="spage-empty">未找到与 “' + escHtml(raw) + '” 相关的文献或周报</p>';
         return;
@@ -235,13 +264,22 @@
     var sq = "";
     try { sq = new URLSearchParams(location.search).get("q") || ""; } catch (e) {}
     spageQ.value = sq;
+    if (sq.trim()) loadWeekly();   // 带词进来的访客目标明确，立即拉周报数据
     renderSearch(sq);
+    // 输入防抖 160ms：每击键全量重渲染 + 全字段正则高亮，宽词命中数百行时
+    // 低端机会掉帧；URL 同步一并放进防抖窗口
+    var debT = null;
+    spageQ.addEventListener("focus", loadWeekly);
     spageQ.addEventListener("input", function () {
-      renderSearch(spageQ.value);
-      try {
-        var v = spageQ.value.trim();
-        history.replaceState(null, "", v ? "?q=" + encodeURIComponent(v) : location.pathname);
-      } catch (e) {}
+      if (debT) clearTimeout(debT);
+      debT = setTimeout(function () {
+        debT = null;
+        renderSearch(spageQ.value);
+        try {
+          var v = spageQ.value.trim();
+          history.replaceState(null, "", v ? "?q=" + encodeURIComponent(v) : location.pathname);
+        } catch (e) {}
+      }, 160);
     });
   }
 
@@ -645,17 +683,25 @@
 })();
 
 /* ── 渲染样式切换（文章详情头部的两枚圆点）：html[data-rstyle] 已由
-   <head> 内联脚本按 localStorage 设好，这里只回写按钮选中态；
-   点击写偏好后刷新 —— 样式切换走整页重渲染 ── */
+   <head> 内联脚本按 localStorage 设好，这里回写按钮选中态；
+   点击直接热切换属性 + 写偏好 —— 样式全部挂在 [data-rstyle] 选择器上，
+   无需整页 reload（此前刷新会闪一下并重置滚动位置） ── */
 (function () {
   var btns = document.querySelectorAll(".rst-btn");
   if (!btns.length) return;
-  var cur = document.documentElement.getAttribute("data-rstyle") || "plain";
+  var root = document.documentElement;
+  var sync = function (v) {
+    Array.prototype.forEach.call(btns, function (b) {
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-rs") === v));
+    });
+  };
+  sync(root.getAttribute("data-rstyle") || "plain");
   Array.prototype.forEach.call(btns, function (b) {
-    b.setAttribute("aria-pressed", String(b.getAttribute("data-rs") === cur));
     b.addEventListener("click", function () {
-      try { localStorage.setItem("mbd-rstyle", b.getAttribute("data-rs")); } catch (e) {}
-      location.reload();
+      var v = b.getAttribute("data-rs");
+      root.setAttribute("data-rstyle", v);
+      try { localStorage.setItem("mbd-rstyle", v); } catch (e) {}
+      sync(v);
     });
   });
 })();

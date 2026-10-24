@@ -38,6 +38,8 @@
 from __future__ import annotations
 
 import argparse
+import gzip
+import hashlib
 import html
 import json
 import re
@@ -47,6 +49,7 @@ import time
 from collections import Counter
 from pathlib import Path
 from urllib.parse import quote
+from urllib.request import Request, urlopen
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from fetch_doi import to_bibtex  # noqa: E402
@@ -54,12 +57,29 @@ from fetch_doi import to_bibtex  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 CFG_PATH = ROOT / "site.config.json"
 PAPERS_JSON = ROOT / "meta" / "papers.json"
+WKDIMS_JSON = ROOT / "meta" / "wk-img-dims.json"   # 周报正文图尺寸探测缓存
 SITE = ROOT / "site"
 
 PAGE_SIZE = 30
-# 资源版本号（构建时间戳）：CSS/JS 引用统一带 ?v=，部署后老访客的浏览器
-# 不会再用缓存的旧脚本配新页面（GeoSciPlot 踩过的坑，直接继承对策）
+# 兜底版本号（构建时间戳）：仅 asset_ver 找不到部署文件时使用。
+# ?v= 必须保证「内容一变 URL 就变」（GeoSciPlot 踩过旧脚本配新数据的坑），
+# 但全站统一时间戳会让没改的文件缓存也全失效，故实际版本号按内容 hash。
 BUILD_VER = str(int(time.time()))
+
+# asset_ver 缓存：一次构建内同一文件只读一次
+_VERS: dict[str, str] = {}
+
+
+def asset_ver(name: str) -> str:
+    """按 site/assets/ 部署文件内容取版本号（sha1 前 8 位）：内容不变 → ?v= 不变
+    → 浏览器缓存跨发布继续命中。papers.js 等构建期注入配置的产物以最终内容为准，
+    所以必须在资源写盘之后、页面渲染期间调用（main() 的编排恰好是这个顺序）。"""
+    v = _VERS.get(name)
+    if v is None:
+        f = SITE / "assets" / name
+        v = hashlib.sha1(f.read_bytes()).hexdigest()[:8] if f.is_file() else BUILD_VER
+        _VERS[name] = v
+    return v
 
 DEFAULT_CFG = {
     "title": "MacroBiodiv",
@@ -140,15 +160,6 @@ def journal_badge(p: dict) -> str:
     return s.replace(".", "") if s else ""
 
 
-def abstract_disp(p: dict, limit: int = 200) -> str:
-    """卡片摘要节选：有中文摘要优先中文（中文读者扫读更快），否则英文。
-    静态首屏与 JS 渲染的 papers-data.js 共用同一份，保证一致。"""
-    ab = (p.get("abstract_zh") or "").strip() or (p.get("abstract") or "").strip()
-    if not ab:
-        return ""
-    return ab[:limit] + "…" if len(ab) > limit else ab
-
-
 def sort_items(items: list) -> list:
     """站点统一顺序：发表日期 新→旧，同日期按 id 升序 —— 与 site.js 默认排序
     完全一致（静态首屏 = JS 默认渲染），详情页上一篇/下一篇也按这个顺序走。"""
@@ -184,7 +195,7 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
         # 无封面页（首页/搜索/统计/关于/无封面文献）的 og:image 用站点 logo 兜底：
         # 分享卡片无图就是灰底块，logo 虽非 1200×630 最佳比例但能辨识站点
         if not og_image:
-            og_image = f"{base}/assets/logo.png?v={BUILD_VER}"
+            og_image = f"{base}/assets/logo.png?v={asset_ver('logo.png')}"
         og_rows = [
             f'<meta property="og:title" content="{esc(title)}">',
             f'<meta property="og:description" content="{esc(desc[:200])}">',
@@ -237,7 +248,7 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
     head_extra = "\n".join([
         '<meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)">',
         '<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">',
-        f'<link rel="apple-touch-icon" href="{up}assets/favicon.png?v={BUILD_VER}">',
+        f'<link rel="apple-touch-icon" href="{up}assets/favicon.png?v={asset_ver("favicon.png")}">',
         f'<link rel="alternate" type="application/atom+xml" '
         f'title="{esc(cfg["title"])} · 文献更新" href="{esc(feed_href)}">',
         f'<link rel="alternate" type="application/atom+xml" '
@@ -264,7 +275,7 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
     ico_geosci = ('<svg class="mnav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>')
     nav = f"""<header class="mnav">
 <nav class="mnav-in">
-<a class="mnav-brand" href="/"><img src="{up}assets/favicon.png?v={BUILD_VER}" alt="" width="26" height="26">{esc(cfg['title'])}</a>
+<a class="mnav-brand" href="/"><img src="{up}assets/favicon.png?v={asset_ver('favicon.png')}" alt="" width="26" height="26">{esc(cfg['title'])}</a>
 <ul class="mnav-links">
 <li><a class="mnav-link" data-active="{str(is_rss).lower()}" href="/rss/"{cur_r}>{ico_rss}RSS 订阅</a></li>
 <li><a class="mnav-link" data-active="{str(is_weekly).lower()}" href="/weekly/"{cur_w}>{ico_send}每周速递</a></li>
@@ -330,23 +341,22 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
 {twitter}
 {llms_links}
 {head_extra}
-<link rel="stylesheet" href="{up}assets/style.css?v={BUILD_VER}">
-<link rel="icon" type="image/png" href="{up}assets/favicon.png?v={BUILD_VER}">
-<script>try{{var t=localStorage.getItem("mbd-theme");if(t)document.documentElement.setAttribute("data-theme",t)}}catch(e){{}}</script>
+<link rel="stylesheet" href="{up}assets/style.css?v={asset_ver('style.css')}">
+<link rel="icon" type="image/png" href="{up}assets/favicon.png?v={asset_ver('favicon.png')}">
+<script>try{{var t=localStorage.getItem("mbd-theme");if(t)document.documentElement.setAttribute("data-theme",t);else if(window.matchMedia&&window.matchMedia("(prefers-color-scheme: light)").matches)document.documentElement.setAttribute("data-theme","light")}}catch(e){{}}</script>
 <script>try{{var f=localStorage.getItem("mbd-fs");if(f)document.documentElement.setAttribute("data-fs",f)}}catch(e){{}}</script>
 <!-- 外链图多源降级（assets_src/img-fallback.js）：head 同步外链脚本，parser-blocking
      执行时机与内联等价（先于正文图片），捕获阶段 error 监听才能接到首张失败图。
      渲染路径的防闪烁小脚本（主题/字号/rstyle/STATE_PRESTATE）刻意保持内联——
      它们必须在首帧前同步执行，外置反而引入额外请求与闪烁窗口 -->
-<script src="{up}assets/img-fallback.js?v={BUILD_VER}"></script>
+<script src="{up}assets/img-fallback.js?v={asset_ver('img-fallback.js')}"></script>
 {rstyle_head}
 </head>
 <body>
 {nav}
 {inner}
-{"".join(f'<script src="{up}assets/{a}?v={BUILD_VER}"></script>' for a in (extra_assets or []))}
-<script src="{up}assets/papers-data.js?v={BUILD_VER}"></script>
-<script src="{up}assets/papers.js?v={BUILD_VER}"></script>
+{"".join(f'<script src="{up}assets/{a}?v={asset_ver(a)}"></script>' for a in (extra_assets or []))}
+<script src="{up}assets/papers.js?v={asset_ver('papers.js')}"></script>
 <!-- 图片灯箱（同源移植 GeoSciPlot，样式随模块注入）：仅详情页/周报文章页引入
      image-lightbox.js，其余页面 window.ImageLightbox 未定义，此行 if 守卫安全跳过。
      挂 body 统一接管：链接内图（首页/搜索卡片封面）默认不劫持维持跳转，
@@ -483,7 +493,7 @@ def cover_src(cover: str, up: str = "") -> str:
     c = (cover or "").strip()
     if c.startswith(("http://", "https://")):
         return c
-    return f"{up}assets/{c}?v={BUILD_VER}"
+    return f"{up}assets/{c}?v={asset_ver(c)}"
 
 
 def card_html(p: dict) -> str:
@@ -575,7 +585,7 @@ def build_index(cfg: dict, items: list) -> str:
                 'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
                 '<path d="M6 3l5 5-5 5"/></svg>')
     body = f"""<header class="site">
-  <h1 class="home-title"><img class="logo" src="assets/logo.png?v={BUILD_VER}" alt="MacroBiodiv logo">{esc(cfg['title'])}</h1>
+  <h1 class="home-title"><img class="logo" src="assets/logo.png?v={asset_ver('logo.png')}" alt="MacroBiodiv logo">{esc(cfg['title'])}</h1>
   <a class="gh-note" href="https://github.com/{esc(cfg.get('owner') or 'OWNER')}/{esc(cfg['repo'])}" rel="noopener" target="_blank" title="在 GitHub 查看数据与索引">{ghsvg}<span>文献数据存储于 <b>GitHub</b>，访问需具备 <b>GitHub</b> 访问能力（点此查看仓库）</span></a>
   <p class="lede">{esc(cfg['lede'])}</p>
 </header>
@@ -665,7 +675,10 @@ def build_index(cfg: dict, items: list) -> str:
         ld_col = '<script type="application/ld+json">' + col_html + "</script>"
     return page_shell(cfg, f"{cfg['subtitle']} · {cfg['title']}", body + ld_site + ld_col,
                       description=f"{cfg['lede']} 收录 {len(items)} 篇，支持搜索、筛选、排序与每周速递。",
-                      path="/")
+                      path="/",
+                      # papers-data.js 只在消费它的页面注入（首页网格 / 搜索页），
+                      # 详情页/周报/404 等不再白下载 1.4MB 数据
+                      extra_assets=["papers-data.js"])
 
 
 def _volume_pages(p: dict) -> str:
@@ -800,9 +813,17 @@ def build_detail(cfg: dict, items: list, idx: int) -> str:
 
     # ── 图表节（可选）：封面图独立成节（公众号「3.图表」式），无封面则整节不出现 ──
     cov = (p.get("cover") or "").strip()
+    disp = (p.get("cover_disp") or "").strip()
+    dw, dh = p.get("cover_disp_w") or 0, p.get("cover_disp_h") or 0
     fig_alt = esc(f"《{display_title(p)[:40]}》文章图表 / 图形摘要")
+    # 展示档优先：大图有 1200px webp 中间档，详情页 LCP 免拉 MB 级原图（极值
+    # 13.6MB → ~200KB）；灯箱 data-lightbox-src 仍走原图。width/height 预留位
+    # 让图片区加载完成前就占住高度，不把下方引用条推来推去（CLS）
+    fig_src = disp or cover_src(cov, "../")
+    fig_dims = f' width="{dw}" height="{dh}"' if (disp and dw and dh) else ""
+    fig_lb = f' data-lightbox-src="{esc(cov)}"' if disp else ""
     fig_sec = (f'<section class="sec">{sech("图表")}'
-               f'<figure class="p-cover"><img src="{cover_src(cov, "../")}" '
+               f'<figure class="p-cover"><img src="{esc(fig_src)}"{fig_lb}{fig_dims} '
                f'alt="{fig_alt}"></figure></section>') if cov else ""
 
     body = f"""<a class="back" href="../">{back_ico}返回全部</a>
@@ -848,8 +869,10 @@ def build_detail(cfg: dict, items: list, idx: int) -> str:
     # url 指本页 canonical（引擎据此把文献实体锚定到本站），DOI 走 identifier + sameAs；
     # description 必须给摘要 —— 这是答案引擎最常整段引用的字段；卷/页/ISSN/体裁一并进实体。
     base = (cfg.get("site_url") or "").rstrip("/")
-    if cov.startswith(("http://", "https://")):
-        og_image = cov                      # 外链封面本身就是绝对 URL
+    if disp:
+        og_image = disp                    # 展示档：部分平台拒收 >8MB 原图
+    elif cov.startswith(("http://", "https://")):
+        og_image = cov                     # 外链封面本身就是绝对 URL
     else:
         og_image = (f"{base}/assets/{cov}" if (base and cov) else "")
     ld = {
@@ -921,11 +944,14 @@ def build_search_page(cfg: dict, items: list) -> str:
 <input id="spage-q" class="spage-q" type="search" placeholder="输入关键词搜索全站内容…" autocomplete="off" autofocus>
 {STATE_PRESTATE}
 <div class="spage-count" id="spage-count"></div>
-<div class="spage-list" id="spage-list" data-up="../"></div>"""
+<!-- data-wk：周报全文数据的懒加载地址（papers.js 首次聚焦/输入时才注入），
+     不再随页面同步下载 488KB；URL 带内容 hash 保证周报更新后缓存不陈旧 -->
+<div class="spage-list" id="spage-list" data-up="../" data-wk="../assets/weekly-data.js?v={asset_ver('weekly-data.js')}"></div>"""
+    # 搜索页是薄内容且查询参数无限，不让搜索引擎收录（与主站 /search 策略一致）
     return page_shell(cfg, f"全站搜索 · {cfg['title']}", body, depth=1, path="/search/",
                       description=(f"搜索全部 {len(items)} 篇宏观生态与生物多样性文献："
                                    "标题、作者、DOI、期刊、关键词、摘要与每周速递正文。"),
-                      extra_assets=["weekly-data.js"])
+                      extra_assets=["papers-data.js"], noindex=True)
 
 
 def build_stats_data(items: list) -> None:
@@ -1147,20 +1173,82 @@ def build_about(cfg: dict) -> str:
                       description=desc_about)
 
 
+def probe_img_dims(url: str, timeout: int = 12) -> list | None:
+    """按 URL 探测远程图片像素尺寸（周报正文 <img> 的 width/height 预留位，防 CLS）。
+    HTTP Range 只拉头部 64KB：PNG IHDR 固定偏移直读，JPEG 扫 SOFn 段。
+    失败返回 None——缓存里记 null 后不再重试（周报一经发布图片不变，稳态零请求）。"""
+    try:
+        req = Request(url, headers={"User-Agent": "MacroBiodivBuild/1.0",
+                                    "Range": "bytes=0-65535"})
+        with urlopen(req, timeout=timeout) as r:
+            head = r.read(65536)
+    except Exception:
+        return None
+    if head.startswith(b"\x89PNG\r\n\x1a\n") and len(head) >= 24:
+        w = int.from_bytes(head[16:20], "big")
+        h = int.from_bytes(head[20:24], "big")
+        return [w, h] if w and h else None
+    if head[:3] == b"\xff\xd8\xff":                    # JPEG：逐段跳到首个 SOFn
+        i = 2
+        while i + 9 < len(head):
+            if head[i] != 0xFF:
+                i += 1
+                continue
+            mk = head[i + 1]
+            if mk == 0xFF:
+                i += 1
+                continue
+            if mk in (0xD8, 0x01) or 0xD0 <= mk <= 0xD7:
+                i += 2
+                continue
+            if i + 4 > len(head):
+                break
+            seglen = int.from_bytes(head[i + 2:i + 4], "big")
+            if 0xC0 <= mk <= 0xCF and mk not in (0xC4, 0xC8, 0xCC):
+                h = int.from_bytes(head[i + 5:i + 7], "big")
+                w = int.from_bytes(head[i + 7:i + 9], "big")
+                return [w, h] if w and h else None
+            if seglen <= 0:
+                break
+            i += 2 + seglen
+    return None
+
+
 def build_weekly(cfg: dict) -> tuple[list[str], list[dict]]:
     """构建 /weekly/ 列表页与各文章页；返回（供 sitemap 的）URL 路径列表与期次索引。"""
     if not WEEKLY_SRC.is_dir():
         return [], []
     try:
-        from render_md import parse_md
+        from render_md import WK_IMG_RE, parse_front_matter, parse_md
     except ImportError:
         print("· 每周速递：缺 scripts/render_md.py，跳过")
         return [], []
 
     posts = []
+    # 周报正文图尺寸：meta/wk-img-dims.json 持久缓存（URL → [w,h] / null=探测失败
+    # 不再重试）。首次构建逐 URL 探测（约 1-2 分钟），之后稳态零网络请求
+    dims_cache: dict = {}
+    if WKDIMS_JSON.exists():
+        try:
+            dims_cache = json.loads(WKDIMS_JSON.read_text(encoding="utf-8"))
+        except Exception:
+            dims_cache = {}
+    dims_dirty = False
     for md in sorted(WEEKLY_SRC.glob("*.md")):
         text = md.read_text(encoding="utf-8")
-        meta, doc, toc, plain = parse_md(text)
+        pre_meta, _ = parse_front_matter(text)
+        alt_ctx = str(pre_meta.get("title") or md.stem)
+        dims = None
+        wk_urls = WK_IMG_RE.findall(text)
+        if wk_urls:
+            dims = {}
+            for u in wk_urls:
+                if u not in dims_cache:
+                    dims_cache[u] = probe_img_dims(u)
+                    dims_dirty = True
+                if dims_cache[u]:
+                    dims[u] = dims_cache[u]
+        meta, doc, toc, plain = parse_md(text, alt_ctx=alt_ctx, dims=dims)
         # 标题自动识别正文第一个一级标题（frontmatter 的 title 不作为标题来源）；
         # 文件直接以「文献N」开头（无总标题 H1）时回退 frontmatter title / 文件名
         h1 = next((txt for lv, hid, txt in toc
@@ -1209,6 +1297,14 @@ def build_weekly(cfg: dict) -> tuple[list[str], list[dict]]:
         })
     if not posts:
         return [], []
+    if dims_dirty:
+        try:
+            WKDIMS_JSON.write_text(
+                json.dumps(dims_cache, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+            hit = sum(1 for v in dims_cache.values() if v)
+            print(f"· 周报图尺寸缓存：{hit}/{len(dims_cache)} 个 URL 探测成功 → {WKDIMS_JSON.relative_to(ROOT)}")
+        except OSError as e:
+            print(f"· 周报图尺寸缓存写入失败（不影响构建）：{e}")
     posts.sort(key=lambda p: p["date"], reverse=True)   # 新→旧；i-1 更新（上一篇）
 
     # 周报搜索数据（/search/ 页客户端检索用）：全文存 plain（截 30000 字符防无限增长）；
@@ -1462,6 +1558,26 @@ def build_weekly(cfg: dict) -> tuple[list[str], list[dict]]:
     return ["/weekly/"] + [f"/weekly/{p['slug']}/" for p in posts], wk_index
 
 
+def precompress(site: Path) -> None:
+    """为文本产物预生成同名 .gz（nginx gzip_static 直出，低带宽云盘省 CPU）。
+    只处理 assets/ 与根目录数据/入口文件，不碰 HTML（HTML 走 no-cache + 304，
+    全量传输只在发布后第一次发生）。mtime=0 保证同样内容产出字节级相同的
+    .gz，未变化文件 rsync/对比上传可跳过。"""
+    targets = [p for p in (site / "assets").glob("*")
+               if p.is_file() and p.suffix in {".js", ".css", ".json"}]
+    targets += [p for p in site.glob("*")
+                if p.is_file() and p.suffix in {".txt", ".xml", ".json"}]
+    n = 0
+    for p in targets:
+        raw = p.read_bytes()
+        gz_path = p.with_name(p.name + ".gz")
+        with open(gz_path, "wb") as fh:
+            with gzip.GzipFile(fileobj=fh, mode="wb", compresslevel=6, mtime=0) as gz:
+                gz.write(raw)
+        n += 1
+    print(f"· 预压缩 {n} 个文本文件 → 同名 .gz（nginx gzip_static 直出）")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="MacroBiodiv 静态站生成")
     ap.parse_args()
@@ -1548,9 +1664,7 @@ def main() -> int:
         "pd": p.get("published") or "",
         "ad": p.get("added") or "",
         "tg": p.get("tags") or [],
-        "sub": " · ".join(p.get("tags") or []),
         "doi": p.get("doi") or "",
-        "ab": abstract_disp(p),
         # cv = 封面（可选）：本地路径带 ?v= 防缓存；外链（http 开头）原样直显
         # ct = 缩略外链（可选，图床 webp）：卡片优先用，加载失败回退 cv（data-full）
         "cv": cover_src(p.get("cover") or ""),
@@ -1600,10 +1714,9 @@ def main() -> int:
         wk_lastmod = max(wk_dates.values(), default=today)
         # (路径, lastmod, changefreq, priority)：文献详情页是主要落地页（0.8），
         # 首页聚合全部（1.0）；周报文章页一经发布不再变动 → yearly；
-        # /search/、/statistics/、/rss/ 的数据都随收录量变化，跟随首页 lastmod；
-        # /about/ 用正文源文件时间。没有可靠时间的页面不写假 lastmod。
+        # /search/ 为 noindex 薄内容页，不进 sitemap；/statistics/、/rss/ 随收录量变化，
+        # 跟随首页 lastmod；/about/ 用正文源文件时间。没有可靠时间的页面不写假 lastmod。
         urls = [("/", home_lastmod, "weekly", "1.0"),
-                ("/search/", home_lastmod, "monthly", "0.4"),
                 ("/statistics/", home_lastmod, "monthly", "0.5"),
                 ("/rss/", home_lastmod, "monthly", "0.4"),
                 ("/about/", about_lastmod, "yearly", "0.3")]
@@ -1902,6 +2015,8 @@ def main() -> int:
         d = SITE / p["id"]
         d.mkdir(parents=True, exist_ok=True)
         (d / "index.html").write_text(build_detail(cfg, items, i), encoding="utf-8")
+
+    precompress(SITE)
 
     pages = max(1, -(-len(items) // PAGE_SIZE))
     index_kb = len((SITE / "index.html").read_bytes()) / 1024

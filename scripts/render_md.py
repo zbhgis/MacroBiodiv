@@ -71,13 +71,14 @@ def _inline(text: str) -> str:
     return s
 
 
-def render(text: str) -> tuple[str, list[tuple[int, str, str]]]:
+def render(text: str, alt_ctx: str = "", dims: dict | None = None) -> tuple[str, list[tuple[int, str, str]]]:
     """正文 → (HTML, TOC)。TOC 项 = (层级 1|2, anchor id, 标题文本)。"""
     out: list[str] = []
     toc: list[tuple[int, str, str]] = []
     h2 = 0
     h3 = 0
     para: list[str] = []
+    img_n = 0
 
     def flush() -> None:
         if para:
@@ -92,8 +93,21 @@ def render(text: str) -> tuple[str, list[tuple[int, str, str]]]:
         m = IMG_RE.match(line.strip())
         if m:
             flush()
-            alt, src = _esc(m.group(1)), _esc(m.group(2))
-            out.append(f'<p class="wk-img"><img src="{src}" alt="{alt}" loading="lazy"></p>')
+            img_n += 1
+            raw_alt = m.group(1).strip()
+            src, src_url = _esc(m.group(2)), m.group(2)
+            # 周报 md 习惯写 ![img](…)：alt 无信息量，无障碍读屏与图片搜索双输。
+            # 无意义 alt（img/image/空…）按「期标题 · 图 N」合成，有意义的原样保留
+            generic = raw_alt.lower() in ("", "img", "image", "图", "图片", "photo", "pic", "png", "jpg")
+            alt = raw_alt if not generic else (f"{alt_ctx} · 图 {img_n}" if alt_ctx else f"图 {img_n}")
+            # dims（URL → (w,h)，构建期探测带缓存）可缺省：图挂了占位高度，
+            # 长页滚动时下方内容不会被加载完成的图推开（CLS）
+            dim = ""
+            if dims:
+                wh = dims.get(src_url)
+                if wh and wh[0] and wh[1]:
+                    dim = f' width="{wh[0]}" height="{wh[1]}"'
+            out.append(f'<p class="wk-img"><img src="{src}" alt="{_esc(alt)}"{dim} loading="lazy" decoding="async"></p>')
             continue
         m = H_RE.match(line)
         if m:
@@ -128,10 +142,11 @@ def plain_text(text: str) -> str:
     return re.sub(r"\s+", "", body)
 
 
-def parse_md(text: str) -> tuple[dict, str, list, str]:
-    """一次解析：返回 (meta, 正文 HTML, TOC, 纯文本)。"""
+def parse_md(text: str, alt_ctx: str = "", dims: dict | None = None) -> tuple[dict, str, list, str]:
+    """一次解析：返回 (meta, 正文 HTML, TOC, 纯文本)。
+    alt_ctx 进无意义 alt 的合成（周报期标题）；dims 进 <img> 宽高预留（可缺省）。"""
     meta, body = parse_front_matter(text)
-    doc, toc = render(body)
+    doc, toc = render(body, alt_ctx, dims)
     # 纯文本取剥离 front matter 之后的正文——搜索索引与字数统计不收元数据
     return meta, doc, toc, plain_text(body)
 

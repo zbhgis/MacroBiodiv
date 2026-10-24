@@ -117,7 +117,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/d8648426c0.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/d8648426c0.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 286
+      "cover_thumb_h": 286,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/d8648426c0.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 714
     },
     {
       "doi": "10.1038/s41467-025-68172-8",
@@ -244,7 +247,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/ff3e3cfcbf.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/ff3e3cfcbf.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 267
+      "cover_thumb_h": 267,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/ff3e3cfcbf.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 668
     },
     {
       "doi": "10.1038/s41467-025-68249-4",
@@ -293,7 +299,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/937fcf3606.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/937fcf3606.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 416
+      "cover_thumb_h": 416,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/937fcf3606.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1039
     },
     {
       "doi": "10.1038/s41467-025-67925-9",
@@ -346,7 +355,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/ad7034c15e.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/ad7034c15e.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 338
+      "cover_thumb_h": 338,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/ad7034c15e.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 845
     },
     {
       "doi": "10.1038/s41467-025-67612-9",
@@ -408,7 +420,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/51808838d6.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/51808838d6.webp",
       "cover_thumb_w": 298,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/51808838d6.webp",
+      "cover_disp_w": 746,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s41467-026-68480-7",
@@ -459,7 +474,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/50e77990ac.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/50e77990ac.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 155
+      "cover_thumb_h": 155,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/50e77990ac.webp",
+      "cover_disp_w": 1061,
+      "cover_disp_h": 342
     },
     {
       "doi": "10.1038/s41559-025-02964-5",
@@ -527,7 +545,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/0f099ef05e.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/0f099ef05e.webp",
       "cover_thumb_w": 319,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/0f099ef05e.webp",
+      "cover_disp_w": 799,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s41559-025-02956-5",
@@ -734,7 +755,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/3802b9b34f.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/3802b9b34f.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 239
+      "cover_thumb_h": 239,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/3802b9b34f.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 597
     },
     {
       "doi": "10.1038/s44358-025-00116-y",
@@ -788,7 +812,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/23d9a3c869.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/23d9a3c869.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 367
+      "cover_thumb_h": 367,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/23d9a3c869.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 918
     },
     {
       "doi": "10.1038/s44358-025-00120-2",
@@ -849,7 +876,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/83983fa73f.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/83983fa73f.webp",
       "cover_thumb_w": 439,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/83983fa73f.webp",
+      "cover_disp_w": 1098,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s41467-026-68668-x",
@@ -994,7 +1024,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/5ded3e9853.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/5ded3e9853.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 303
+      "cover_thumb_h": 303,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/5ded3e9853.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 758
     },
     {
       "doi": "10.1038/s41467-025-68090-9",
@@ -1046,7 +1079,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/265acd1883.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/265acd1883.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 293
+      "cover_thumb_h": 293,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/265acd1883.webp",
+      "cover_disp_w": 1099,
+      "cover_disp_h": 670
     },
     {
       "doi": "10.1038/s41467-025-67117-5",
@@ -1102,7 +1138,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/4423723607.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/4423723607.webp",
       "cover_thumb_w": 469,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/4423723607.webp",
+      "cover_disp_w": 1172,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s41467-025-67929-5",
@@ -1312,7 +1351,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/f24da0a668.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/f24da0a668.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 420
+      "cover_thumb_h": 420,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/f24da0a668.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1051
     },
     {
       "doi": "10.1038/s41467-025-68023-6",
@@ -1365,7 +1407,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/407825adcc.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/407825adcc.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 471
+      "cover_thumb_h": 471,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/407825adcc.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1177
     },
     {
       "doi": "10.1038/s41467-025-67815-0",
@@ -1433,7 +1478,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/14a5973147.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/14a5973147.webp",
       "cover_thumb_w": 320,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/14a5973147.webp",
+      "cover_disp_w": 800,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1126/sciadv.adw5698",
@@ -1486,7 +1534,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/f8dfdab67e.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/f8dfdab67e.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 356
+      "cover_thumb_h": 356,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/f8dfdab67e.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 890
     },
     {
       "doi": "10.1126/sciadv.adv7998",
@@ -1540,7 +1591,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/d38e26eb9b.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/d38e26eb9b.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 285
+      "cover_thumb_h": 285,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/d38e26eb9b.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 713
     },
     {
       "doi": "10.1126/sciadv.aeb2297",
@@ -1586,7 +1640,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/ad2a6059e5.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/ad2a6059e5.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 474
+      "cover_thumb_h": 474,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/ad2a6059e5.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1184
     },
     {
       "doi": "10.1038/s41559-025-02952-9",
@@ -1652,7 +1709,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/eb0a533255.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/eb0a533255.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 356
+      "cover_thumb_h": 356,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/eb0a533255.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 891
     },
     {
       "doi": "10.1038/s41559-025-02958-3",
@@ -1703,7 +1763,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/51772c459f.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/51772c459f.webp",
       "cover_thumb_w": 325,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/51772c459f.webp",
+      "cover_disp_w": 813,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s41893-025-01693-8",
@@ -1753,7 +1816,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/b3bd0e72f1.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/b3bd0e72f1.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 410
+      "cover_thumb_h": 410,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/b3bd0e72f1.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1026
     },
     {
       "doi": "10.1038/s41477-025-02189-1",
@@ -1818,7 +1884,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/6d35a2ae38.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/6d35a2ae38.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 270
+      "cover_thumb_h": 270,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/6d35a2ae38.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 676
     },
     {
       "doi": "10.1038/s41477-025-02188-2",
@@ -1935,7 +2004,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/be621df2a0.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/be621df2a0.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 311
+      "cover_thumb_h": 311,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/be621df2a0.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 777
     },
     {
       "doi": "10.1038/s44358-025-00113-1",
@@ -1991,7 +2063,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/18d403b017.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/18d403b017.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 376
+      "cover_thumb_h": 376,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/18d403b017.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 941
     },
     {
       "doi": "10.1038/s41586-025-09976-y",
@@ -2060,7 +2135,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/f479b90738.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/f479b90738.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/f479b90738.webp",
+      "cover_disp_w": 1059,
+      "cover_disp_h": 1059
     },
     {
       "doi": "10.1038/s41467-025-67757-7",
@@ -2536,7 +2614,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/03543917ab.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/03543917ab.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 311
+      "cover_thumb_h": 311,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/03543917ab.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 778
     },
     {
       "doi": "10.1038/s41893-025-01750-2",
@@ -2587,7 +2668,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/492907126c.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/492907126c.webp",
       "cover_thumb_w": 361,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/492907126c.webp",
+      "cover_disp_w": 685,
+      "cover_disp_h": 910
     },
     {
       "doi": "10.1038/s41477-025-02207-2",
@@ -2725,7 +2809,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/154af8bb7a.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/154af8bb7a.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 434
+      "cover_thumb_h": 434,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/154af8bb7a.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1085
     },
     {
       "doi": "10.1038/s41558-026-02557-5",
@@ -2789,7 +2876,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/cc15e27bd7.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/cc15e27bd7.webp",
       "cover_thumb_w": 420,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/cc15e27bd7.webp",
+      "cover_disp_w": 1049,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s41477-026-02221-y",
@@ -2840,7 +2930,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/7fc1951a0b.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/7fc1951a0b.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 161
+      "cover_thumb_h": 161,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/7fc1951a0b.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 402
     },
     {
       "doi": "10.1038/s41467-025-68187-1",
@@ -2885,7 +2978,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/891019090c.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/891019090c.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 283
+      "cover_thumb_h": 283,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/891019090c.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 707
     },
     {
       "doi": "10.1038/d41586-026-00309-1",
@@ -2927,7 +3023,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/570e3668d9.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/570e3668d9.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 307
+      "cover_thumb_h": 307,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/570e3668d9.webp",
+      "cover_disp_w": 767,
+      "cover_disp_h": 491
     },
     {
       "doi": "10.1038/s41559-025-02971-6",
@@ -3090,7 +3189,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/329e2cd886.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/329e2cd886.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 286
+      "cover_thumb_h": 286,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/329e2cd886.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 716
     },
     {
       "doi": "10.1038/s44358-026-00134-4",
@@ -3149,7 +3251,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/62f5dc265c.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/62f5dc265c.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 294
+      "cover_thumb_h": 294,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/62f5dc265c.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 735
     },
     {
       "doi": "10.1126/science.aea8602",
@@ -3196,7 +3301,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/5d6ceb0edf.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/5d6ceb0edf.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 381
+      "cover_thumb_h": 381,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/5d6ceb0edf.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 952
     },
     {
       "doi": "10.1126/sciadv.aeb2277",
@@ -3249,7 +3357,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/e2e4e17502.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/e2e4e17502.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 238
+      "cover_thumb_h": 238,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/e2e4e17502.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 596
     },
     {
       "doi": "10.1126/sciadv.adz5547",
@@ -3296,7 +3407,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/ab9250fd59.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/ab9250fd59.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 139
+      "cover_thumb_h": 139,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/ab9250fd59.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 347
     },
     {
       "doi": "10.1126/sciadv.adx7973",
@@ -3403,7 +3517,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/061d580406.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/061d580406.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 231
+      "cover_thumb_h": 231,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/061d580406.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 578
     },
     {
       "doi": "10.1038/s41467-025-67506-w",
@@ -3625,7 +3742,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/101066897d.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/101066897d.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 422
+      "cover_thumb_h": 422,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/101066897d.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1055
     },
     {
       "doi": "10.1038/s41467-026-69011-0",
@@ -3817,7 +3937,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/df078c1b30.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/df078c1b30.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 240
+      "cover_thumb_h": 240,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/df078c1b30.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 601
     },
     {
       "doi": "10.1038/s41467-026-69505-x",
@@ -3921,7 +4044,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/08b82de32f.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/08b82de32f.webp",
       "cover_thumb_w": 385,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/08b82de32f.webp",
+      "cover_disp_w": 964,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s44358-025-00128-8",
@@ -3974,7 +4100,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/56f60843b5.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/56f60843b5.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 359
+      "cover_thumb_h": 359,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/56f60843b5.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 898
     },
     {
       "doi": "10.1038/s44358-026-00138-0",
@@ -4021,7 +4150,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/2745abb053.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/2745abb053.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 331
+      "cover_thumb_h": 331,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/2745abb053.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 828
     },
     {
       "doi": "10.1038/s44358-026-00131-7",
@@ -4123,7 +4255,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/56ef709d51.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/56ef709d51.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 331
+      "cover_thumb_h": 331,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/56ef709d51.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 826
     },
     {
       "doi": "10.1038/s44284-025-00388-7",
@@ -4225,7 +4360,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/91f5c0b195.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/91f5c0b195.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 404
+      "cover_thumb_h": 404,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/91f5c0b195.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1011
     },
     {
       "doi": "10.1038/s41467-026-69594-8",
@@ -4328,7 +4466,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/8e7ebe5cb9.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/8e7ebe5cb9.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 206
+      "cover_thumb_h": 206,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/8e7ebe5cb9.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 515
     },
     {
       "doi": "10.1126/sciadv.adu6540",
@@ -4382,7 +4523,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/a853240b8f.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/a853240b8f.webp",
       "cover_thumb_w": 477,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/a853240b8f.webp",
+      "cover_disp_w": 1193,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1126/science.ads0871",
@@ -4427,7 +4571,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/ce73c61e66.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/ce73c61e66.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 396
+      "cover_thumb_h": 396,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/ce73c61e66.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 990
     },
     {
       "doi": "10.1038/s43016-026-01305-4",
@@ -4475,7 +4622,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/7384267636.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/7384267636.webp",
       "cover_thumb_w": 408,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/7384267636.webp",
+      "cover_disp_w": 1019,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s44284-026-00393-4",
@@ -4527,7 +4677,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/b0da0658eb.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/b0da0658eb.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 388
+      "cover_thumb_h": 388,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/b0da0658eb.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 971
     },
     {
       "doi": "10.1038/s44358-026-00140-6",
@@ -4616,7 +4769,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/b3b636f93d.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/b3b636f93d.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 437
+      "cover_thumb_h": 437,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/b3b636f93d.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1093
     },
     {
       "doi": "10.1038/s41467-026-69029-4",
@@ -4665,7 +4821,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/c0977c3afc.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/c0977c3afc.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 202
+      "cover_thumb_h": 202,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/c0977c3afc.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 504
     },
     {
       "doi": "10.1038/s41559-026-03013-5",
@@ -4712,7 +4871,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/cab7f0acc8.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/cab7f0acc8.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 408
+      "cover_thumb_h": 408,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/cab7f0acc8.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1020
     },
     {
       "doi": "10.1038/s44358-026-00141-5",
@@ -4762,7 +4924,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/e8ea70ae9d.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/e8ea70ae9d.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 246
+      "cover_thumb_h": 246,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/e8ea70ae9d.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 614
     },
     {
       "doi": "10.1016/j.oneear.2026.101620",
@@ -4869,7 +5034,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/ed7d1e8348.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/ed7d1e8348.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 192
+      "cover_thumb_h": 192,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/ed7d1e8348.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 481
     },
     {
       "doi": "10.1016/j.tree.2026.02.005",
@@ -4973,7 +5141,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/b4f4110e1a.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/b4f4110e1a.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 301
+      "cover_thumb_h": 301,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/b4f4110e1a.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 752
     },
     {
       "doi": "10.1038/s41559-026-03005-5",
@@ -5029,7 +5200,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/c45039519a.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/c45039519a.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 440
+      "cover_thumb_h": 440,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/c45039519a.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1100
     },
     {
       "doi": "10.1038/s41559-026-03008-2",
@@ -5176,7 +5350,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/1c3f672099.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/1c3f672099.webp",
       "cover_thumb_w": 438,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/1c3f672099.webp",
+      "cover_disp_w": 1095,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s41467-026-70432-0",
@@ -5236,7 +5413,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/e322c80e57.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/e322c80e57.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 402
+      "cover_thumb_h": 402,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/e322c80e57.webp",
+      "cover_disp_w": 834,
+      "cover_disp_h": 698
     },
     {
       "doi": "10.1038/s41467-026-69952-6",
@@ -5386,7 +5566,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/641504e601.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/641504e601.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 433
+      "cover_thumb_h": 433,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/641504e601.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1081
     },
     {
       "doi": "10.1038/s41467-026-70606-w",
@@ -5498,7 +5681,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/12fd48a9df.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/12fd48a9df.webp",
       "cover_thumb_w": 412,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/12fd48a9df.webp",
+      "cover_disp_w": 685,
+      "cover_disp_h": 799
     },
     {
       "doi": "10.1038/s41467-026-69584-w",
@@ -5654,7 +5840,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/a4a98d0073.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/a4a98d0073.webp",
       "cover_thumb_w": 339,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/a4a98d0073.webp",
+      "cover_disp_w": 846,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1126/sciadv.aee1916",
@@ -5707,7 +5896,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/24813b92ef.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/24813b92ef.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 160
+      "cover_thumb_h": 160,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/24813b92ef.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 400
     },
     {
       "doi": "10.1016/j.oneear.2026.101624",
@@ -5759,7 +5951,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/b5a0300a1e.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/b5a0300a1e.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 410
+      "cover_thumb_h": 410,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/b5a0300a1e.webp",
+      "cover_disp_w": 1052,
+      "cover_disp_h": 898
     },
     {
       "doi": "10.1016/j.tree.2026.02.002",
@@ -5957,7 +6152,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/1356e65d27.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/1356e65d27.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 345
+      "cover_thumb_h": 345,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/1356e65d27.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 864
     },
     {
       "doi": "10.1038/s41893-026-01791-1",
@@ -6215,7 +6413,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/ed3db62963.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/ed3db62963.webp",
       "cover_thumb_w": 375,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/ed3db62963.webp",
+      "cover_disp_w": 937,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s41467-025-67554-2",
@@ -6265,7 +6466,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/13c6179259.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/13c6179259.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 284
+      "cover_thumb_h": 284,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/13c6179259.webp",
+      "cover_disp_w": 1109,
+      "cover_disp_h": 657
     },
     {
       "doi": "10.1038/s41467-026-70191-y",
@@ -6364,7 +6568,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/e9ce7cc67b.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/e9ce7cc67b.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 209
+      "cover_thumb_h": 209,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/e9ce7cc67b.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 522
     },
     {
       "doi": "10.1038/s41467-026-71095-7",
@@ -6479,7 +6686,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/643fc8e245.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/643fc8e245.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 430
+      "cover_thumb_h": 430,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/643fc8e245.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1076
     },
     {
       "doi": "10.1016/j.tree.2026.03.002",
@@ -6574,7 +6784,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/b671d6b8bc.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/b671d6b8bc.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 424
+      "cover_thumb_h": 424,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/b671d6b8bc.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1060
     },
     {
       "doi": "10.1038/s41467-026-70064-4",
@@ -6636,7 +6849,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/8ca6f18ca1.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/8ca6f18ca1.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 425
+      "cover_thumb_h": 425,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/8ca6f18ca1.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1062
     },
     {
       "doi": "10.1038/s41467-026-71231-3",
@@ -6739,7 +6955,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/809b57c332.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/809b57c332.webp",
       "cover_thumb_w": 439,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/809b57c332.webp",
+      "cover_disp_w": 1097,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s41558-026-02600-5",
@@ -6791,7 +7010,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/7e35f94c65.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/7e35f94c65.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 346
+      "cover_thumb_h": 346,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/7e35f94c65.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 864
     },
     {
       "doi": "10.1038/s44284-026-00425-z",
@@ -6892,7 +7114,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/6b7dd2f30d.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/6b7dd2f30d.webp",
       "cover_thumb_w": 416,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/6b7dd2f30d.webp",
+      "cover_disp_w": 1039,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s41558-026-02602-3",
@@ -7029,7 +7254,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/2ea820e6e2.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/2ea820e6e2.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 240
+      "cover_thumb_h": 240,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/2ea820e6e2.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 600
     },
     {
       "doi": "10.1038/s41586-026-10365-2",
@@ -7116,7 +7344,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/af4bdb4bb7.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/af4bdb4bb7.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 392
+      "cover_thumb_h": 392,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/af4bdb4bb7.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 981
     },
     {
       "doi": "10.1126/sciadv.aeb2493",
@@ -7196,7 +7427,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/3ac061290b.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/3ac061290b.webp",
       "cover_thumb_w": 360,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/3ac061290b.webp",
+      "cover_disp_w": 900,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1016/j.tree.2026.04.002",
@@ -7356,7 +7590,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/8dfcd9a751.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/8dfcd9a751.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 147
+      "cover_thumb_h": 147,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/8dfcd9a751.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 366
     },
     {
       "doi": "10.1038/s41559-026-03039-9",
@@ -7408,7 +7645,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/557e141a9c.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/557e141a9c.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 282
+      "cover_thumb_h": 282,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/557e141a9c.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 704
     },
     {
       "doi": "10.1038/s41467-026-71262-w",
@@ -7491,7 +7731,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/db39d7cfe6.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/db39d7cfe6.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 324
+      "cover_thumb_h": 324,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/db39d7cfe6.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 810
     },
     {
       "doi": "10.1038/s41559-026-03050-0",
@@ -7555,7 +7798,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/aef6c1858c.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/aef6c1858c.webp",
       "cover_thumb_w": 411,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/aef6c1858c.webp",
+      "cover_disp_w": 1029,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s41467-026-71992-x",
@@ -7662,7 +7908,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/a746dcf9e4.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/a746dcf9e4.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 272
+      "cover_thumb_h": 272,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/a746dcf9e4.webp",
+      "cover_disp_w": 765,
+      "cover_disp_h": 433
     },
     {
       "doi": "10.1126/sciadv.aec7264",
@@ -7709,7 +7958,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/f8099fadfa.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/f8099fadfa.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 377
+      "cover_thumb_h": 377,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/f8099fadfa.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 943
     },
     {
       "doi": "10.1038/s41586-026-10370-5",
@@ -7760,7 +8012,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/0ec1b56ac3.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/0ec1b56ac3.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 450
+      "cover_thumb_h": 450,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/0ec1b56ac3.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1124
     },
     {
       "doi": "10.1038/s41586-026-10434-6",
@@ -7938,7 +8193,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/d414eaf6dd.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/d414eaf6dd.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 369
+      "cover_thumb_h": 369,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/d414eaf6dd.webp",
+      "cover_disp_w": 767,
+      "cover_disp_h": 589
     },
     {
       "doi": "10.1016/j.tree.2026.04.006",
@@ -8041,7 +8299,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/911cdf10df.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/911cdf10df.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 236
+      "cover_thumb_h": 236,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/911cdf10df.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 591
     },
     {
       "doi": "10.1016/j.oneear.2026.101702",
@@ -8092,7 +8353,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/e63d5f67f8.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/e63d5f67f8.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/e63d5f67f8.webp",
+      "cover_disp_w": 996,
+      "cover_disp_h": 996
     },
     {
       "doi": "10.1126/science.adz0773",
@@ -8150,7 +8414,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/45b6aa1e73.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/45b6aa1e73.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 184
+      "cover_thumb_h": 184,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/45b6aa1e73.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 461
     },
     {
       "doi": "10.1038/s41467-026-72154-9",
@@ -8197,7 +8464,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/02c685fcc0.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/02c685fcc0.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 267
+      "cover_thumb_h": 267,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/02c685fcc0.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 666
     },
     {
       "doi": "10.1038/s41586-026-10498-4",
@@ -8281,7 +8551,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/6ed414f6ab.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/6ed414f6ab.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 197
+      "cover_thumb_h": 197,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/6ed414f6ab.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 493
     },
     {
       "doi": "10.1038/s44358-026-00159-9",
@@ -8458,7 +8731,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/28f7c1911a.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/28f7c1911a.webp",
       "cover_thumb_w": 331,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/28f7c1911a.webp",
+      "cover_disp_w": 828,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s41559-026-03068-4",
@@ -8518,7 +8794,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/07d9c02e00.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/07d9c02e00.webp",
       "cover_thumb_w": 328,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/07d9c02e00.webp",
+      "cover_disp_w": 821,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s41586-026-10455-1",
@@ -8584,7 +8863,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/186129dac8.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/186129dac8.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 445
+      "cover_thumb_h": 445,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/186129dac8.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1113
     },
     {
       "doi": "10.1016/j.tree.2026.04.007",
@@ -8640,7 +8922,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/9ec77fd994.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/9ec77fd994.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 261
+      "cover_thumb_h": 261,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/9ec77fd994.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 653
     },
     {
       "doi": "10.1016/j.oneear.2026.101710",
@@ -8722,7 +9007,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/9470771fca.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/9470771fca.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 387
+      "cover_thumb_h": 387,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/9470771fca.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 967
     },
     {
       "doi": "10.1016/j.oneear.2026.101681",
@@ -8770,7 +9058,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/597cf5cc68.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/597cf5cc68.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 187
+      "cover_thumb_h": 187,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/597cf5cc68.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 467
     },
     {
       "doi": "10.1126/science.aea9563",
@@ -8840,7 +9131,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/fa2188ff3c.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/fa2188ff3c.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 248
+      "cover_thumb_h": 248,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/fa2188ff3c.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 620
     },
     {
       "doi": "10.1038/s41559-026-03047-9",
@@ -9144,7 +9438,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/81115cf1ac.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/81115cf1ac.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 312
+      "cover_thumb_h": 312,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/81115cf1ac.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 781
     },
     {
       "doi": "10.1038/s41559-026-03075-5",
@@ -9251,7 +9548,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/7ae24ef5fb.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/7ae24ef5fb.webp",
       "cover_thumb_w": 473,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/7ae24ef5fb.webp",
+      "cover_disp_w": 1183,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1016/j.oneear.2026.101704",
@@ -9330,7 +9630,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/5ac4bb9601.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/5ac4bb9601.webp",
       "cover_thumb_w": 460,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/5ac4bb9601.webp",
+      "cover_disp_w": 1149,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1126/science.adq3396",
@@ -9467,7 +9770,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/69f598b87c.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/69f598b87c.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 300
+      "cover_thumb_h": 300,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/69f598b87c.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 750
     },
     {
       "doi": "10.1126/science.adv6172",
@@ -9513,7 +9819,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/4daced5483.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/4daced5483.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 357
+      "cover_thumb_h": 357,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/4daced5483.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 893
     },
     {
       "doi": "10.1038/s41559-026-03084-4",
@@ -9613,7 +9922,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/a2a756ed95.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/a2a756ed95.webp",
       "cover_thumb_w": 409,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/a2a756ed95.webp",
+      "cover_disp_w": 685,
+      "cover_disp_h": 803
     },
     {
       "doi": "10.1038/s41893-026-01816-9",
@@ -9822,7 +10134,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/a391203d51.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/a391203d51.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 419
+      "cover_thumb_h": 419,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/a391203d51.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1049
     },
     {
       "doi": "10.1038/s41559-026-03060-y",
@@ -9906,7 +10221,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/9c3122ac7d.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/9c3122ac7d.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 372
+      "cover_thumb_h": 372,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/9c3122ac7d.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 930
     },
     {
       "doi": "10.1038/s44358-026-00167-9",
@@ -10210,7 +10528,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/2c7baa5857.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/2c7baa5857.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 385
+      "cover_thumb_h": 385,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/2c7baa5857.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 964
     },
     {
       "doi": "10.1126/science.aea9058",
@@ -10283,7 +10604,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/99a0f962b7.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/99a0f962b7.webp",
       "cover_thumb_w": 305,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/99a0f962b7.webp",
+      "cover_disp_w": 762,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s41467-026-73236-4",
@@ -10437,7 +10761,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/6f16544556.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/6f16544556.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 465
+      "cover_thumb_h": 465,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/6f16544556.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1161
     },
     {
       "doi": "10.1038/s41559-026-03098-y",
@@ -10488,7 +10815,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/e6306fc93f.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/e6306fc93f.webp",
       "cover_thumb_w": 435,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/e6306fc93f.webp",
+      "cover_disp_w": 1088,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s41586-026-10551-2",
@@ -10539,7 +10869,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/7997adbfcc.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/7997adbfcc.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 410
+      "cover_thumb_h": 410,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/7997adbfcc.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1026
     },
     {
       "doi": "10.1038/s41559-026-03081-7",
@@ -10647,7 +10980,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/7886076d4b.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/7886076d4b.webp",
       "cover_thumb_w": 471,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/7886076d4b.webp",
+      "cover_disp_w": 1177,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s41586-026-10630-4",
@@ -10703,7 +11039,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/1a2df5203b.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/1a2df5203b.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 400
+      "cover_thumb_h": 400,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/1a2df5203b.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1000
     },
     {
       "doi": "10.1038/s41467-026-74214-6",
@@ -10757,7 +11096,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/790798421f.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/790798421f.webp",
       "cover_thumb_w": 329,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/790798421f.webp",
+      "cover_disp_w": 538,
+      "cover_disp_h": 786
     },
     {
       "doi": "10.1038/s41467-026-74356-7",
@@ -10821,7 +11163,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/d6d776dbc1.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/d6d776dbc1.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 369
+      "cover_thumb_h": 369,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/d6d776dbc1.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 922
     },
     {
       "doi": "10.1038/s44358-026-00170-0",
@@ -10939,7 +11284,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/7da7034fdc.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/7da7034fdc.webp",
       "cover_thumb_w": 478,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/7da7034fdc.webp",
+      "cover_disp_w": 1194,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1016/j.tree.2026.05.011",
@@ -10985,7 +11333,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/8f947f4453.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/8f947f4453.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 394
+      "cover_thumb_h": 394,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/8f947f4453.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 986
     },
     {
       "doi": "10.1038/s41559-026-03095-1",
@@ -11082,7 +11433,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/1864f66fb3.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/1864f66fb3.webp",
       "cover_thumb_w": 472,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/1864f66fb3.webp",
+      "cover_disp_w": 1181,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s43016-026-01375-4",
@@ -11133,7 +11487,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/92f9eb6897.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/92f9eb6897.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 401
+      "cover_thumb_h": 401,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/92f9eb6897.webp",
+      "cover_disp_w": 1080,
+      "cover_disp_h": 903
     },
     {
       "doi": "10.1038/s44358-026-00173-x",
@@ -11284,7 +11641,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/3a76e6dbca.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/3a76e6dbca.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 427
+      "cover_thumb_h": 427,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/3a76e6dbca.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1068
     },
     {
       "doi": "10.1126/science.aed1493",
@@ -11337,7 +11697,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/65f2b24892.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/65f2b24892.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 266
+      "cover_thumb_h": 266,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/65f2b24892.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 665
     },
     {
       "doi": "10.1016/j.oneear.2026.101739",
@@ -11432,7 +11795,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/1770b664b6.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/1770b664b6.webp",
       "cover_thumb_w": 477,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/1770b664b6.webp",
+      "cover_disp_w": 1192,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s41467-026-74132-7",
@@ -11483,7 +11849,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/6b7f16fbd8.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/6b7f16fbd8.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 303
+      "cover_thumb_h": 303,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/6b7f16fbd8.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 758
     },
     {
       "doi": "10.1038/s41559-026-03114-1",
@@ -11743,7 +12112,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/5bcbc66936.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/5bcbc66936.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 400
+      "cover_thumb_h": 400,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/5bcbc66936.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 999
     },
     {
       "doi": "10.1038/s41467-026-74914-z",
@@ -12028,7 +12400,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/16804d37ca.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/16804d37ca.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 318
+      "cover_thumb_h": 318,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/16804d37ca.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 794
     },
     {
       "doi": "10.1038/s41467-026-74963-4",
@@ -12085,7 +12460,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/c3ce6b1dd1.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/c3ce6b1dd1.webp",
       "cover_thumb_w": 424,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/c3ce6b1dd1.webp",
+      "cover_disp_w": 1060,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s41467-026-75210-6",
@@ -12176,7 +12554,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/d59173b4fa.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/d59173b4fa.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 448
+      "cover_thumb_h": 448,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/d59173b4fa.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1121
     },
     {
       "doi": "10.1126/sciadv.adz1923",
@@ -12263,7 +12644,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/d91400542a.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/d91400542a.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 247
+      "cover_thumb_h": 247,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/d91400542a.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 618
     },
     {
       "doi": "10.1016/j.tree.2026.06.006",
@@ -12315,7 +12699,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/27270bf0ba.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/27270bf0ba.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 281
+      "cover_thumb_h": 281,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/27270bf0ba.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 702
     },
     {
       "doi": "10.1016/j.oneear.2026.101747",
@@ -12365,7 +12752,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/7c75d356ad.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/7c75d356ad.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 476
+      "cover_thumb_h": 476,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/7c75d356ad.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1190
     },
     {
       "doi": "10.1016/j.oneear.2026.101752",
@@ -12414,7 +12804,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/3878430025.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/3878430025.webp",
       "cover_thumb_w": 353,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/3878430025.webp",
+      "cover_disp_w": 675,
+      "cover_disp_h": 918
     },
     {
       "doi": "10.1038/s41559-026-03119-w",
@@ -12489,7 +12882,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/1e9a403d5a.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/1e9a403d5a.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 277
+      "cover_thumb_h": 277,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/1e9a403d5a.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 692
     },
     {
       "doi": "10.1038/s41467-026-75321-0",
@@ -12603,7 +12999,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/5c81634515.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/5c81634515.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 236
+      "cover_thumb_h": 236,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/5c81634515.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 590
     },
     {
       "doi": "10.1038/s41559-026-03138-7",
@@ -12691,7 +13090,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/c04421ae22.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/c04421ae22.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 351
+      "cover_thumb_h": 351,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/c04421ae22.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 878
     },
     {
       "doi": "10.1038/s41559-026-03125-y",
@@ -12886,7 +13288,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/8e44ed9bcf.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/8e44ed9bcf.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 322
+      "cover_thumb_h": 322,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/8e44ed9bcf.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 804
     },
     {
       "doi": "10.1038/s44358-026-00183-9",
@@ -13058,7 +13463,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/f1ed1dbb43.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/f1ed1dbb43.webp",
       "cover_thumb_w": 418,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/f1ed1dbb43.webp",
+      "cover_disp_w": 1046,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s41467-026-74371-8",
@@ -13119,7 +13527,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/c849bab1dc.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/c849bab1dc.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 364
+      "cover_thumb_h": 364,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/c849bab1dc.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 909
     },
     {
       "doi": "10.1038/s41559-026-03130-1",
@@ -13242,7 +13653,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/21791fbab5.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/21791fbab5.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 292
+      "cover_thumb_h": 292,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/21791fbab5.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 729
     },
     {
       "doi": "10.1038/s41558-026-02696-9",
@@ -13293,7 +13707,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/df6481cb16.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/df6481cb16.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 377
+      "cover_thumb_h": 377,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/df6481cb16.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 943
     },
     {
       "doi": "10.1038/s41467-026-75740-z",
@@ -13348,7 +13765,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/2aa7a60e75.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/2aa7a60e75.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 377
+      "cover_thumb_h": 377,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/2aa7a60e75.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 943
     },
     {
       "doi": "10.1038/s41467-026-75777-0",
@@ -13409,7 +13829,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/d5a93cae31.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/d5a93cae31.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 343
+      "cover_thumb_h": 343,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/d5a93cae31.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 858
     },
     {
       "doi": "10.1126/science.aee6239",
@@ -13460,7 +13883,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/f6ae2df8cd.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/f6ae2df8cd.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 374
+      "cover_thumb_h": 374,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/f6ae2df8cd.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 934
     },
     {
       "doi": "10.1126/science.aed0603",
@@ -13509,7 +13935,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/dd6caf4e3a.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/dd6caf4e3a.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 358
+      "cover_thumb_h": 358,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/dd6caf4e3a.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 894
     },
     {
       "doi": "10.1126/sciadv.aee1788",
@@ -13591,7 +14020,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/fd2fd22eae.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/fd2fd22eae.webp",
       "cover_thumb_w": 287,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/fd2fd22eae.webp",
+      "cover_disp_w": 718,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1126/sciadv.aeb8680",
@@ -13815,7 +14247,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/fda7cf81d6.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/fda7cf81d6.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 344
+      "cover_thumb_h": 344,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/fda7cf81d6.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 861
     },
     {
       "doi": "10.1038/s41559-026-03110-5",
@@ -13869,7 +14304,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/5c36a2a8a3.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/5c36a2a8a3.webp",
       "cover_thumb_w": 437,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/5c36a2a8a3.webp",
+      "cover_disp_w": 1092,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s41477-026-02327-3",
@@ -13981,7 +14419,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/259c98813a.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/259c98813a.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 334
+      "cover_thumb_h": 334,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/259c98813a.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 836
     },
     {
       "doi": "10.1038/s44284-026-00489-x",
@@ -14036,7 +14477,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/2835bdcb1a.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/2835bdcb1a.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 254
+      "cover_thumb_h": 254,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/2835bdcb1a.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 634
     },
     {
       "doi": "10.1038/s41558-026-02697-8",
@@ -14084,7 +14528,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/a98a2c9826.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/a98a2c9826.webp",
       "cover_thumb_w": 374,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/a98a2c9826.webp",
+      "cover_disp_w": 934,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s44358-026-00177-7",
@@ -14201,7 +14648,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/3d4a2b9449.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/3d4a2b9449.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 303
+      "cover_thumb_h": 303,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/3d4a2b9449.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 758
     },
     {
       "doi": "10.1126/science.aeg0333",
@@ -14249,7 +14699,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/fcbb2c47cd.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/fcbb2c47cd.webp",
       "cover_thumb_w": 409,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/fcbb2c47cd.webp",
+      "cover_disp_w": 1023,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1126/science.aef2893",
@@ -14298,7 +14751,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/365313464e.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/365313464e.webp",
       "cover_thumb_w": 345,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/365313464e.webp",
+      "cover_disp_w": 863,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s41559-026-03134-x",
@@ -14404,7 +14860,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/d3568a4ea5.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/d3568a4ea5.webp",
       "cover_thumb_w": 453,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/d3568a4ea5.webp",
+      "cover_disp_w": 1132,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s41467-026-76226-8",
@@ -14455,7 +14914,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/b6ea0e5ac3.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/b6ea0e5ac3.webp",
       "cover_thumb_w": 445,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/b6ea0e5ac3.webp",
+      "cover_disp_w": 1113,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s41467-026-73628-6",
@@ -14504,7 +14966,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/f72babc376.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/f72babc376.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 401
+      "cover_thumb_h": 401,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/f72babc376.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1002
     },
     {
       "doi": "10.1038/s41467-026-76105-2",
@@ -14561,7 +15026,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/2aa2325bfd.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/2aa2325bfd.webp",
       "cover_thumb_w": 337,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/2aa2325bfd.webp",
+      "cover_disp_w": 843,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s41559-026-03139-6",
@@ -14640,7 +15108,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/c12edc6ebb.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/c12edc6ebb.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 327
+      "cover_thumb_h": 327,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/c12edc6ebb.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 817
     },
     {
       "doi": "10.1038/s41586-026-10795-y",
@@ -14697,7 +15168,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/fd1d4545cb.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/fd1d4545cb.webp",
       "cover_thumb_w": 398,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/fd1d4545cb.webp",
+      "cover_disp_w": 996,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s41467-026-75625-1",
@@ -14750,7 +15224,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/66b177e3d5.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/66b177e3d5.webp",
       "cover_thumb_w": 276,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/66b177e3d5.webp",
+      "cover_disp_w": 689,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1126/sciadv.aef9781",
@@ -14801,7 +15278,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/7150aa37e4.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/7150aa37e4.webp",
       "cover_thumb_w": 416,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/7150aa37e4.webp",
+      "cover_disp_w": 1041,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1126/science.aek0207",
@@ -14893,7 +15373,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/950ebc3c44.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/950ebc3c44.webp",
       "cover_thumb_w": 357,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/950ebc3c44.webp",
+      "cover_disp_w": 893,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1016/j.oneear.2026.101781",
@@ -15057,7 +15540,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/77ea3678a0.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/77ea3678a0.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 223
+      "cover_thumb_h": 223,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/77ea3678a0.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 557
     },
     {
       "doi": "10.1038/s41559-026-03117-y",
@@ -15198,7 +15684,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/5451bf4a5d.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/5451bf4a5d.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 241
+      "cover_thumb_h": 241,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/5451bf4a5d.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 602
     },
     {
       "doi": "10.1038/s41467-026-76324-7",
@@ -15260,7 +15749,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/45552d78a4.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/45552d78a4.webp",
       "cover_thumb_w": 470,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/45552d78a4.webp",
+      "cover_disp_w": 1176,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s41893-026-01914-8",
@@ -15385,7 +15877,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/6870e4db35.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/6870e4db35.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 337
+      "cover_thumb_h": 337,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/6870e4db35.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 843
     },
     {
       "doi": "10.1038/s41477-026-02360-2",
@@ -15542,7 +16037,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/d81d1825c5.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/d81d1825c5.webp",
       "cover_thumb_w": 348,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/d81d1825c5.webp",
+      "cover_disp_w": 871,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1126/sciadv.aeg0180",
@@ -15594,7 +16092,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/e1b10946a6.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/e1b10946a6.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 307
+      "cover_thumb_h": 307,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/e1b10946a6.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 768
     },
     {
       "doi": "10.1038/s44358-026-00191-9",
@@ -15736,7 +16237,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/ac49920116.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/ac49920116.webp",
       "cover_thumb_w": 403,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/ac49920116.webp",
+      "cover_disp_w": 1007,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1126/science.aee0747",
@@ -15788,7 +16292,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/a19b498c7c.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/a19b498c7c.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 306
+      "cover_thumb_h": 306,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/a19b498c7c.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 765
     },
     {
       "doi": "10.1126/sciadv.aeg0031",
@@ -15846,7 +16353,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/05f5b33708.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/05f5b33708.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 430
+      "cover_thumb_h": 430,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/05f5b33708.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1076
     },
     {
       "doi": "10.1016/j.tree.2026.07.009",
@@ -16035,7 +16545,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/224f73cebe.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/224f73cebe.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 238
+      "cover_thumb_h": 238,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/224f73cebe.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 595
     },
     {
       "doi": "10.1038/s41559-026-03167-2",
@@ -16132,7 +16645,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/0964d098b3.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/0964d098b3.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 433
+      "cover_thumb_h": 433,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/0964d098b3.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1083
     },
     {
       "doi": "10.1038/s41467-026-76754-3",
@@ -16187,7 +16703,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/ddaa91664f.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/ddaa91664f.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 241
+      "cover_thumb_h": 241,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/ddaa91664f.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 602
     },
     {
       "doi": "10.1038/s44284-026-00501-4",
@@ -16312,7 +16831,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/25c082d17f.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/25c082d17f.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 236
+      "cover_thumb_h": 236,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/25c082d17f.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 589
     },
     {
       "doi": "10.1038/s41467-026-76981-8",
@@ -16361,7 +16883,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/061efe9ee8.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/061efe9ee8.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 436
+      "cover_thumb_h": 436,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/061efe9ee8.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1089
     },
     {
       "doi": "10.1038/s41467-026-77109-8",
@@ -16416,7 +16941,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/5b1997e8fd.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/5b1997e8fd.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 394
+      "cover_thumb_h": 394,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/5b1997e8fd.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 984
     },
     {
       "doi": "10.1038/s41467-026-77079-x",
@@ -16476,7 +17004,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/cc5a3eaa74.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/cc5a3eaa74.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 301
+      "cover_thumb_h": 301,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/cc5a3eaa74.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 753
     },
     {
       "doi": "10.1038/s41467-026-74921-0",
@@ -16590,7 +17121,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/1cc8bf8e98.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/1cc8bf8e98.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 216
+      "cover_thumb_h": 216,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/1cc8bf8e98.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 541
     },
     {
       "doi": "10.1038/s41467-026-76684-0",
@@ -16704,7 +17238,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/e13732f973.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/e13732f973.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 390
+      "cover_thumb_h": 390,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/e13732f973.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 975
     },
     {
       "doi": "10.1038/s44358-026-00195-5",
@@ -16798,7 +17335,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/4fafcbb4cb.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/4fafcbb4cb.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 469
+      "cover_thumb_h": 469,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/4fafcbb4cb.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1174
     },
     {
       "doi": "10.1038/s41561-026-02079-x",
@@ -16900,7 +17440,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/ebfac5eabf.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/ebfac5eabf.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 331
+      "cover_thumb_h": 331,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/ebfac5eabf.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 827
     },
     {
       "doi": "10.1038/s41559-026-03147-6",
@@ -16956,7 +17499,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/c890e6cbdd.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/c890e6cbdd.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 474
+      "cover_thumb_h": 474,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/c890e6cbdd.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1185
     },
     {
       "doi": "10.1038/s41559-026-03162-7",
@@ -17017,7 +17563,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/50ca126824.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/50ca126824.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 461
+      "cover_thumb_h": 461,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/50ca126824.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1152
     },
     {
       "doi": "10.1038/s41561-026-02095-x",
@@ -17119,7 +17668,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/7b39306cb6.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/7b39306cb6.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 474
+      "cover_thumb_h": 474,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/7b39306cb6.webp",
+      "cover_disp_w": 703,
+      "cover_disp_h": 694
     },
     {
       "doi": "10.1126/science.aek7855",
@@ -17161,7 +17713,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/22409d550f.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/22409d550f.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 258
+      "cover_thumb_h": 258,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/22409d550f.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 645
     },
     {
       "doi": "10.1126/science.aek3731",
@@ -17203,7 +17758,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/20367bcb46.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/20367bcb46.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 419
+      "cover_thumb_h": 419,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/20367bcb46.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1047
     },
     {
       "doi": "10.1016/j.oneear.2026.101812",
@@ -17706,7 +18264,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/b43ee4527f.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/b43ee4527f.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 292
+      "cover_thumb_h": 292,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/b43ee4527f.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 731
     },
     {
       "doi": "10.1126/science.adx9928",
@@ -17770,7 +18331,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/2c0b639c8c.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/2c0b639c8c.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 224
+      "cover_thumb_h": 224,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/2c0b639c8c.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 559
     },
     {
       "doi": "10.1038/s41559-026-03190-3",
@@ -17995,7 +18559,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/cc73b8a1ef.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/cc73b8a1ef.webp",
       "cover_thumb_w": 337,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/cc73b8a1ef.webp",
+      "cover_disp_w": 841,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s44284-026-00517-w",
@@ -18196,7 +18763,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/81fa384478.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/81fa384478.webp",
       "cover_thumb_w": 407,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/81fa384478.webp",
+      "cover_disp_w": 1017,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s41477-026-02407-4",
@@ -18248,7 +18818,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/aa49a35c3b.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/aa49a35c3b.webp",
       "cover_thumb_w": 399,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/aa49a35c3b.webp",
+      "cover_disp_w": 997,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1126/sciadv.aej8134",
@@ -18294,7 +18867,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/fd7a5731f3.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/fd7a5731f3.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 234
+      "cover_thumb_h": 234,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/fd7a5731f3.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 585
     },
     {
       "doi": "10.1126/sciadv.aee9917",
@@ -18343,7 +18919,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/307dbba371.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/307dbba371.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 400
+      "cover_thumb_h": 400,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/307dbba371.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1001
     },
     {
       "doi": "10.1126/sciadv.aeh3920",
@@ -18386,7 +18965,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/edaf5dd943.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/edaf5dd943.webp",
       "cover_thumb_w": 331,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/edaf5dd943.webp",
+      "cover_disp_w": 829,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1016/j.tree.2026.08.006",
@@ -18550,7 +19132,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/a2c5077ae0.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/a2c5077ae0.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 162
+      "cover_thumb_h": 162,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/a2c5077ae0.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 406
     },
     {
       "doi": "10.1038/s44358-026-00208-3",
@@ -18642,7 +19227,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/f6e2d6306c.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/f6e2d6306c.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 186
+      "cover_thumb_h": 186,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/f6e2d6306c.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 464
     },
     {
       "doi": "10.1126/science.zd89k6y",
@@ -18682,7 +19270,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/ba08ef6ab3.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/ba08ef6ab3.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 317
+      "cover_thumb_h": 317,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/ba08ef6ab3.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 793
     },
     {
       "doi": "10.1038/s41559-026-03181-4",
@@ -18744,7 +19335,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/c5796cb1cf.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/c5796cb1cf.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 338
+      "cover_thumb_h": 338,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/c5796cb1cf.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 844
     },
     {
       "doi": "10.1038/s44358-026-00200-x",
@@ -18844,7 +19438,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/c8cc538eb5.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/c8cc538eb5.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 318
+      "cover_thumb_h": 318,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/c8cc538eb5.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 794
     },
     {
       "doi": "10.1038/s41559-026-03170-7",
@@ -19031,7 +19628,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/9e836ceda2.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/9e836ceda2.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 464
+      "cover_thumb_h": 464,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/9e836ceda2.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1161
     },
     {
       "doi": "10.1038/s44358-026-00201-w",
@@ -19147,7 +19747,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/4d58e39814.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/4d58e39814.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 463
+      "cover_thumb_h": 463,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/4d58e39814.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1158
     },
     {
       "doi": "10.1038/s41559-026-03160-9",
@@ -19221,7 +19824,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/ff11b9b31b.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/ff11b9b31b.webp",
       "cover_thumb_w": 452,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/ff11b9b31b.webp",
+      "cover_disp_w": 1131,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s41558-026-02731-9",
@@ -19273,7 +19879,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/66fa614abd.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/66fa614abd.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 283
+      "cover_thumb_h": 283,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/66fa614abd.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 707
     },
     {
       "doi": "10.1038/s41467-026-77026-w",
@@ -19389,7 +19998,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/9178118fb0.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/9178118fb0.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 464
+      "cover_thumb_h": 464,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/9178118fb0.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1160
     },
     {
       "doi": "10.1038/s44358-026-00192-8",
@@ -19483,7 +20095,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/db9475e134.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/db9475e134.webp",
       "cover_thumb_w": 360,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/db9475e134.webp",
+      "cover_disp_w": 685,
+      "cover_disp_h": 913
     },
     {
       "doi": "10.1038/s44358-026-00193-7",
@@ -19586,7 +20201,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/d5d2d2d796.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/d5d2d2d796.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 404
+      "cover_thumb_h": 404,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/d5d2d2d796.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1010
     },
     {
       "doi": "10.1038/s41559-025-02930-1",
@@ -19639,7 +20257,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/b28754e0a0.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/b28754e0a0.webp",
       "cover_thumb_w": 411,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/b28754e0a0.webp",
+      "cover_disp_w": 1028,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s41586-025-09991-z",
@@ -19699,7 +20320,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/9d0bfa168b.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/9d0bfa168b.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 247
+      "cover_thumb_h": 247,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/9d0bfa168b.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 618
     },
     {
       "doi": "10.1038/s41467-026-70886-2",
@@ -19820,7 +20444,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/ec001e0b26.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/ec001e0b26.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 432
+      "cover_thumb_h": 432,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/ec001e0b26.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1079
     },
     {
       "doi": "10.1038/s41579-026-01358-z",
@@ -19966,7 +20593,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/50544dc925.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/50544dc925.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 419
+      "cover_thumb_h": 419,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/50544dc925.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 1047
     },
     {
       "doi": "10.1016/j.tree.2026.08.003",
@@ -20024,7 +20654,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/1166c56b3e.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/1166c56b3e.webp",
       "cover_thumb_w": 433,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/1166c56b3e.webp",
+      "cover_disp_w": 1083,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1016/j.oneear.2026.101866",
@@ -20071,7 +20704,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/0d4e51ad1a.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/0d4e51ad1a.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 286
+      "cover_thumb_h": 286,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/0d4e51ad1a.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 716
     },
     {
       "doi": "10.1016/j.tree.2026.09.003",
@@ -20128,7 +20764,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/7764d93c50.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/7764d93c50.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 280
+      "cover_thumb_h": 280,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/7764d93c50.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 701
     },
     {
       "doi": "10.1016/j.tree.2026.09.001",
@@ -20178,7 +20817,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/6f815e7386.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/6f815e7386.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 267
+      "cover_thumb_h": 267,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/6f815e7386.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 667
     },
     {
       "doi": "10.1126/sciadv.aee7253",
@@ -20234,7 +20876,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/7e488adc49.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/7e488adc49.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 126
+      "cover_thumb_h": 126,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/7e488adc49.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 315
     },
     {
       "doi": "10.1126/science.aed5772",
@@ -20290,7 +20935,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/257e310bb4.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/257e310bb4.webp",
       "cover_thumb_w": 471,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/257e310bb4.webp",
+      "cover_disp_w": 1177,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s41559-026-03200-4",
@@ -20346,7 +20994,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/ae71cdf634.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/ae71cdf634.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 227
+      "cover_thumb_h": 227,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/ae71cdf634.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 569
     },
     {
       "doi": "10.1038/s44358-026-00206-5",
@@ -20529,7 +21180,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/ae94b35c16.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/ae94b35c16.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 382
+      "cover_thumb_h": 382,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/ae94b35c16.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 955
     },
     {
       "doi": "10.1038/s41559-026-03195-y",
@@ -20583,7 +21237,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/32002ea700.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/32002ea700.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 191
+      "cover_thumb_h": 191,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/32002ea700.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 476
     },
     {
       "doi": "10.1038/s41559-026-03180-5",
@@ -20628,7 +21285,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/a7ae6adf1c.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/a7ae6adf1c.webp",
       "cover_thumb_w": 416,
-      "cover_thumb_h": 480
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/a7ae6adf1c.webp",
+      "cover_disp_w": 1041,
+      "cover_disp_h": 1200
     },
     {
       "doi": "10.1038/s41558-026-02773-z",
@@ -20676,7 +21336,10 @@
       "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2025/753ceca4fe.png",
       "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2025/753ceca4fe.webp",
       "cover_thumb_w": 480,
-      "cover_thumb_h": 226
+      "cover_thumb_h": 226,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2025/753ceca4fe.webp",
+      "cover_disp_w": 1200,
+      "cover_disp_h": 566
     },
     {
       "doi": "10.1038/s41467-026-78537-2",
