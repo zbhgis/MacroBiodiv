@@ -21,6 +21,25 @@ URL_RE = re.compile(r"https?://[^\s<>\"'）)\]}，。；：！？]+")
 INLINE_LINK_RE = re.compile(
     r"\[([^\]]+)\]\((https?://[^)\s]+)\)|" + URL_RE.pattern)
 
+# 公众号导流模板整段剔除（mystation mdToHtml 同款防线，2026-10-24 移植）：
+# 周报 md 从公众号导入时带入的关注/点赞话术——页面上并没有「上方关注」按钮，
+# 对读者是纯噪音；流进搜索索引（weekly-data 的 x 全文）与 llms-full.txt
+# 还会污染检索与 AI 引文。按行签名删整段，在 parse_md 入口做——render(HTML)
+# 与 plain_text(搜索索引/字数) 同源生效。匹配前先剥掉行内 * 号：模板里的
+# 关键词带 **加粗** 标记（设为**星标**），剥星后子串命中，不感知标记形态。
+BOILER_RE = re.compile(
+    r"点击上方.*关注并设为星标|感兴趣的朋友可以点击关注|多多点赞转发|留言区中交流与指正")
+
+
+def strip_boilerplate(text: str) -> str:
+    """删除命中导流模板签名的整行（front matter 已剥离后的正文）。"""
+    out = []
+    for line in text.split("\n"):
+        if BOILER_RE.search(line.replace("*", "")):
+            continue
+        out.append(line)
+    return "\n".join(out)
+
 
 def parse_front_matter(text: str) -> tuple[dict, str]:
     """返回 (meta, 正文)。无 front matter 时 meta 为空 dict。"""
@@ -144,8 +163,10 @@ def plain_text(text: str) -> str:
 
 def parse_md(text: str, alt_ctx: str = "", dims: dict | None = None) -> tuple[dict, str, list, str]:
     """一次解析：返回 (meta, 正文 HTML, TOC, 纯文本)。
-    alt_ctx 进无意义 alt 的合成（周报期标题）；dims 进 <img> 宽高预留（可缺省）。"""
+    alt_ctx 进无意义 alt 的合成（周报期标题）；dims 进 <img> 宽高预留（可缺省）。
+    入口先剥公众号导流模板段——正文渲染、搜索全文、字数统计同源干净。"""
     meta, body = parse_front_matter(text)
+    body = strip_boilerplate(body)
     doc, toc = render(body, alt_ctx, dims)
     # 纯文本取剥离 front matter 之后的正文——搜索索引与字数统计不收元数据
     return meta, doc, toc, plain_text(body)

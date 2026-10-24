@@ -174,6 +174,11 @@ DNS 子域 A 记录 → acme.sh 签证书 → 挂载 `deploy/nginx-macrobiodiv.c
 - **周报图 alt 与宽高**：md 里的 `![img](…)` 在构建期合成为「期标题 · 图 N」；
   图片尺寸首次构建时远程探测（HTTP Range 只拉头部，缓存于 `meta/wk-img-dims.json`，
   稳态零请求），`<img>` 带 width/height 预留位防长页滚动 CLS。
+- **公众号导流模板整段剔除（mystation mdToHtml 同款，2026-10-24 移植）**：
+  周报 md 从公众号导入带入的「点击上方…设为星标 / 多多点赞转发 / 留言区
+  交流指正」话术，在 `parse_md` 入口按行签名删整段（匹配前剥 `*` 号，不感知
+  **加粗** 形态）——正文渲染、搜索全文（weekly-data）、llms-full、字数统计
+  同源干净；41 期存量全部命中剥离，新导入的期次自动免疫。
 
 ## 项目文档
 
