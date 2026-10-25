@@ -697,7 +697,8 @@
      （不重渲染的默认情况下，静态输出与 JS 首屏完全一致） */
   var needRender = applied || state.per !== PAGE || state.sort !== "pub";
   if (needRender) {
-    state.page = 1;
+    /* state.page 可能来自 URL 的 page 参数（返回恢复 / 分享链接）——保留，
+       不得重置回 1（此前这句会把「返回到第 3 页」打回第 1 页） */
     render();
   } else {
     var per0 = perSize(ITEMS);
@@ -707,6 +708,44 @@
     if (next) next.disabled = ITEMS.length <= per0;
     paintNums(1, pages0);
     syncFilterBtn();
+  }
+
+  /* ── 滚动位置记忆（sessionStorage 按「路径+筛选状态」分键，GeoSciPlot 同款）：
+     从详情页快速返回——尤其详情页未加载完就点返回（导航中断，浏览器原生
+     scroll restoration 拿不到位置数据）——以及详情页「返回全部」的 fresh
+     load，都不再掉回页首。pagehide 保存 → 首帧渲染后 / bfcache 恢复时还原；
+     原生恢复（auto）仍开启，与手动还原落点是同一位置，互不打架 ── */
+  if (grid) {
+    var SCROLL_KEY = "mbd-scroll:";
+    var scrollKey = function () { return SCROLL_KEY + location.pathname + location.search; };
+    var readSavedScroll = function () {
+      try { return parseInt(sessionStorage.getItem(scrollKey()), 10) || 0; } catch (e) { return 0; }
+    };
+    window.addEventListener("pagehide", function () {
+      try {
+        var cur = scrollKey();
+        /* 收敛旧键：网格页状态经 replaceState 不产生新历史条目，同时段只有一个有效键 */
+        var dead = [];
+        for (var i = 0; i < sessionStorage.length; i++) {
+          var k = sessionStorage.key(i);
+          if (k && k.indexOf(SCROLL_KEY) === 0 && k !== cur) dead.push(k);
+        }
+        dead.forEach(function (k) { sessionStorage.removeItem(k); });
+        sessionStorage.setItem(cur, String(window.scrollY || 0));
+      } catch (e) {}
+    });
+    window.addEventListener("pageshow", function (e) {
+      /* bfcache 恢复：pagehide 时存的位置比脚本加载时读到的更新，重新读取 */
+      if (e.persisted) { var y = readSavedScroll(); if (y > 0) window.scrollTo(0, y); }
+    });
+    var savedScroll = readSavedScroll();
+    if (savedScroll > 0) {
+      /* fresh load：等首帧渲染（含 URL 参数应用后的重渲染）落定再还原——
+         封面带 width/height 预留位，布局即时终态，无需等图片下载 */
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () { window.scrollTo(0, savedScroll); });
+      });
+    }
   }
 
   /* 窄屏 / 宽屏切换时页码窗口会变，重算一次节点（不重建卡片） */

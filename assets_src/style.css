@@ -140,7 +140,10 @@ select{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-siz
 .dateinp{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-sm);padding:6px 12px;border:1px solid var(--line2);border-radius:999px;background:transparent;color:var(--dim);color-scheme:dark light}
 .fgroup{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 0;padding-bottom:8px;border-bottom:1px solid var(--line)}
 .flabel{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--faint);min-width:44px;letter-spacing:.06em}
-.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips{display:flex;flex-direction:column;gap:10px}
+/* 标签排与 全选/反选 操作排分行（chips() 输出两排，GSP 同款）；排间距 10px、
+   排内 8px，窄屏各自 flex-wrap 折行 */
+.chips-row{display:flex;flex-wrap:wrap;gap:8px}
 /* 筛选 chips（多选模型，正向选择，GSP 同步 2026-10-14）：默认全不选=灰描边胶囊 +
    计数徽标；点击=选中（accent 实底，选中值之间 OR）；行尾 全选/反选 为虚线胶囊 */
 .chips button{display:inline-flex;align-items:center;gap:7px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-sm);padding:5px 13px;border:1px solid var(--line2);border-radius:999px;background:transparent;color:var(--text);cursor:pointer;transition:color .16s,border-color .16s,background-color .16s,opacity .16s}
