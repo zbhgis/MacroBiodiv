@@ -1,6 +1,6 @@
 {
-  "generated": "2026-10-25",
-  "count": 361,
+  "generated": "2026-10-26",
+  "count": 362,
   "items": [
     {
       "doi": "10.1038/s44358-025-00123-z",
@@ -22831,6 +22831,56 @@
       "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2026/c017f8d48d.webp",
       "cover_disp_w": 1033,
       "cover_disp_h": 1200
+    },
+    {
+      "doi": "10.1016/j.tree.2026.09.012",
+      "title": "Parasites in the meta-ecosystem landscape: hidden connectors and disruptors",
+      "subtitle": "",
+      "authors": [
+        "Christian Selbach",
+        "Eirik H. Henriksen",
+        "Rachel A. Paterson",
+        "Robert Poulin",
+        "André Frainer"
+      ],
+      "journal": "Trends in Ecology & Evolution",
+      "journal_short": "Trends in Ecology & Evolution",
+      "publisher": "Elsevier BV",
+      "type": "journal-article",
+      "year": "2026",
+      "published": "2026-10",
+      "published_online": false,
+      "volume": "",
+      "issue": "",
+      "pages": "",
+      "abstract": "The meta-ecosystem framework explains spatial flows of organisms, materials, and energy across ecosystem boundaries. Parasites play crucial roles in these processes, yet they remain absent from meta-ecosystem models. Using examples from terrestrial and aquatic environments, we illustrate how parasitic organisms act as central connectors or disruptors of the flow of organisms, nutrients, and energy across ecosystem boundaries via four key mechanisms: parasite-induced host movement, behavioural changes that increase cross-ecosystem predation, host mortality, and parasite avoidance behaviour. These examples highlight the central role of parasites in driving and regulating nutrient and energy flow from catchment-to-coast, and we outline a pathway for improved integration of these parasite-mediated processes into the meta-ecosystem framework.",
+      "keywords": [
+        "parasites",
+        "meta-ecosystems",
+        "landscape ecology",
+        "host-parasite interactions",
+        "parasite dispersal",
+        "ecosystem connectivity"
+      ],
+      "issn": "0169-5347",
+      "url": "https://linkinghub.elsevier.com/retrieve/pii/S0169534726002636",
+      "source": "crossref+openalex",
+      "cited_by": 0,
+      "oa_type": "review",
+      "id": "ba774064fc",
+      "title_zh": "在元生态系统中的寄生虫：隐藏的纽带与颠覆者",
+      "abstract_zh": "元生态系统框架解释了生物、物质和能量在生态系统边界之间的流动情况。寄生虫在这些过程中扮演着至关重要的角色，然而它们在元生态系统模型中却并未被考虑进去。通过陆地和水生环境的例子，我们可以了解到寄生虫如何通过四种关键机制来充当生物、营养物质和能量在生态系统之间流动的枢纽或阻碍者：寄生虫引起的宿主迁移、增加跨生态系统捕食行为的改变、宿主死亡现象，以及寄生虫的逃避行为。这些例子凸显了寄生虫在驱动和调节营养物质和能量从流域到海岸的流动中的核心作用。同时，我们也提出了将这类由寄生虫介导的过程更好地整合到元生态系统框架中的途径。",
+      "article_type": "Opinion",
+      "note": "",
+      "tags": [],
+      "added": "2026-10-26",
+      "cover": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/full/2026/ba774064fc.png",
+      "cover_thumb": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/thumb/2026/ba774064fc.webp",
+      "cover_thumb_w": 423,
+      "cover_thumb_h": 480,
+      "cover_disp": "https://cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/disp/2026/ba774064fc.webp",
+      "cover_disp_w": 765,
+      "cover_disp_h": 869
     }
   ]
 }

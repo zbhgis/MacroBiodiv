@@ -146,6 +146,24 @@ DOI：https://doi.org/10.1126/sciadv.aeh8129
 
 ![img](https://cdn.jsdelivr.net/gh/zbhgis/BlogImg2@main/blog/202610252150836.png)
 
+# 文献9（Opinion）
+
+## 1.信息
+
+标题：Parasites in the meta-ecosystem landscape: hidden connectors and disruptors 在元生态系统中的寄生虫：隐藏的纽带与颠覆者
+
+DOI：https://doi.org/10.1016/j.tree.2026.09.012
+
+期刊：Trends in Ecology & Evolution
+
+## 2.摘要
+
+元生态系统框架解释了生物、物质和能量在生态系统边界之间的流动情况。寄生虫在这些过程中扮演着至关重要的角色，然而它们在元生态系统模型中却并未被考虑进去。通过陆地和水生环境的例子，我们可以了解到寄生虫如何通过四种关键机制来充当生物、营养物质和能量在生态系统之间流动的枢纽或阻碍者：寄生虫引起的宿主迁移、增加跨生态系统捕食行为的改变、宿主死亡现象，以及寄生虫的逃避行为。这些例子凸显了寄生虫在驱动和调节营养物质和能量从流域到海岸的流动中的核心作用。同时，我们也提出了将这类由寄生虫介导的过程更好地整合到元生态系统框架中的途径。
+
+## 3.图表
+
+![img](https://cdn.jsdelivr.net/gh/zbhgis/BlogImg2@main/blog/202610261249768.png)
+
 # 说明
 
 以上文献顺序随机排列，仅为个人挑选结果，无严格标准，十分主观，仅供参考。
