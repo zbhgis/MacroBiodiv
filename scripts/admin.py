@@ -911,6 +911,18 @@ def weekly_slug(title: str, stem: str) -> str:
     return f"weekly-{m.group(1) if m else (stem or '')[:8]}"
 
 
+def weekly_slug_of(text: str, stem: str) -> str:
+    """从 md 原文推期号 slug（与 build_weekly 同口径）：正文首个一级标题优先
+    （排除「文献N」小节标题），frontmatter title 兜底，最后回退文件名。"""
+    for m in re.finditer(r"(?m)^#(?!#)\s+(.+?)\s*$", text or ""):
+        txt = m.group(1).strip()
+        if txt and not re.match(r"^文献\d+", txt):
+            return weekly_slug(txt, stem)
+    meta, _ = parse_front_matter(text or "")
+    title = str(meta.get("title") or "").strip()
+    return weekly_slug(title, stem)
+
+
 def weekly_cover(fid: str, log: list, label: str) -> None:
     """图表为无：复制站点 logo 作封面兜底（assets_src/logo.png → covers/{fid}.png）。
     有图表时封面直接走外链直显（cover 字段存完整 URL），不再下载落盘。"""
@@ -1028,6 +1040,19 @@ def do_weekly_import(name: str, content: str, log: list) -> dict:
     log.append({"step": "解析周报", "ok": True, "out": f"《{title}》识别到 {len(parsed)} 篇文献"})
 
     WEEKLY_SRC.mkdir(parents=True, exist_ok=True)
+    # 期号撞车防护：不同文件名解析出同一 slug（标题「精选N」重复，常见于同一期
+    # 换名重传）会让构建期两篇文章页互相覆盖 —— build 侧有硬校验兜底，这里提前
+    # 到落盘前拦截并给出明确指引。同名文件（fname 相同）= 覆盖更新，放行。
+    new_slug = weekly_slug_of(content, Path(fname).stem)
+    for other in WEEKLY_SRC.glob("*.md"):
+        if other.name == fname:
+            continue
+        if weekly_slug_of(other.read_text(encoding="utf-8", errors="replace"),
+                          other.stem) == new_slug:
+            log.append({"step": "校验期号", "ok": False,
+                        "out": f"与已收录的《{other.name}》同为期号 {new_slug}（标题「精选N」重复）。"
+                               f"同一期更新请使用原文件名上传（覆盖式），或修正标题期号后重试；本次未落盘"})
+            return {"ok": False}
     (WEEKLY_SRC / fname).write_text(content, encoding="utf-8", newline="\n")
     log.append({"step": "落盘内容源", "ok": True,
                 "out": f"content/weekly/{fname}（周报页随本次构建自动收录）"})
@@ -1299,7 +1324,8 @@ def _parse_fm_fields(fm_block: str) -> dict:
 def _build_fm(meta: dict) -> str:
     """元数据 → 规范 frontmatter 块（双引号标量 + JSON 数组，与存量周报同款）。"""
     def q(s: str) -> str:
-        return '"' + str(s or "").replace('"', "'") + '"'
+        # fm 标量内不允许换行（会击穿 frontmatter 块结构）；引号降为单引号
+        return '"' + str(s or "").replace('"', "'").replace("\r", " ").replace("\n", " ") + '"'
     lines = ["---",
              f"title: {q(meta.get('title', ''))}",
              f"date: {q(meta.get('date', ''))}"]
@@ -1611,8 +1637,6 @@ class Handler(BaseHTTPRequestHandler):
             self._json(data)
         elif path == "/api/weekly":
             self._json(weekly_issues())
-        elif path == "/api/weekly/trash":
-            self._json({"items": weekly_trash_list()})
         elif path == "/api/weekly/file":
             q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
             self._json(weekly_file_read((q.get("name") or [""])[0]))

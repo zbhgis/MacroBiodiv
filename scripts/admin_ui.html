@@ -1071,7 +1071,13 @@ function mRenderChips() {
     var b = document.createElement("button");
     b.type = "button";
     b.setAttribute("aria-pressed", String(mFilter.tag === val));
-    b.innerHTML = label + (n !== undefined ? ' <span class="n">' + n + "</span>" : "");
+    // 标签文本走 textContent：tags 可能来自周报 front matter（导入外部 md），
+    // 经 innerHTML 会把形如 <img onerror=…> 的标签名当作 HTML 执行（同源 XSS）
+    b.textContent = label;
+    if (n !== undefined) {
+      b.appendChild(document.createTextNode(" "));
+      b.appendChild(el("span", "n", n));
+    }
     b.addEventListener("click", function () {
       mFilter.tag = (mFilter.tag === val ? "*" : val);
       mRenderChips(); mRender();

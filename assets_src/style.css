@@ -179,6 +179,9 @@ select{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-siz
 @media (prefers-reduced-motion:reduce){.c-covbox::before{animation:none}}
 /* 无封面占位块：期刊缩写居中（GeoSciPlot .ph 同语言） */
 .c-ph{display:flex;align-items:center;justify-content:center;min-height:140px;padding:18px;background:var(--line);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);letter-spacing:.08em;color:var(--faint);text-align:center}
+/* 外链图兜底占位（img-fallback.js）：文章图逐级换源全失败时替换 <img>；
+   有宽高的图由脚本内联 aspect-ratio 锁比例，这里兜住无宽高的情况 */
+.img-ph{display:flex;align-items:center;justify-content:center;width:100%;min-height:120px;padding:12px;border:1px dashed var(--line2);border-radius:6px;background:var(--card);color:var(--faint);font-size:var(--fs-sm);text-align:center}
 .c-cap{display:block;padding:10px 12px 12px}
 .c-meta{display:flex;flex-wrap:wrap;gap:5px;min-width:0;margin:0 0 7px}
 .pgbar{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;margin:44px 0 0;padding-top:24px;border-top:1px solid var(--line)}
@@ -208,7 +211,7 @@ footer.site{margin-top:56px;padding:24px 0 64px;border-top:1px solid var(--line)
 .pbody{max-width:677px;margin:0 auto}
 .p-top{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin:26px 0 0}
 .p-top .c-j{font-size:var(--fs-xs)}
-.p-top .p-type,.p-top .p-ct{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--faint)}
+.p-top .p-ct{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);color:var(--faint)}
 .p-head{padding-bottom:16px;border-bottom:1px solid var(--rs,var(--accent));text-align:center}
 .p-title{font-size:clamp(22px,3.2vw,30px);line-height:1.5;letter-spacing:-.01em;margin:14px 0 0;font-weight:700}
 .alt-title{font-size:var(--fs-sm);color:var(--dim);margin:8px 0 0;line-height:1.7}
@@ -387,7 +390,6 @@ mark{background:color-mix(in srgb,var(--accent) 24%,transparent);color:inherit;b
 @media (min-width:640px){.wk-line-in{flex-direction:row;justify-content:space-between;align-items:flex-start;gap:24px}.wk-line-main{flex:1}.wk-line-side{text-align:right}}
 /* 标签 chip（v3-tag 同源） */
 .wk-tag{display:inline-flex;align-items:center;height:19px;padding:0 6px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-xs);line-height:1;border:1px solid var(--line2);border-radius:999px;color:var(--dim);white-space:nowrap}
-.wk-tag-accent{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
 /* ── 文章页三栏骨架（max-1400：左文章导航 250 / 中正文 760 / 右 TOC 180）── */
 .wk-shell{display:flex;max-width:1400px;margin:0 auto}
 .wk-side{display:none;width:250px;flex:none;border-right:1px solid var(--line)}

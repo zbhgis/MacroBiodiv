@@ -368,10 +368,6 @@ def page_shell(cfg: dict, title: str, body: str, depth: int = 0, gh_url: str = "
 """
 
 
-def flat(values, default: str = "—") -> Counter:
-    return Counter([str(v) if v else default for v in values])
-
-
 def chips(values: Counter, key: str) -> str:
     """多选 chips（正向选择语义，2026-10-14 与 RSS 配置页统一）：默认全不选
     （aria-pressed=false），点击=选中该标签（选中值之间 OR = 只显示命中项），
@@ -1314,6 +1310,17 @@ def build_weekly(cfg: dict) -> tuple[list[str], list[dict]]:
             print(f"· 周报图尺寸缓存写入失败（不影响构建）：{e}")
     posts.sort(key=lambda p: p["date"], reverse=True)   # 新→旧；i-1 更新（上一篇）
 
+    # slug 撞车硬校验：两期解析出同一期号（标题里的「精选N」重复，常见于同一期
+    # 换文件名重复上传）时，后写会静默覆盖先写的文章页、sitemap 出现重复 URL
+    # —— 宁可构建失败，也不无声替换已发布内容
+    seen_slugs: dict[str, str] = {}
+    for p in posts:
+        if p["slug"] in seen_slugs:
+            raise SystemExit(
+                f"构建中止：期号 slug 撞车 —— 《{seen_slugs[p['slug']]}》与《{p['title']}》"
+                f"同为 {p['slug']}。请删除多余一期或修正标题中的「精选N」后重新构建")
+        seen_slugs[p["slug"]] = p["title"]
+
     # 周报搜索数据（/search/ 页客户端检索用）：全文存 plain（截 30000 字符防无限增长）；
     # "<" 转义防正文里出现 </script> 提前截断内嵌 script
     wk_data = [{
@@ -1360,7 +1367,7 @@ def build_weekly(cfg: dict) -> tuple[list[str], list[dict]]:
 <h1 class="wk-deco wk-h1">{esc(p["title"])}</h1>
 <div class="wk-tagsrow">{'<span class="dot">·</span>'.join(tags)}</div>
 <div class="wk-meta"><a href="{WK_AUTHOR_URL}" target="_blank" rel="noopener" title="作者 GitHub 主页">{WK_ICO_USER}{WK_AUTHOR}</a><span>{WK_ICO_DOC}{p["words"]} 字</span><span>{WK_ICO_CLOCK}约 {p["reading"]} 分钟</span>{rstyle_toggle("plain")}</div>
-<div class="wk-dates"><span>{'收录周期' if p["period"] != p["date"] else '创建于'} <time datetime="{p["date"]}">{p["period"]}</time></span></div>
+<div class="wk-dates"><span>{'收录周期' if p["period"] != p["date"] else '创建于'} <time datetime="{esc(p["date"])}">{esc(p["period"])}</time></span></div>
 <div class="wk-content">{p["doc"]}</div>
 <nav class="wk-prevnext" aria-label="文章导航">{pn_cell(prev_p, False)}{pn_cell(next_p, True)}</nav>
 </article></main>
@@ -1458,7 +1465,7 @@ def build_weekly(cfg: dict) -> tuple[list[str], list[dict]]:
                      f'<p class="wk-line-sum">{esc(p["summary"])}</p></span>'
                      f'<span class="wk-line-side"><span class="wk-line-tags">'
                      f'<span class="wk-tag">{esc(p["month"])}</span></span>'
-                     f'<span class="wk-line-date">{p["date"]}</span></span></span></a>')
+                     f'<span class="wk-line-date">{esc(p["date"])}</span></span></span></a>')
         pg = page_of[key]
         sections += (f'<section class="wk-group" id="m-{key}" data-page="{pg}"'
                      f'{"" if pg == 1 else " hidden"}>'

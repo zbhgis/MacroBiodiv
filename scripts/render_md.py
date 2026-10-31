@@ -114,7 +114,9 @@ def render(text: str, alt_ctx: str = "", dims: dict | None = None) -> tuple[str,
             flush()
             img_n += 1
             raw_alt = m.group(1).strip()
-            src, src_url = _esc(m.group(2)), m.group(2)
+            # src 按属性位转义（quote=True）：IMG_RE 放行引号，quote=False 会让
+            # URL 里的 " 逃出 src 属性注入新属性（onerror 等）
+            src, src_url = html.escape(m.group(2), quote=True), m.group(2)
             # 周报 md 习惯写 ![img](…)：alt 无信息量，无障碍读屏与图片搜索双输。
             # 无意义 alt（img/image/空…）按「期标题 · 图 N」合成，有意义的原样保留
             generic = raw_alt.lower() in ("", "img", "image", "图", "图片", "photo", "pic", "png", "jpg")
@@ -126,7 +128,7 @@ def render(text: str, alt_ctx: str = "", dims: dict | None = None) -> tuple[str,
                 wh = dims.get(src_url)
                 if wh and wh[0] and wh[1]:
                     dim = f' width="{wh[0]}" height="{wh[1]}"'
-            out.append(f'<p class="wk-img"><img src="{src}" alt="{_esc(alt)}"{dim} loading="lazy" decoding="async"></p>')
+            out.append(f'<p class="wk-img"><img src="{src}" alt="{html.escape(alt, quote=True)}"{dim} loading="lazy" decoding="async"></p>')
             continue
         m = H_RE.match(line)
         if m:
