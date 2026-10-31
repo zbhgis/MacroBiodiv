@@ -1309,8 +1309,11 @@ function manageRow(it) {
   info.appendChild(el("div", "", (it.authors || []).slice(0, 3).join(", ") + ((it.authors || []).length > 3 ? " et al." : "")));
   var doiLine = el("div", "");
   if (it.doi) {
+    /* 防御纵深不能只押数据层的 normalize_doi：未来任何绕过归一的新写入路径
+       （如手工编辑 papers.json）会让这里批量出坏链，展示层同样剥前缀 */
+    var bare = String(it.doi).replace(/^(?:https?:\/\/)?(?:dx\.)?doi\.org\//i, "");
     var a = document.createElement("a");
-    a.href = "https://doi.org/" + it.doi;
+    a.href = /^https?:\/\//i.test(bare) ? bare : "https://doi.org/" + bare;
     a.textContent = it.doi;
     a.target = "_blank";
     a.rel = "noopener";

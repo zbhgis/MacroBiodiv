@@ -3,10 +3,13 @@
   if (!CFG) return;
 
   /* 统计打点：所有页面（首页 + 详情页）都要执行。之前放在网格逻辑之后，
-     详情页因没有 #grid 提前 return，打点从未跑过（GeoSciPlot 踩过的坑） */
-  if (CFG.tracker && !location.hostname.match(/^(localhost|127\.0\.0\.1|)$/)) {
+     详情页因没有 #grid 提前 return，打点从未跑过（GeoSciPlot 踩过的坑）。
+     DNT 只能跳过打点本身，绝不能 return —— 本文件整个包在一个 IIFE 里，
+     在这里 return 会把搜索页、网格重渲、返回链接等全站交互杀掉
+     （GeoSciPlot gallery.js 同款修复，2026-10-31 移植） */
+  if (CFG.tracker && !location.hostname.match(/^(localhost|127\.0\.0\.1|)$/)
+      && navigator.doNotTrack !== "1") {
     try {
-      if (navigator.doNotTrack === "1") return;
       fetch(CFG.tracker, {
         method: "POST",
         headers: { "content-type": "application/json" },

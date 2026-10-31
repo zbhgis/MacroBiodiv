@@ -474,16 +474,18 @@ def citation(p: dict) -> str:
     else:
         auth_s = ""
     s = f"{auth_s}{p.get('title', '')}"
-    if p.get("journal"):
-        s += "[J]. " + p["journal"] + ", "
-    else:
-        s += ". "
-    s += p.get("year") or ""
     vp = _volume_pages(p)
+    tail = p.get("year") or ""
     if vp:
-        s += ", " + vp
+        tail = f"{tail}, {vp}" if tail else vp      # 年份缺失时卷期页顶上，不出悬空逗号
+    if p.get("journal"):
+        s += "[J]. " + p["journal"] + (", " + tail if tail else "") + "."
+    else:
+        s += "."
+        if tail:
+            s += " " + tail + "."
     if p.get("doi"):
-        s += f". DOI: {p['doi']}."
+        s += f" DOI: {p['doi']}."
     elif not s.endswith("."):
         s += "."
     return s
@@ -517,9 +519,9 @@ def card_html(p: dict) -> str:
         # 缩略外链优先（图床 webp，30-60KB）；width/height 预留位 + 「加载中」占位层；
         # data-full 供加载失败时回退原图外链
         cov_html = (f'\n  <span class="c-covbox"><img class="c-cov" src="{esc(ctb)}"'
-                    f' data-full="{cover_src(cov)}"{dims} alt="《{alt_cov}》封面图" loading="lazy"></span>')
+                    f' data-full="{esc(cover_src(cov))}"{dims} alt="《{alt_cov}》封面图" loading="lazy"></span>')
     elif cov:
-        cov_html = (f'\n  <span class="c-covbox"><img class="c-cov" src="{cover_src(cov)}"'
+        cov_html = (f'\n  <span class="c-covbox"><img class="c-cov" src="{esc(cover_src(cov))}"'
                     f' alt="《{alt_cov}》封面图" loading="lazy"></span>')
     else:
         cov_html = f'\n  <span class="c-ph">{esc(jb)}</span>'
@@ -1263,6 +1265,12 @@ def build_weekly(cfg: dict) -> tuple[list[str], list[dict]]:
         doc = re.sub(r'<h2 id="doc-1" class="md-h1">.*?</h2>\n*', "", doc, count=1)
         toc = [t for t in toc if t[1] != "doc-1"]
         date = str(meta.get("date") or "")[:10]
+        # fm date 仅截断不校验（历史口径），而它流向 <time datetime>、weekly.xml
+        # 的 <published>/<updated>、sitemap <lastmod> —— 唯一防线是这里的字符集
+        # 校验：非 ISO 日期形一律作废（展示退化为空，XML 不落假值），比在多个
+        # 输出口分别转义更稳
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date):
+            date = ""
         # 展示日期与年月标签都自动识别自标题里的期号区间（形如 260330-0405，
         # YYMMDD-MMDD、同年省略年份）：区间起始日 = 该期收录周的周一，月份与日期
         # 天然一致，跨月的期（260330-0405）不会再出现「3月胶囊配 4月日期」。
@@ -1295,7 +1303,9 @@ def build_weekly(cfg: dict) -> tuple[list[str], list[dict]]:
             "slug": slug, "title": title, "date": date, "month": month,
             "period": period,
             "doc": doc, "toc": toc, "words": words, "reading": reading,
-            "summary": summ, "og_image": first_img.group(1) if first_img else "",
+            # og:image 用原文 URL：src 取自已转义 HTML，page_shell 还会 esc 一次——
+            # 不 unescape 就双重转义，带查询串的图源分享卡直接 404（家族#10）
+            "summary": summ, "og_image": html.unescape(first_img.group(1)) if first_img else "",
             "plain": plain, "dois": dois,
         })
     if not posts:
@@ -1572,11 +1582,37 @@ def build_weekly(cfg: dict) -> tuple[list[str], list[dict]]:
     return ["/weekly/"] + [f"/weekly/{p['slug']}/" for p in posts], wk_index
 
 
+def node_check_assets() -> None:
+    """对 site/assets/*.js 逐个 node --check（兑现 minify_js 曾声称却未实现的校验）：
+    字符级状态机一旦误判正则字面量，坏 JS 会被 ?v= 主动强推全站——这里拦在构建期。
+    node 不可用（未安装/不在 PATH）时降级为跳过，不阻塞构建。"""
+    import shutil as _sh
+    node = _sh.which("node")
+    if not node:
+        print("! 未检测到 node，跳过 JS 语法校验（建议安装 node 以启用 minify_js 产物校验）")
+        return
+    import subprocess as _sp
+    bad = []
+    js_files = sorted((SITE / "assets").glob("*.js"))
+    for js in js_files:
+        pr = _sp.run([node, "--check", str(js)], capture_output=True, timeout=60)
+        if pr.returncode != 0:
+            out = (pr.stdout or b"").decode("utf-8", "replace") + (pr.stderr or b"").decode("utf-8", "replace")
+            bad.append(f"{js.name}: {out.strip()[:200]}")
+    if bad:
+        print("! JS 语法校验失败（minify_js 状态机可能误判）：")
+        for b in bad:
+            print("  - " + b)
+        raise SystemExit(1)
+    print(f"· node --check 校验 {len(js_files)} 个 JS 产物通过")
+
+
 def minify_js(src: str) -> str:
     """构建期注释剥离（保留一行一语句、不合并压缩）：本仓库前端注释是中文大段
     （UTF-8 每字 3 字节），实测省 30%+ 传输。带字面量状态机——单/双引号串、
     模板串、正则字面量里的 "//" 与 "/*" 绝不误删（img-fallback 的正则含斜杠对、
-    灯箱模板里有 /* CSS 注释 */）。产物每次构建后过 node --check 校验。"""
+    灯箱模板里有 /* CSS 注释 */）。产物在 main() 末尾经 node_check_assets() 做语法校验
+    （node 不可用时降级为警告）。"""
     SQ, DQ, TPL, BCOM, REGEX, RCLS = range(6)
     state = None
     prev = ""            # NORMAL 态最近非空白字符（正则起始 vs 除法判定）
@@ -2184,8 +2220,11 @@ def main() -> int:
     (search_dir / "index.html").write_text(build_search_page(cfg, items), encoding="utf-8")
     stats_dir = SITE / "statistics"
     stats_dir.mkdir(parents=True, exist_ok=True)
-    (stats_dir / "index.html").write_text(build_stats_page(cfg, items), encoding="utf-8")
+    # stats-data.js 必须先写盘再渲染统计页：asset_ver 按文件最终内容算 ?v= hash，
+    # 顺序反了页面会引用上一轮旧内容的 hash，配合 immutable 缓存，
+    # 发布后访客会看到滞后一个发布周期的旧统计（GeoSciPlot 同款修复）
     build_stats_data(items)
+    (stats_dir / "index.html").write_text(build_stats_page(cfg, items), encoding="utf-8")
     about_dir = SITE / "about"
     about_dir.mkdir(parents=True, exist_ok=True)
     (about_dir / "index.html").write_text(build_about(cfg), encoding="utf-8")
@@ -2206,6 +2245,7 @@ def main() -> int:
     journals = len({p.get("journal") for p in items if p.get("journal")})
     print(f"· 生成 {len(items)} 篇文献 + {pages} 页（每页 {PAGE_SIZE}）+ {journals} 本期刊")
     print(f"· index.html {index_kb:.0f}KB（首屏静态输出 {min(len(items), PAGE_SIZE)} 个卡片）")
+    node_check_assets()
     print(f"· 输出目录：{SITE.relative_to(ROOT)}/")
     return 0
 

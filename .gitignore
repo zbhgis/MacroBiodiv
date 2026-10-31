@@ -6,6 +6,9 @@ site_trash/
 __pycache__/
 *.pyc
 
+# 跨进程文件锁（admin.save_papers ↔ prepare_thumbs 写 papers.json 互斥）
+meta/.papers.lock
+
 # 系统垃圾文件
 .DS_Store
 Thumbs.db

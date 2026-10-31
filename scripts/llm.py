@@ -171,13 +171,12 @@ def _chat(messages: list[dict], temperature: float = TEMPERATURE,
                "max_tokens": MAX_TOKENS}
     last_err: LLMError | None = None
     seen_429 = 0
-    attempt = 0
+    attempt_other = 0        # 非 429 重试独立计数：429 有自己的配额，混发时不得挤占
     while True:
         if deadline and time.time() > deadline:
             _note_hard_fail()
             raise LLMError(f"耗时预算已用尽（{'；'.join(notes[-2:]) if notes else '无重试记录'}）", status=0)
         _throttle()
-        attempt += 1
         try:
             key, base, model = llm_config()
             payload["model"] = model
@@ -212,12 +211,14 @@ def _chat(messages: list[dict], temperature: float = TEMPERATURE,
                     notes.append(f"429 限流，等 {wait}s 后第 {seen_429}/{retries_429} 次重试")
                 time.sleep(wait)
             else:
-                if attempt > RETRY_OTHER:
+                attempt_other += 1
+                if attempt_other > RETRY_OTHER:
                     _note_hard_fail()
                     raise LLMError(f"{e}（已重试 {RETRY_OTHER} 次）"
                                    f"{'；'.join(notes[-2:]) if notes else ''}", status=e.status) from None
-                wait = 1.5 * attempt
+                wait = 1.5 * attempt_other
                 if deadline and time.time() + wait > deadline:
+                    _note_hard_fail()      # 放弃也是一次硬失败，断路器要记账
                     raise
                 if notes is not None:
                     notes.append(f"{str(e)[:40]}，等 {wait:.0f}s 后重试")

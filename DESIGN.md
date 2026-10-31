@@ -436,7 +436,7 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 **date 是补录日期，仅作标题缺期号区间时的兜底，不参与展示**——见下方口径；
 正文 `# 文献N` → `## 1.信息/2.摘要/3.图表`，图片为 jsdelivr CDN 外链）。md 经
 `scripts/render_md.py`（**标准库迷你渲染器**：标题降级映射 `h2.md-h1`/`h3.md-h2` 带 anchor、
-粗/斜体、独立图片行 → `.wk-img` 懒加载、裸 DOI URL 自动链接；先转义再套内联标记，未知语法纯文本兜底；图片 src 走属性位转义（quote=True，2026-10-31 修复引号逃逸）。front matter 的 date/period 等派生字段进 HTML 一律经 `esc()`（date 仅 `[:10]` 截断不做字符集校验，转义是唯一防线）。）。
+粗/斜体、独立图片行 → `.wk-img` 懒加载、裸 DOI URL 自动链接；先转义再套内联标记，未知语法纯文本兜底；图片 src 走属性位转义（quote=True，2026-10-31 修复引号逃逸）。front matter 的 date 先经源头字符集校验（非 `\d{4}-\d{2}-\d{2}` 一律作废置空，HTML 属性位/XML/sitemap 全部出口共用该防线，weekly.xml/sitemap 无该期日期时回落构建日），展示插值再经 `esc()` 双重兜底（2026-10-31）。）。
 
 - 口径（2026-10-04 起；**2026-10-05 起日期与年月统一自动识别自标题期号区间**）：
   **标题 = 正文第一个一级标题**（TOC 的 `doc-1` 条目，
@@ -551,7 +551,8 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   部分选中时全选框呈 indeterminate；「删除所选」按钮随勾选数实时显数，
   经页内确认列出标题 / 期次清单（最多 8 条）后走与单条删除相同的后台任务 ——
   `POST /api/delete` 入参 `ids` 数组（兼容旧的单 `id`），`do_delete` 逐条移除
-  papers.json 条目并连带删封面文件；`POST /api/weekly-delete` 入参 `names` 数组
+  papers.json 条目并连带删封面文件（assets_src/covers/ 五扩展名）与 images/ 三档
+  本地图（rglob 按 fid 跨年份目录）；`POST /api/weekly-delete` 入参 `names` 数组
   （兼容旧的单 `name`），只删 content/weekly/*.md、已生成卡片保留。
   部分成功也算成功、逐条记日志；默认提交信息单期/单条沿用旧格式
   （`delete: 文献 {id}` / `weekly: 删除 {file}`），多条为
@@ -696,12 +697,18 @@ build_site.py：整体拷到 site/assets/covers/（镜像式，删除不残留�
   体积优化交给**缩略图管线**（下条）
 - **封面图片本地化管线（2026-10-05 起，学 GeoSciPlot images/ 存储）**：原图 + 缩略图
   全部收进**本仓库**（此前缩略图推 BlogImg 图床，已改）：
-  `images/full/{id}.{ext}`（原图逐字节复制，魔数嗅探扩展名）+
-  `images/thumb/{id}.webp`（**长边 ≤480 · quality 78 · LANCZOS · EXIF 转正 · 透明垫白**，
+  `images/full/{入库年}/{id}.{ext}`（原图逐字节复制，魔数嗅探扩展名；2026-10 起按年分目录）+
+  `images/thumb/{入库年}/{id}.webp`（**长边 ≤480 · quality 78 · LANCZOS · EXIF 转正 · 透明垫白**，
   实测 2MB PNG → 30-60KB）。`scripts/prepare_thumbs.py` 增量运行：外链封面下载原图
   入库、缩略图优先复用旧图床克隆（`E:/AAAproject/BlogImg/blog/thumb/`，仅作历史备份）、
   并把 `cover` / `cover_thumb` / `cover_thumb_w/h` 改写为本仓库 jsDelivr 链接
-  （`cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/...`）。**Pillow 仅此工具需要**
+  （`cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/...`）。
+  **写回与 admin.save_papers 共用 `meta/.papers.lock` 跨进程互斥**（scripts/fslock.py，
+  msvcrt/fcntl 零依赖）：下载在锁外，写回前锁内重读最新数据只按 id 合并本次字段、
+  tmp+replace 原子落盘 —— 整快照回写会吞掉下载窗口期间管理台的并发写入。
+  **admin 侧五条 cover 变更路径**（编辑保存/重抓/设外链/清外链/补封面）经
+  `prune_stale_thumb` 做同源校验，cover 与 thumb/disp 基名不一致即清除六字段，
+  卡片自动回退封面原图。**Pillow 仅此工具需要**
   （site 构建/管理后台仍零依赖）；脚本不做 git 操作——images/ 由发布流程的
   `git add -A` 统一提交，jsDelivr 对新路径即时生效。
   **已并入发布任务自动执行**：`pipeline_after_content` 第一步以 `--quiet` 调用
@@ -719,8 +726,11 @@ build_site.py：整体拷到 site/assets/covers/（镜像式，删除不残留�
    `<meta name="dc.description">`（2026-10-10 实测可直接 GET，成功后 source 标 `+nature`；
    npj 系新刊普遍不向 Crossref deposit 摘要）——其余出版社页面结构各异且反爬风险高，不通用化；
    **第四层**：学术聚合 API 三连（Semantic Scholar → Europe PMC → PubMed，2026-10-10）——
-   兜住「出版方不 deposit 但已被学术索引收录」的（source 标 `+s2/+epmc/+pubmed`）；
-   注意走 `_get_text`（不 re-quote），否则查询串里的 `%22`/`[]` 被二次编码坏掉；
+   兜住「出版方不 deposit 但已被学术索引收录」的（source 标 `+s2/+epmc/+pubmed`）。
+   三家 URL 口径各异（2026-11-01 live 逐一对照定案）：S2 原样 DOI 进路径；
+   EPMC/PubMed 的 DOI 编码进查询串，且 EPMC 的引号必须编码为 `%22`（裸 `"` 被
+   EBI 前端 400）；`_get_text` 不做 re-quote，编码由调用方自行完成——曾因对整条
+   URL re-quote 把 `%22` 二次编码，EPMC 层自上线起 0 命中（修复前的历史故障）；
    仍有滞后的（如 One Earth / Science 当月新文）各家都无，等索引收录或人工补
 3. **时间口径**：`published-online` → `created`（早于 published 时）→ `published` → `issued`
    （一篇文献有多个日期，全站统一以 online 为准）。Elsevier（Cell Press 系 One Earth /
@@ -733,7 +743,9 @@ build_site.py：整体拷到 site/assets/covers/（镜像式，删除不残留�
    管理端可手动修改 —— keywords 仍属手动字段，重新抓取只在空缺时回填、绝不覆盖
 5. **HTML 实体反转义**：部分出版社的 deposit 元数据自带 HTML 实体（如期刊名
    「Nature Ecology &amp; Evolution」），`_finalize` 对全部字符串字段统一
-   `html.unescape`（摘要此前已在 `_clean_abstract` 处理），避免站点 `esc()`
+   `html.unescape`（摘要此前已在 `_clean_abstract` 处理）；title/subtitle 入库经
+   `_clean_title` 剥 JATS 行内标记并压空白（2026-11-01：含 `<i>` 标记与 ` ` 的
+   Crossref deposit 曾把字面标记带进引用行/JSON-LD，` ` 曾破坏搜索子串匹配），避免站点 `esc()`
    二次转义出现「&amp;amp;」；BibTeX 输出（`_bib_escape`）也随之拿到干净的 `&`
 6. **期刊名规范化**（2026-10-13）：AAAS 把 Science 新闻类文章（10.1126/science.zd…
    等，`type` 为 dataset/其他非 journal-article）挂在「AAAS Articles DO Group」这个
@@ -770,13 +782,17 @@ build_site.py：整体拷到 site/assets/covers/（镜像式，删除不残留�
   内裸换行/制表符——长中文摘要被模型排成多行的高频坏法）→ 去尾逗号再各试一次，
   实测「审校失败回退初译」大幅减少（结构性坏 JSON 仍回退初译兜底）；
   `max_tokens: 16384`（推理模型思考链计入输出配额，实测可吃 1000+ tokens）
-- **限流与回退分层**（详见 README 表格）：请求节流 → 429 指数退避 + Retry-After →
+- **限流与回退分层**（详见 usage.md「大模型」节）：请求节流 → 429 指数退避 + Retry-After →
   断路器（120s 内 2 次全败冷却 60s）→ 审校失败降级「仅初译」→ 初译失败留空正常入库 →
-  「翻译缺中文的」批量幂等补译（只补空缺不覆盖手改）
+  「翻译缺中文的」批量幂等补译（只补空缺不覆盖手改）。429 与非 429 错误各持独立
+  重试配额互不挤占（2026-10-31）；耗时预算放弃同样记入断路器
 - 预算分级：抓取同步路径 200s（浏览器在等）/ 批量任务 600s
 - **空结果不落盘**（2026-10-10）：无英文摘要时 `translate_paper` 的 `abstract_zh` 返回
   `""`，抓取（`do_fetch`）与批量翻译（`do_translate`）两条写入路径都必须 `if res.get(...)`
-  再赋值——否则空串会抹掉周报预填的中文摘要（历史上 57 篇因此空缺，见 §5 每周速递回填）
+  再赋值——否则空串会抹掉周报预填的中文摘要（历史上 57 篇因此空缺，见 §5 每周速递回填）。
+  写库前另有内容守卫（2026-10-31）：译文须含 CJK（防英文回显）、摘要≠标题（防标题灌
+  摘要字段），守卫拒收在任务日志标注并保留原值；`do_translate` 以调用前的空缺状态
+  决定 only_missing 模式的写入字段——标题已有中文（哪怕因摘要缺译被选中重译）绝不动
 
 ## 7. 部署
 

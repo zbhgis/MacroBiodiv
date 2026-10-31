@@ -5,6 +5,8 @@
 纯文本段落兜底（先 HTML 转义再套内联标记，保证安全）。标题整体降一级
 （`# `→h2.md-h1、`## `→h3.md-h2），与主站 zbhgis.com 的 mdToHtml 行为一致。
 """
+from __future__ import annotations
+
 import html
 import re
 
@@ -134,7 +136,9 @@ def render(text: str, alt_ctx: str = "", dims: dict | None = None) -> tuple[str,
         if m:
             flush()
             level, txt = len(m.group(1)), m.group(2).strip()
-            plain = _esc(re.sub(r"\*+", "", txt))
+            # TOC 存原文（未转义）：消费端（侧栏链接/页面 title/og/JSON-LD）各自
+            # esc 一次——存转义文本会让它们二次转义，产物里出现 &amp;amp; 实测在案
+            plain = re.sub(r"\*+", "", txt)
             if level == 1:
                 h2 += 1
                 h3 = 0

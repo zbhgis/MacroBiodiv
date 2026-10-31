@@ -40,9 +40,9 @@ python scripts/admin.py        # 本地管理界面（仅本机可访问，自�
 
 ### 发布流水线（点「发布」后自动执行）
 
-1. **封面缩略图增量补齐**：有新封面时自动下载 → 压 webp → 推图床
-   （`zbhgis/BlogImg`）→ 写回 `cover_thumb`；失败不阻断发布（卡片回退原图外链，
-   下次发布自动重试），无新封面时秒过；
+1. **封面增量本地化**：有新封面时自动下载 → 本地化入库
+   `images/{full,thumb,disp}/{入库年}/` 并经 `meta/.papers.lock` 锁内合并写回；
+   失败不阻断发布（卡片回退原图外链，下次发布自动重试），无新封面时秒过；
 2. 写 `meta/papers.json` → `build_site.py` 构建静态站（robots/sitemap/404 页/
    IndexNow key 文件，以及 GEO 用的 **llms.txt**（索引层）与 **llms-full.txt**（全文层，
    含每篇中英文摘要与周报正文）一并产出）——**检索数据（papers-data.js / weekly-data.js）
@@ -73,8 +73,8 @@ frontmatter 只用于「创建于」展示——md 带不带 frontmatter 都能�
 
 ### 发布前必查（踩坑清单）
 
-- **新增/更换了封面 → 先跑 `python scripts/prepare_thumbs.py --push --git-proxy http://127.0.0.1:7897`**
-  （增量，只为新封面生成缩略图并推图床；忘跑不会坏——线上卡片回退原图外链，只是每张 2MB 级）。
+- **新增/更换了封面 → 发布时流水线自动跑 `python scripts/prepare_thumbs.py`**
+  （增量，只为新封面下载并本地化 full/thumb/disp；也可手动跑。写回与 admin 共用 meta/.papers.lock 跨进程互斥；忘跑不会坏——线上卡片回退原图外链，只是每张 2MB 级）。
 - **`git add -A` 会收编工作区全部改动**：发布提交是全量的——先 `git status`
   确认没有无关的半成品文件，或先把它们单独提交/清理。
 - **发布失败不影响线上**：build 失败 → 未提交未同步；scp 失败 → 线上保持旧版本且

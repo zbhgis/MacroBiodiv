@@ -39,6 +39,9 @@ from datetime import date
 from pathlib import Path
 from urllib.request import Request, urlopen
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from fslock import exclusive as papers_file_lock, replace as papers_replace   # noqa: E402  与 admin.save_papers 同锁
+
 ROOT = Path(__file__).resolve().parent.parent
 PAPERS_JSON = ROOT / "meta" / "papers.json"
 IMAGES_DIR = ROOT / "images"
@@ -217,6 +220,40 @@ def backfill_disp(papers: dict, dry_run: bool = False) -> int:
     return n_new
 
 
+def _write_localization(ok: list[dict]) -> int:
+    """本地化结果写回 papers.json。下载在锁外进行（分钟级不能持锁），写回前
+    在锁内重读最新数据、只按 id 合并本次字段 —— 整快照回写会吞掉下载窗口
+    期间管理台的并发写入（/api/cover 等）。tmp+replace 原子落盘，与
+    admin.save_papers 同款；与其共用同一把文件锁（meta/.papers.lock）。"""
+    with papers_file_lock():
+        fresh = json.loads(PAPERS_JSON.read_text(encoding="utf-8"))
+        by_id = {str(it.get("id") or ""): it for it in fresh.get("items", [])}
+        merged = 0
+        for r in ok:
+            it = by_id.get(r["id"])
+            if not it:
+                continue            # 下载窗口内被删除：放弃其封面改写
+            y = r.get("year") or item_year(it)
+            it["cover"] = f"{OWN_BASE}/full/{y}/{r['id']}.{r['ext']}"
+            it["cover_thumb"] = f"{OWN_BASE}/thumb/{y}/{r['id']}.webp"
+            it["cover_thumb_w"] = r["w"]
+            it["cover_thumb_h"] = r["h"]
+            if r.get("dw"):
+                it["cover_disp"] = f"{OWN_BASE}/disp/{y}/{r['id']}.webp"
+                it["cover_disp_w"] = r["dw"]
+                it["cover_disp_h"] = r["dh"]
+            else:
+                for k in ("cover_disp", "cover_disp_w", "cover_disp_h"):
+                    it.pop(k, None)
+            merged += 1
+        fresh["generated"] = date.today().isoformat()
+        fresh["count"] = len(fresh.get("items", []))
+        tmp = PAPERS_JSON.parent / (PAPERS_JSON.name + ".tmp")
+        tmp.write_text(json.dumps(fresh, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        papers_replace(tmp, PAPERS_JSON)
+    return merged
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[1])
     ap.add_argument("--force", action="store_true", help="已本地化的也重新下载重做")
@@ -237,11 +274,19 @@ def main() -> int:
     papers = json.loads(PAPERS_JSON.read_text(encoding="utf-8"))
 
     if args.backfill_disp:
-        n = backfill_disp(papers, args.dry_run)
-        if n and not args.dry_run:
-            PAPERS_JSON.write_text(
-                json.dumps(papers, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-            print(f"写入 {PAPERS_JSON.relative_to(ROOT)}（新增 cover_disp 字段）")
+        # 与 admin 并发安全：锁内重读最新数据再补 disp（backfill 无网络耗时不长锁），
+        # 原子落盘 —— 整快照回写 + 裸 write 的旧写法会吞掉窗口期内的并发变更
+        with papers_file_lock():
+            papers = json.loads(PAPERS_JSON.read_text(encoding="utf-8"))
+            n = backfill_disp(papers, args.dry_run)
+            if n and not args.dry_run:
+                papers["generated"] = date.today().isoformat()
+                papers["count"] = len(papers.get("items", []))
+                tmp = PAPERS_JSON.parent / (PAPERS_JSON.name + ".tmp")
+                tmp.write_text(
+                    json.dumps(papers, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+                papers_replace(tmp, PAPERS_JSON)
+                print(f"写入 {PAPERS_JSON.relative_to(ROOT)}（新增 cover_disp 字段）")
         return 0
     items = [it for it in papers.get("items", [])
              if str(it.get("cover") or "").startswith(("http://", "https://"))]
@@ -271,26 +316,9 @@ def main() -> int:
     ok = [r for r in done if r["ok"]]
     skipped = len([r for r in done if r["ok"] is None])
     failed = len([r for r in done if r["ok"] is False])
-    for r in ok:
-        for it in papers["items"]:
-            if it.get("id") == r["id"]:
-                y = r.get("year") or item_year(it)
-                it["cover"] = f"{OWN_BASE}/full/{y}/{r['id']}.{r['ext']}"
-                it["cover_thumb"] = f"{OWN_BASE}/thumb/{y}/{r['id']}.webp"
-                it["cover_thumb_w"] = r["w"]
-                it["cover_thumb_h"] = r["h"]
-                if r.get("dw"):
-                    it["cover_disp"] = f"{OWN_BASE}/disp/{y}/{r['id']}.webp"
-                    it["cover_disp_w"] = r["dw"]
-                    it["cover_disp_h"] = r["dh"]
-                else:
-                    it.pop("cover_disp", None)
-                    it.pop("cover_disp_w", None)
-                    it.pop("cover_disp_h", None)
-                break
-    PAPERS_JSON.write_text(
-        json.dumps(papers, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(f"· 本地化 {len(ok)} 张 → images/full + images/thumb（cover/cover_thumb 已改写为本仓库链接）")
+    if ok:
+        merged = _write_localization(ok)
+        print(f"· 合并写回 {merged} 张（cover/cover_thumb 已改写为本仓库链接）")
     if skipped:
         print(f"· 跳过 {skipped} 张（已本地化）")
     if failed:

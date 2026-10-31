@@ -49,8 +49,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from fetch_doi import fetch_paper, normalize_doi, paper_id  # noqa: E402
-from render_md import parse_front_matter, parse_weekly_papers  # noqa: E402
+from render_md import parse_front_matter, parse_weekly_papers, CJK_RE  # noqa: E402
+from fslock import exclusive as papers_file_lock, replace as papers_replace  # noqa: E402
 import llm  # noqa: E402
+
+
+def _has_cjk(s: str) -> bool:
+    """译文质量廉价校验：中文译文里必须真有 CJK 字符（防模型英文回显）。"""
+    return bool(CJK_RE.search(s or ""))
 
 ROOT = Path(__file__).resolve().parent.parent
 META_DIR = ROOT / "meta"
@@ -73,6 +79,7 @@ COVER_EXTS = ("png", "jpg", "jpeg", "webp", "gif")
 # 随 git 入库且经 jsDelivr 公网可达，删除文献时必须一并清掉
 IMAGES_FULL = ROOT / "images" / "full"
 IMAGES_THUMB = ROOT / "images" / "thumb"
+IMAGES_DISP = ROOT / "images" / "disp"   # 详情页展示档（prepare_thumbs 产出，随 git 公网可达）
 COVER_MAX = 20 * 1024 * 1024          # 周报图表原图常超 10MB，上限放宽到 20MB
 COVER_MIME = {"png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg",
               "webp": "image/webp", "gif": "image/gif"}
@@ -133,10 +140,14 @@ def save_papers(papers: dict) -> None:
     papers["count"] = len(papers["items"])
     PAPERS_JSON.parent.mkdir(parents=True, exist_ok=True)
     # 原子写（tmp + replace）：写一半崩溃不留半截 JSON——半截 JSON 会触发上面的
-    # 损坏防护抛错，管理台与发布全部停摆
+    # 损坏防护抛错，管理台与发布全部停摆。
+    # 文件锁：发布流水线以子进程跑 prepare_thumbs，两边对 papers.json 的
+    # 读-改-写必须跨进程互斥（DATA_LOCK 只管本进程线程），否则慢的一方
+    # 整快照回写会吞掉先落的变更。
     tmp = PAPERS_JSON.parent / (PAPERS_JSON.name + ".tmp")
-    tmp.write_text(json.dumps(papers, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    tmp.replace(PAPERS_JSON)
+    with papers_file_lock():
+        tmp.write_text(json.dumps(papers, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        papers_replace(tmp, PAPERS_JSON)
 
 
 # ────────────────────────── 体裁归一 ──────────────────────────
@@ -240,7 +251,9 @@ def remove_cover(fid: str) -> None:
     for e in COVER_EXTS:
         f = COVERS / f"{fid}.{e}"
         if f.exists():
-            f.unlink()
+            ok, err = unlink_retry(f)   # 杀软句柄抖动重试；失败记日志不留静默残影
+            if not ok:
+                print(f"! 封面文件删除失败 {f.name}: {err}")
 
 
 def detect_cover(fid: str) -> str:
@@ -251,6 +264,22 @@ def detect_cover(fid: str) -> str:
         if (COVERS / f"{fid}.{e}").exists():
             return f"covers/{fid}.{e}"
     return ""
+
+
+def prune_stale_thumb(item: dict) -> None:
+    """cover 与 cover_thumb 同源校验。thumb 由 prepare_thumbs 按封面 fid 生成
+    （仅外链封面 → images/thumb/{年}/{fid}.webp；本地封面无 thumb）。重新抓取/
+    更新把 cover 换成本地文件后，遗留的旧外链 thumb 会让卡片仍显示旧图
+    （card_html 缩略图优先于原图）——不同源即清除，卡片自动回退封面原图。"""
+    cov = str(item.get("cover") or "")
+    ctb = str(item.get("cover_thumb") or "")
+    if not ctb:
+        return
+    stem = lambda u: re.sub(r"\.\w+$", "", u.rsplit("/", 1)[-1])
+    if not cov.startswith(("http://", "https://")) or stem(cov) != stem(ctb):
+        for k in ("cover_thumb", "cover_thumb_w", "cover_thumb_h",
+                  "cover_disp", "cover_disp_w", "cover_disp_h"):
+            item.pop(k, None)
 
 
 def set_cover_url(fid: str, url: str) -> tuple[bool, str]:
@@ -271,6 +300,7 @@ def set_cover_url(fid: str, url: str) -> tuple[bool, str]:
             return False, "该文献尚未入库（新文献的外链会随条目在发布时写入）"
         remove_cover(fid)
         hit[0]["cover"] = u
+        prune_stale_thumb(hit[0])
         save_papers(papers)
     return True, u
 
@@ -287,13 +317,14 @@ def clear_cover_url(fid: str) -> None:
         if hit:
             for it in hit:
                 it.pop("cover", None)
+                prune_stale_thumb(it)   # cover 没了，thumb/disp 必成旧图残影
             save_papers(papers)
 
 
 def repo_state() -> dict:
     papers = load_papers()
     items = papers.get("items", [])
-    is_repo = (ROOT / ".git").is_dir()
+    is_repo = (ROOT / ".git").exists()   # exists()：worktree 检出时 .git 是文件，is_dir 会误判
     remote = ""
     branch = "main"
     dirty = 0
@@ -324,14 +355,29 @@ def repo_state() -> dict:
 
 JOBS: dict[str, dict] = {}
 JOBS_LOCK = threading.Lock()
+# 流水线互斥（GeoSciPlot 同款）：构建/提交/推送/删除这类「会动 site/、git、papers.json」
+# 的任务同一时间只允许一个——否则两条流水线并发 build（同写 site/）、并发 git push
+# （撞 index.lock）、并发 scp 换台（后完成者覆盖先完成者）。忙碌时秒败而不是排队
+PIPELINE_KINDS = {"publish", "update", "refresh", "translate", "delete",
+                  "weekly", "weekly-delete", "weekly-restore", "sync-server", "init", "push"}
+PIPELINE_LOCK = threading.Lock()
+# step() 镜像目标（线程局部）：worker 线程把共享日志挂上来，step 写入时同步一份，
+# 前端轮询 job["log"] 才能在流水线运行期间看到实时进度
+_JOB_TLS = threading.local()
 # papers.json 的读写锁：发布/更新/刷新/补译/删除都是「读→改→写回」，
 # 并发执行（如补译未完又点发布）会互相覆盖丢数据，统一在此串行化
 DATA_LOCK = threading.Lock()
 
 
 def step(log: list[dict], name: str, cmd: list[str] | None, timeout: int = 300) -> tuple[bool, str]:
-    """带「运行中」标记的步骤：先写入 ok=None 条目（前端显示 …），命令结束后回填结果。"""
+    """带「运行中」标记的步骤：先写入 ok=None 条目（前端显示 …），命令结束后回填结果。
+    写入的同时镜像进当前线程的共享任务日志（_JOB_TLS）：do_* 各自持有局部 log、
+    收尾才整包赋给 job["log"]——不镜像的话，前端轮询在整个分钟级流水线期间
+    拿到的恒为空列表，「实时进度」从未真正生效（GeoSciPlot 同款教训）。"""
     log.append({"step": name, "out": "", "ok": None})
+    mirror = getattr(_JOB_TLS, "log", None)
+    if mirror is not None and mirror is not log:
+        mirror.append(log[-1])
     if cmd is None:
         return True, ""
     code, out = run(cmd, timeout)
@@ -342,9 +388,17 @@ def step(log: list[dict], name: str, cmd: list[str] | None, timeout: int = 300) 
 
 
 def start_job(kind: str, body: dict) -> str:
-    """启动后台任务，立即返回任务号。"""
+    """启动后台任务，立即返回任务号。流水线类任务互斥：忙时直接返回「秒败」任务。"""
     jid = uuid.uuid4().hex[:8]
-    job = {"kind": kind, "log": [], "done": False, "ok": None, "hint": ""}
+    if kind in PIPELINE_KINDS and not PIPELINE_LOCK.acquire(blocking=False):
+        with JOBS_LOCK:
+            JOBS[jid] = {"kind": kind, "done": True, "ok": False,
+                         "hint": "已有发布/收录/删除任务在运行——等下方日志显示结束后再操作",
+                         "log": [{"step": "忙碌", "ok": False,
+                                  "out": "同一时间只允许一条流水线"}]}
+        return jid
+    shared_log: list[dict] = []
+    job = {"kind": kind, "log": shared_log, "done": False, "ok": None, "hint": ""}
     with JOBS_LOCK:
         JOBS[jid] = job
         done_ids = [k for k, v in JOBS.items() if v["done"]]
@@ -352,6 +406,8 @@ def start_job(kind: str, body: dict) -> str:
             JOBS.pop(k, None)
 
     def worker():
+        # step() 的镜像目标：共享日志随任务实时可见（见 step docstring）
+        _JOB_TLS.log = shared_log
         try:
             if kind == "publish":
                 res = do_publish(body.get("items") or [], body.get("message") or "",
@@ -397,14 +453,28 @@ def start_job(kind: str, body: dict) -> str:
             else:
                 res = {"ok": False, "log": [{"step": kind, "ok": False, "out": "未知任务类型"}]}
         except Exception as e:            # 后台线程绝不能静默死掉
-            res = {"ok": False, "hint": "", "log": [{"step": "后台任务异常", "ok": False, "out": repr(e)}]}
+            # 追加进共享日志而不是整表替换：前面步骤的实时记录要保留
+            shared_log.append({"step": "后台任务异常", "ok": False, "out": repr(e)})
+            res = {"ok": False, "hint": "", "log": shared_log}
+        finally:
+            if kind in PIPELINE_KINDS:
+                PIPELINE_LOCK.release()
         with JOBS_LOCK:
             job["log"] = res.get("log", job["log"])
             job["done"] = True
             job["ok"] = bool(res.get("ok"))
             job["hint"] = res.get("hint", "")
 
-    threading.Thread(target=worker, daemon=True, name=f"job-{kind}-{jid}").start()
+    try:
+        threading.Thread(target=worker, daemon=True, name=f"job-{kind}-{jid}").start()
+    except Exception as e:
+        # 线程启动失败时 worker 不会运行、finally 里的锁释放不会发生——不补放的话
+        # 所有流水线任务从此永远「忙碌」直到重启进程
+        if kind in PIPELINE_KINDS:
+            PIPELINE_LOCK.release()
+        with JOBS_LOCK:
+            job.update(done=True, ok=False, hint="后台线程启动失败，请重试",
+                       log=[{"step": "启动后台任务", "ok": False, "out": repr(e)}])
     return jid
 
 
@@ -457,6 +527,9 @@ def do_fetch(dois: list) -> dict:
                     hint = record.get("oa_type") or record.get("type") or ""
                     res = llm.translate_paper(record.get("title", ""), record.get("abstract", ""),
                                               budget=200, type_hint=hint)
+                    # budget 是重试规划口径而非硬时限：已在飞的请求最坏可再跑
+                    # TIMEOUT(180s)，弱网下总耗时可能超过浏览器 300s 超时——该条
+                    # 预览丢失但无数据损失，重试即可。真硬限需可中断在飞请求。
                     # 覆写保护：模型偶尔丢字段，空结果不落盘，保留初始空值等待周报回填
                     if res.get("title_zh"):
                         record["title_zh"] = res["title_zh"]
@@ -504,10 +577,14 @@ def do_publish(items: list, message: str, push: bool, sync: bool) -> dict:
             rec["id"] = paper_id(doi)
             rec.setdefault("added", today())
             apply_manual(rec, it)
-            # 封面：按 id 探测 assets_src/covers/ 里的实际文件（上传接口早已落盘）
+            # 封面：按 id 探测 assets_src/covers/ 里的实际文件（上传接口早已落盘）；
+            # 与 do_update 同款双向逻辑 —— 客户端伪造的本地路径（磁盘无此文件）
+            # 不入库，否则卡片/详情引用 404 图
             cov = detect_cover(rec["id"])
             if cov:
                 rec["cover"] = cov
+            elif not str(rec.get("cover") or "").startswith(("http://", "https://")):
+                rec.pop("cover", None)
             by_doi[doi.lower()] = rec
             added += 1
 
@@ -550,6 +627,7 @@ def do_update(updates: list) -> dict:
                     it["cover"] = cov
                 elif not str(it.get("cover") or "").startswith(("http://", "https://")):
                     it.pop("cover", None)
+                prune_stale_thumb(it)
                 n += 1
         save_papers(papers)
     return {"ok": True,
@@ -570,7 +648,9 @@ def do_refresh(ids: list) -> dict:
                 time.sleep(0.3)
             try:
                 record = fetch_paper(str(it.get("doi") or ""))
-                keep = {k: it[k] for k in ("id", "added", "title_zh", "abstract_zh", "article_type", "note", "tags", "cover", "cover_thumb", "cover_thumb_w", "cover_thumb_h") if k in it}
+                keep = {k: it[k] for k in ("id", "added", "title_zh", "abstract_zh", "article_type", "note", "tags",
+                                           "cover", "cover_thumb", "cover_thumb_w", "cover_thumb_h",
+                                           "cover_disp", "cover_disp_w", "cover_disp_h") if k in it}
                 if it.get("keywords"):
                     keep["keywords"] = it["keywords"]   # 手动填过才保留；空缺由重新抓取回填
                 record.update(keep)
@@ -580,6 +660,7 @@ def do_refresh(ids: list) -> dict:
                     record["cover"] = cov
                 elif not str(record.get("cover") or "").startswith(("http://", "https://")):
                     record.pop("cover", None)   # 外链封面不落盘，本地探测不到也不清除
+                prune_stale_thumb(record)
                 papers["items"][idx] = record
                 ok_n += 1
                 log.append({"step": f"刷新 {it.get('id')}", "ok": True,
@@ -632,23 +713,39 @@ def do_translate(ids: list, only_missing: bool = False) -> dict:
                 log.append({"step": f"翻译 {it.get('id')}", "ok": False, "out": "缺少英文标题"})
                 err_n += 1
                 continue
+            # 只补空缺口径（先于调用记录缺什么）：标题已有中文（哪怕因摘要缺译被
+            # 选中重译）也绝不动用户既有译文 —— docstring/DESIGN.md 四处承诺的实现
+            fill_title = not str(it.get("title_zh") or "").strip()
+            fill_abs = bool(str(it.get("abstract") or "").strip()) \
+                and not str(it.get("abstract_zh") or "").strip()
             try:
                 # budget=600：后台任务没有浏览器在等，预算放宽
                 hint = str(it.get("oa_type") or it.get("type") or "")
                 res = llm.translate_paper(title, str(it.get("abstract") or ""), budget=600,
                                           type_hint=hint)
-                # 覆写保护：模型偶尔丢字段，空结果不落盘，保留现有译文
-                if res.get("title_zh"):
-                    it["title_zh"] = res["title_zh"]
-                if res.get("abstract_zh"):
-                    it["abstract_zh"] = res["abstract_zh"]
+                # 覆写保护 + 内容校验：空结果不落盘；译文须含 CJK（防英文回显）、
+                # 摘要≠标题（防标题灌进摘要字段）；only_missing 下非缺失字段不动
+                nt = str(res.get("title_zh") or "").strip()
+                na = str(res.get("abstract_zh") or "").strip()
+                rej: list[str] = []
+                if nt and _has_cjk(nt) and (fill_title or not only_missing):
+                    it["title_zh"] = nt
+                elif not only_missing and nt and not _has_cjk(nt):
+                    rej.append("标题非中文")     # 显式重写被守卫拒收，必须让用户知道
+                if na and _has_cjk(na) and na != str(it.get("title_zh") or "").strip() \
+                        and (fill_abs or not only_missing):
+                    it["abstract_zh"] = na
+                elif not only_missing and na and (
+                        not _has_cjk(na) or na == str(it.get("title_zh") or "").strip()):
+                    rej.append("摘要非中文或与标题同文")
                 if res.get("article_type"):
                     it["article_type"] = normalize_article_type(res["article_type"])
                 ok_n += 1
                 tag = "初译+审校" if res.get("passes", 2) >= 2 else "仅初译"
                 note = res.get("note") or ""
+                rej_note = ("；译文校验未过已保留原值：" + "、".join(rej)) if rej else ""
                 log.append({"step": f"翻译 {it.get('id')}", "ok": True,
-                            "out": f"{it.get('title_zh', '')[:40]}（{tag}{'：' + note if note else ''}）"})
+                            "out": f"{it.get('title_zh', '')[:40]}（{tag}{'：' + note if note else ''}）{rej_note}"})
             except llm.LLMError as e:
                 err_n += 1
                 log.append({"step": f"翻译 {it.get('id')}", "ok": False, "out": str(e)})
@@ -661,6 +758,23 @@ def do_translate(ids: list, only_missing: bool = False) -> dict:
     log.insert(0, {"step": "翻译汇总", "ok": err_n == 0, "out": summary})
     return {"ok": err_n == 0, "changed": ok_n, "log": log,
             "hint": "" if err_n == 0 else f"{err_n} 条翻译失败（见日志）——失败的可先发布英文版，稍后用「翻译缺中文的」补齐"}
+
+
+def unlink_retry(path: Path, tries: int = 5, delay: float = 0.3) -> tuple[bool, str]:
+    """带短退避的删除（GeoSciPlot 同款移植）。Windows 上刚写入的文件常被杀软/
+    索引服务短暂占用，立即 unlink 会偶发 PermissionError。"""
+    for i in range(tries):
+        try:
+            path.unlink()
+            return True, ""
+        except FileNotFoundError:
+            return True, ""                      # 已经没了 = 目的达成
+        except OSError:
+            if i < tries - 1:
+                time.sleep(delay * (i + 1))
+        except Exception as e:                   # 沙箱等非系统拦截：不重试
+            return False, repr(e)
+    return False, "文件仍被占用"
 
 
 def do_delete(ids) -> dict:
@@ -690,15 +804,17 @@ def do_delete(ids) -> dict:
     for it in removed:
         fid = str(it.get("id") or "")
         remove_cover(fid)   # 封面文件随条目一起删（站点重建后不再引用）
-        # prepare_thumbs 落在 images/full/{年}/ 与 images/thumb/{年}/ 的原图/缩略一并清掉——
+        # prepare_thumbs 落在 images/{full,thumb,disp}/{年}/ 的原图/缩略/展示档一并清掉——
         # 它们随 git 入库且经 jsDelivr 公网可达，不删则已删文献的封面图仍可下载
-        #（GSP 的 do_delete 有同款清理，此前单侧漂移漏了本仓）；rglob 跨年份目录
+        #（GSP 的 do_delete 有同款清理；disp 档此前单侧漂移漏了本仓）；rglob 跨年份目录。
+        # unlink_retry：Windows 杀软句柄抖动下裸 unlink 会偶发失败且被吞（静默残留）
         if re.fullmatch(r"[0-9a-f]{10}", fid):
-            for stale in list(IMAGES_FULL.rglob(fid + ".*")) + list(IMAGES_THUMB.rglob(fid + ".*")):
-                try:
-                    stale.unlink()
-                except OSError:
-                    pass
+            stale_files = (list(IMAGES_FULL.rglob(fid + ".*")) + list(IMAGES_THUMB.rglob(fid + ".*"))
+                           + list(IMAGES_DISP.rglob(fid + ".*")))
+            for stale in stale_files:
+                ok, err = unlink_retry(stale)
+                if not ok:
+                    log.append({"step": f"清理 {fid}", "ok": False, "out": f"{stale.name}：{err}"})
         log.append({"step": f"删除 {fid}", "ok": True,
                     "out": f"已移除「{str(it.get('title') or '')[:50]}」"})
     for fid in missing:
@@ -774,7 +890,7 @@ def pipeline_after_content(log: list[dict], message: str, push: bool, sync: bool
     if not ok:
         return {"ok": False, "log": log, "hint": "build_site.py 失败，未提交"}
 
-    if not (ROOT / ".git").is_dir():
+    if not (ROOT / ".git").exists():   # exists()：worktree 兼容（口径同 repo_state）
         log.append({"step": "Git", "ok": False,
                     "out": "尚未初始化 git 仓库 —— 点上方「初始化仓库」后再发布"})
         return {"ok": False, "log": log, "hint": "请先初始化 git 仓库"}
@@ -913,13 +1029,17 @@ def weekly_slug(title: str, stem: str) -> str:
 
 def weekly_slug_of(text: str, stem: str) -> str:
     """从 md 原文推期号 slug（与 build_weekly 同口径）：正文首个一级标题优先
-    （排除「文献N」小节标题），frontmatter title 兜底，最后回退文件名。"""
-    for m in re.finditer(r"(?m)^#(?!#)\s+(.+?)\s*$", text or ""):
-        txt = m.group(1).strip()
+    —— build 只认 doc-1（第一个 H1）且剥粗体星号、非「文献N」才用作标题；
+    frontmatter title 兜底，最后回退文件名（weekly_slug 对 stem 仍会搜「精选N」，
+    与 build 的 `or md.stem` 一致）。H1 扫描限 front matter 之后的正文。"""
+    _, body = parse_front_matter(text or "")
+    m = re.search(r"(?m)^#(?!#)\s+(.+?)\s*$", body or "")
+    if m:
+        txt = re.sub(r"\*+", "", m.group(1)).strip()
         if txt and not re.match(r"^文献\d+", txt):
             return weekly_slug(txt, stem)
     meta, _ = parse_front_matter(text or "")
-    title = str(meta.get("title") or "").strip()
+    title = str(meta.get("title") or "").strip() or stem
     return weekly_slug(title, stem)
 
 
@@ -955,7 +1075,7 @@ def weekly_issues() -> dict:
     if WEEKLY_SRC.is_dir():
         for md in sorted(WEEKLY_SRC.glob("*.md")):
             try:
-                text = md.read_text(encoding="utf-8")
+                text = md.read_text(encoding="utf-8", errors="replace")
             except OSError:
                 continue
             meta, _ = parse_front_matter(text)
@@ -974,7 +1094,7 @@ def weekly_issues() -> dict:
             issues.append({
                 "file": md.name, "title": title,
                 "date": str(meta.get("date") or "")[:10],
-                "slug": weekly_slug(title, md.stem),
+                "slug": weekly_slug_of(text, md.stem),
                 "n": len(parsed),
                 "nDoi": sum(1 for d in dois if d["doi"]),
                 "inLib": sum(1 for d in dois if d["inLib"]),
@@ -1010,16 +1130,17 @@ def weekly_preview(name: str, content: str) -> dict:
     if n_nodoi:
         warnings.append(f"{n_nodoi} 篇未解析到 DOI，这些篇目不会生成文献卡片")
     title = str(meta.get("title") or "").strip()
-    slug = weekly_slug(title, Path(fname).stem)
+    slug = weekly_slug_of(content, Path(fname).stem)
     if WEEKLY_SRC.is_dir():
         for md in WEEKLY_SRC.glob("*.md"):
-            if md.name == fname:
+            # NTFS 不区分大小写：仅大小写不同的重传实为同名覆盖更新，不作撞车
+            if md.name.lower() == fname.lower():
                 continue
             try:
-                m2, _ = parse_front_matter(md.read_text(encoding="utf-8"))
+                otext = md.read_text(encoding="utf-8", errors="replace")
             except OSError:
                 continue
-            if weekly_slug(str(m2.get("title") or md.stem), md.stem) == slug:
+            if weekly_slug_of(otext, md.stem) == slug:
                 warnings.append(f"期号与已有《{md.name}」相同（slug 均为 {slug}），构建时两条目的页面会互相覆盖")
                 break
     return {"ok": True, "file": fname, "title": title or fname,
@@ -1045,7 +1166,8 @@ def do_weekly_import(name: str, content: str, log: list) -> dict:
     # 到落盘前拦截并给出明确指引。同名文件（fname 相同）= 覆盖更新，放行。
     new_slug = weekly_slug_of(content, Path(fname).stem)
     for other in WEEKLY_SRC.glob("*.md"):
-        if other.name == fname:
+        # NTFS 不区分大小写：仅大小写不同的「重传」实为同一文件，放行走覆盖更新
+        if other.name.lower() == fname.lower():
             continue
         if weekly_slug_of(other.read_text(encoding="utf-8", errors="replace"),
                           other.stem) == new_slug:
@@ -1053,7 +1175,12 @@ def do_weekly_import(name: str, content: str, log: list) -> dict:
                         "out": f"与已收录的《{other.name}》同为期号 {new_slug}（标题「精选N」重复）。"
                                f"同一期更新请使用原文件名上传（覆盖式），或修正标题期号后重试；本次未落盘"})
             return {"ok": False}
-    (WEEKLY_SRC / fname).write_text(content, encoding="utf-8", newline="\n")
+    dest = WEEKLY_SRC / fname
+    if dest.exists():
+        # 同名覆盖更新前备份上一版：上一稿尚未随发布进 git 时这是唯一回退点
+        # （口径同 weekly_file_save 的 _backup_md）
+        dest.with_name(dest.name + ".bak").write_bytes(dest.read_bytes())
+    dest.write_text(content, encoding="utf-8", newline="\n")
     log.append({"step": "落盘内容源", "ok": True,
                 "out": f"content/weekly/{fname}（周报页随本次构建自动收录）"})
 
@@ -1086,6 +1213,7 @@ def do_weekly_import(name: str, content: str, log: list) -> dict:
                 cur = str(ex.get("cover") or "")
                 if p["images"] and (not cur or _is_logo_cover(str(ex.get("id") or ""))):
                     ex["cover"] = p["images"][0]
+                    prune_stale_thumb(ex)
                     dirty = True
                     log.append({"step": f"{label} 补封面", "ok": True,
                                 "out": f"封面 ← 外链（{p['images'][0].rsplit('/', 1)[-1]}）"})
@@ -1282,17 +1410,19 @@ def _split_fm(text: str) -> tuple[str, str, str]:
     if not m:
         return "", "", text
     rest = text[m.end():]
-    close = re.search(r"\r?\n---[ \t]*(?=\r?\n)", rest)      # closing --- 行（后面还有内容）
+    # 捕获 closing --- 前的换行并原样复用：CRLF 文件少一次无谓改写，且修复
+    # after[1:] 对 CRLF 分隔换行只剥 1 字节的兄弟 bug（GeoSciPlot 同款修复）
+    close = re.search(r"(\r?\n)---[ \t]*(?=\r?\n)", rest)    # closing --- 行（后面还有内容）
     if close is None:
-        close = re.search(r"\r?\n---[ \t]*\Z", rest)          # 文件恰在 --- 结束
+        close = re.search(r"(\r?\n)---[ \t]*\Z", rest)        # 文件恰在 --- 结束
         if close is None:
             return "", "", text
-        return "---\n" + rest[:close.start()] + "\n---", "", ""
+        return "---\n" + rest[:close.start()] + close.group(1) + "---", "", ""
     after = rest[close.end():]
     nl = re.match(r"\r?\n", after)
-    return ("---\n" + rest[:close.start()] + "\n---",
+    return ("---\n" + rest[:close.start()] + close.group(1) + "---",
             nl.group(0) if nl else "",
-            after[1:] if nl else after)
+            after[len(nl.group(0)):] if nl else after)
 
 
 def _parse_fm_fields(fm_block: str) -> dict:

@@ -58,8 +58,10 @@ def normalize_doi(text: str) -> str:
     if not ascii_part:
         return ""
     doi = ascii_part.group(0)
-    # 带 URL 查询串的粘贴（doi.org/10.x/xxx?utm=…）会把参数当成 DOI，在 ? 处截断
-    doi = doi.split("?", 1)[0].rstrip(DOI_TAIL)
+    # 带 URL 查询串的粘贴（doi.org/10.x/xxx?utm=…）会把参数当成 DOI，在 ? 处截断；
+    # 锚点（…#section-1）同理在 # 处截断。括号型老 DOI（SICI）保持不支持：
+    # 放宽字符类会让「10.x/xxx(2024)」式引用文被静默误判为 DOI，比可见的 404 更糟
+    doi = doi.split("?", 1)[0].split("#", 1)[0].rstrip(DOI_TAIL)
     # 行尾标点被截断后可能留下悬空括号内容，去掉不成对的右括号
     while doi and doi[-1] in ")" and doi.count("(") < doi.count(")"):
         doi = doi[:-1]
@@ -81,6 +83,16 @@ def _get_json(url: str) -> dict:
         raise FetchError(f"网络错误：{e.reason}") from None
     except TimeoutError:
         raise FetchError("请求超时") from None
+
+
+def _clean_title(raw: str) -> str:
+    """Crossref title 偶带 JATS 行内标记（如 <i>Calanus</i>）与 deposit 断行——
+    剥标记 + 压空白。不在此处 unescape：实体解析统一由 _finalize 单趟负责，
+    双趟会产生 &amp;amp; 型失真（同 abstract 双重反转义的教训）。"""
+    if not raw:
+        return ""
+    text = re.sub(r"<[^>]+>", " ", raw)
+    return re.sub(r"\s+", " ", text).strip()
 
 
 def _clean_abstract(raw: str) -> str:
@@ -148,8 +160,8 @@ def fetch_crossref(doi: str) -> dict:
 
     return {
         "doi": (d.get("DOI") or doi).strip(),
-        "title": (d.get("title") or [""])[0].strip(),
-        "subtitle": (d.get("subtitle") or [""])[0].strip(),
+        "title": _clean_title((d.get("title") or [""])[0]),
+        "subtitle": _clean_title((d.get("subtitle") or [""])[0]),
         "authors": authors,
         "journal": (d.get("container-title") or [""])[0].strip(),
         "journal_short": (d.get("short-container-title") or [""])[0].strip(),
@@ -197,7 +209,7 @@ def fetch_openalex(doi: str) -> dict:
         "journal": (src.get("display_name") or "").strip(),
         "year": str(d.get("publication_year") or ""),
         "published": pd,
-        "title": (d.get("title") or "").strip(),
+        "title": _clean_title(d.get("title") or ""),
         "authors": [a.get("author", {}).get("display_name", "").strip()
                     for a in d.get("authorships", []) if a.get("author", {}).get("display_name")],
         "source": "openalex",
@@ -230,7 +242,10 @@ def fetch_nature_abstract(doi: str) -> str:
 
 
 def _get_text(url: str) -> str:
-    req = urllib.request.Request(quote(url, safe=":/?&="), headers={"User-Agent": UA})
+    # 不做 re-quote：调用方自行对 doi 做 quote(safe="")，查询串结构字符
+    # （引号 "、[]、&）必须原样保留 —— 此前对整条 URL quote 会把预编码的
+    # %22 二次编码成 %2522，EPMC 层因此自上线起 0 命中（2026-10-31 修复）
+    req = urllib.request.Request(url, headers={"User-Agent": UA})
     with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
         return r.read().decode("utf-8", "replace")
 
@@ -238,9 +253,13 @@ def _get_text(url: str) -> str:
 def fetch_aggregator_abstract(doi: str) -> tuple[str, str]:
     """英文摘要第四兜底：学术聚合 API 三连——Semantic Scholar → Europe PMC → PubMed。
     覆盖面广但有收录滞后（新论文常要数周才进索引）。任何一步失败都静默落到下一家，
-    全失败返回 ("", "")。注意走 _get_text（不 re-quote）——查询串里的 %22 与 [] 
-    会被 quote 二次编码坏掉。返回 (摘要, 来源标记)：+s2 / +epmc / +pubmed。"""
+    全失败返回 ("", "")。各 URL 由本函数拼装并自行编码 doi（_get_text 不再 re-quote）。
+    返回 (摘要, 来源标记)：+s2 / +epmc / +pubmed。"""
+    qd = quote(doi, safe="")
     try:                                        # ① Semantic Scholar（摘要为独立字段，最干净）
+        # 三家三种口径（2026-11-01 live 逐一对照）：S2 原样 DOI 路径即可（编码形态
+        # 也可用，但无收益）；EPMC 引号与斜杠都必须编码（裸 " 被 EBI 前端 400）；
+        # PubMed 编码进查询参数。S2 匿名限速严格——连发两次会 429，勿误判为口径错误
         ab = (json.loads(_get_text(f"https://api.semanticscholar.org/graph/v1/"
                                    f"paper/DOI:{doi}?fields=abstract")).get("abstract") or "").strip()
         if ab:
@@ -250,7 +269,7 @@ def fetch_aggregator_abstract(doi: str) -> tuple[str, str]:
     time.sleep(1.0)                             # S2 匿名限速 ≈1 次/秒，失败也缓一下
     try:                                        # ② Europe PMC（abstractText 偶带内联标签）
         s = json.loads(_get_text("https://www.ebi.ac.uk/europepmc/webservices/rest/"
-                                 f"search?query=DOI:%22{doi}%22&format=json&resultType=core"))
+                                 f"search?query=DOI:%22{qd}%22&format=json&resultType=core"))
         hits = s.get("resultList", {}).get("result", [])
         if hits:
             ab = re.sub(r"<[^>]+>", "", hits[0].get("abstractText") or "").strip()
@@ -260,7 +279,7 @@ def fetch_aggregator_abstract(doi: str) -> tuple[str, str]:
         pass
     try:                                        # ③ PubMed（esearch 找 PMID → efetch 取 XML）
         s = json.loads(_get_text("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
-                                 f"esearch.fcgi?db=pubmed&term={doi}[doi]&retmode=json"))
+                                 f"esearch.fcgi?db=pubmed&term={qd}[doi]&retmode=json"))
         ids = s.get("esearchresult", {}).get("idlist", [])
         if ids:
             xml = _get_text("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
