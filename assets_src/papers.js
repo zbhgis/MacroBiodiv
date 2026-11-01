@@ -284,6 +284,9 @@
     var sq = "";
     try { sq = new URLSearchParams(location.search).get("q") || ""; } catch (e) {}
     spageQ.value = sq;
+    // 全新着陆（无查询词）自动聚焦：本页唯一目的就是输入；带 ?q= 恢复的访客
+    // 要看结果，不抢焦点弹键盘
+    if (!sq.trim()) spageQ.focus({ preventScroll: true });
     if (sq.trim()) loadWeekly();   // 带词进来的访客目标明确，立即拉周报数据
     renderSearch(sq);
     // 输入防抖 160ms：每击键全量重渲染 + 全字段正则高亮，宽词命中数百行时
@@ -383,9 +386,12 @@
       if (state.from && pe < state.from) return false;
       if (state.to && ps > state.to) return false;
     }
-    /* 首页搜索框按展示字段匹配（标题中英/作者/期刊/DOI/标签）——与 GeoSciPlot
-       首页框同语义；摘要全文检索走 /search/（其索引在 search-data.js） */
-    if (state.q && (dispHay(it)).indexOf(state.q) === -1) return false;
+    /* 首页搜索框按展示字段匹配（标题中英/作者/期刊/DOI/标签）——多词按 AND
+       分词（2026-11-01 与 /search/ 对齐）：此前整串 indexOf，「biodiversity
+       nature」这类多词查询在首页静默零结果；单词行为不变。
+       摘要全文检索走 /search/（其索引在 search-data.js） */
+    if (state.q && !state.q.trim().toLowerCase().split(/\s+/).every(
+            (t) => dispHay(it).indexOf(t) > -1)) return false;
     return true;
   }
   function dispHay(it) {
@@ -637,6 +643,15 @@
   if (filterBox) {
     var collapsed = false;
     try { collapsed = localStorage.getItem("mbd-filters") === "hidden"; } catch (e) {}
+    // 移动端首屏让位给内容：期刊名长，竖排 chips 会把第一张卡片推到两屏外 ——
+    // 无既有偏好时窄屏(≤640)默认收起；用户展开/收起一次即写入偏好，之后遵循偏好
+    if (!collapsed) {
+      var savedFilters = null;
+      try { savedFilters = localStorage.getItem("mbd-filters"); } catch (e) {}
+      if (savedFilters === null && window.matchMedia("(max-width: 640px)").matches) {
+        collapsed = true;
+      }
+    }
     if (collapsed) filterBox.setAttribute("hidden", "");
   }
   if (filterBtn && filterBox) {
