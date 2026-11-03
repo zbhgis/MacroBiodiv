@@ -67,8 +67,10 @@ def item_year(item: dict) -> str:
     return m.group(1) if m else str(date.today().year)
 
 
-def sniff_ext(raw: bytes, fallback: str = "png") -> str:
-    """魔数嗅探真实图片格式（Content-Type 可伪造）。"""
+def sniff_ext(raw: bytes) -> str | None:
+    """魔数嗅探真实图片格式（Content-Type 可伪造）；不认识返回 None，
+    由调用方走 PIL 探测——绝不把未知格式误存成 .png（字节与扩展名/Content-Type
+    不符，站点引用后静默渲染失败且 OWN_LOCALIZED_RE 永远跳过、不会自愈）。"""
     if raw.startswith(b"\x89PNG\r\n\x1a\n"):
         return "png"
     if raw.startswith(b"\xff\xd8\xff"):
@@ -77,13 +79,39 @@ def sniff_ext(raw: bytes, fallback: str = "png") -> str:
         return "webp"
     if raw[:4] in (b"GIF8",):
         return "gif"
-    return fallback
+    return None
+
+
+# PIL 能解码且浏览器可直出的格式 → 扩展名；TIFF/AVIF/HEIC 等不在此列，
+# 本地化后浏览器渲染不可靠，宁保留外链（原服务器 Content-Type 正确）
+_PIL_EXT = {"JPEG": "jpg", "PNG": "png", "WEBP": "webp", "GIF": "gif", "BMP": "bmp"}
+
+
+def pil_format(raw: bytes) -> str:
+    """魔数不认识时用 PIL 探测真实格式名（make_thumb 反正也要过 PIL）。"""
+    from PIL import Image
+    with Image.open(io.BytesIO(raw)) as im:
+        return im.format or ""
+
+
+MAX_COVER_BYTES = 64 * 1024 * 1024   # 封面字节上限：误链/超大 TIFF 动辄数百 MB，
+                                     # 6 线程并发 r.read() 无上限会拖爆内存
 
 
 def fetch_bytes(url: str, timeout: int = 60) -> bytes:
     req = Request(url, headers={"User-Agent": "MacroBiodivImages/1.0"})
     with urlopen(req, timeout=timeout) as r:
-        return r.read()
+        chunks: list[bytes] = []
+        total = 0
+        while True:
+            b = r.read(1 << 20)
+            if not b:
+                break
+            total += len(b)
+            if total > MAX_COVER_BYTES:
+                raise ValueError(f"封面超过 {MAX_COVER_BYTES >> 20}MB，放弃本地化")
+            chunks.append(b)
+        return b"".join(chunks)
 
 
 def make_thumb(raw: bytes) -> tuple[bytes, int, int]:
@@ -153,6 +181,13 @@ def process_one(item: dict, force: bool) -> dict:
     try:
         raw = fetch_bytes(cover)
         ext = sniff_ext(raw)
+        if ext is None:
+            fmt = pil_format(raw)          # make_thumb 也要过 PIL，这里先探明格式
+            ext = _PIL_EXT.get(fmt, "")
+            if not ext:
+                return {"id": fid, "ok": False, "orig": cover,
+                        "err": f"封面格式不支持本地化（{fmt or '未知'}），保留外链",
+                        "ext": "", "w": 0, "h": 0}
         full_dir = FULL_DIR / year
         thumb_dir = THUMB_DIR / year
         full_dir.mkdir(parents=True, exist_ok=True)
@@ -167,17 +202,19 @@ def process_one(item: dict, force: bool) -> dict:
         else:
             tb, w, h = make_thumb(raw)                  # 现场压缩
             thumb_path.write_bytes(tb)
-        # 展示档：大图（>1200px 或 >512KB）压中间档供详情页直载；小图跳过
+        # 展示档：大图（>1200px 或 >512KB）压中间档供详情页直载；小图跳过。
+        # path 必须传：小体积大尺寸（线稿 PNG）只按 bytes 会漏判，docstring 承诺的分支
         dw = dh = 0
-        if needs_disp(len(raw)):
+        if needs_disp(len(raw), full_path):
             db, dw, dh = make_disp(raw)
             (DISP_DIR / year).mkdir(parents=True, exist_ok=True)
             (DISP_DIR / year / f"{fid}.webp").write_bytes(db)
         return {"id": fid, "ok": True, "ext": ext, "w": w, "h": h,
-                "dw": dw, "dh": dh,
+                "dw": dw, "dh": dh, "orig": cover,
                 "orig_kb": len(raw) // 1024, "year": year}
     except Exception as e:                    # 网络/解码失败：留待下次增量重跑
-        return {"id": fid, "ok": False, "err": f"{type(e).__name__}: {e}"[:120],
+        return {"id": fid, "ok": False, "orig": cover,
+                "err": f"{type(e).__name__}: {e}"[:120],
                 "ext": "", "w": 0, "h": 0}
 
 
@@ -200,7 +237,7 @@ def backfill_disp(papers: dict, dry_run: bool = False) -> int:
             n_miss += 1
             continue
         raw = fp.read_bytes()
-        if not needs_disp(len(raw)):
+        if not needs_disp(len(raw), fp):
             n_small += 1
             continue
         if dry_run:
@@ -224,15 +261,23 @@ def _write_localization(ok: list[dict]) -> int:
     """本地化结果写回 papers.json。下载在锁外进行（分钟级不能持锁），写回前
     在锁内重读最新数据、只按 id 合并本次字段 —— 整快照回写会吞掉下载窗口
     期间管理台的并发写入（/api/cover 等）。tmp+replace 原子落盘，与
-    admin.save_papers 同款；与其共用同一把文件锁（meta/.papers.lock）。"""
+    admin.save_papers 同款；与其共用同一把文件锁（meta/.papers.lock）。
+
+    合并前比对 cover：下载窗口内用户给同一条目换了封面/清了封面（fresh 的
+    cover ≠ 下载时的 orig），放弃改写该条目 —— 否则用户改动被静默回滚成
+    下载时的旧图（条目仍在，删除防护覆盖不到这种情形）。"""
     with papers_file_lock():
         fresh = json.loads(PAPERS_JSON.read_text(encoding="utf-8"))
         by_id = {str(it.get("id") or ""): it for it in fresh.get("items", [])}
-        merged = 0
+        merged = skipped = 0
         for r in ok:
             it = by_id.get(r["id"])
             if not it:
                 continue            # 下载窗口内被删除：放弃其封面改写
+            if str(it.get("cover") or "") != r.get("orig", ""):
+                skipped += 1        # 下载窗口内 cover 被人为改动：保留用户改动
+                print(f"  · {r['id']} 封面在本地化期间被改动，保留现值不改写")
+                continue
             y = r.get("year") or item_year(it)
             it["cover"] = f"{OWN_BASE}/full/{y}/{r['id']}.{r['ext']}"
             it["cover_thumb"] = f"{OWN_BASE}/thumb/{y}/{r['id']}.webp"
@@ -251,6 +296,8 @@ def _write_localization(ok: list[dict]) -> int:
         tmp = PAPERS_JSON.parent / (PAPERS_JSON.name + ".tmp")
         tmp.write_text(json.dumps(fresh, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         papers_replace(tmp, PAPERS_JSON)
+    if skipped:
+        print(f"· 本地化写回：合并 {merged} 张 · 因并发改动跳过 {skipped} 张（下次发布自动重试）")
     return merged
 
 

@@ -83,6 +83,10 @@ def _get_json(url: str) -> dict:
         raise FetchError(f"网络错误：{e.reason}") from None
     except TimeoutError:
         raise FetchError("请求超时") from None
+    except (json.JSONDecodeError, UnicodeDecodeError) as e:
+        # 200 + 非 JSON（代理劫持页/CDN 错误页/截断响应）：裸抛会让 CLI 批量
+        # 整批中断（fetch_many 只接 FetchError）——实测复现过，转成可接住的类型
+        raise FetchError(f"响应不是有效 JSON（{e}）——多为代理/CDN 劫持页，稍后重试") from None
 
 
 def _clean_title(raw: str) -> str:

@@ -114,15 +114,32 @@ def today() -> str:
     return date.today().isoformat()
 
 
+def _papers_fp(path: Path) -> str:
+    """papers.json 内容指纹：跨进程乐观并发校验的依据。文件不存在返回空串。"""
+    try:
+        import hashlib
+        return hashlib.sha1(path.read_bytes()).hexdigest()
+    except OSError:
+        return ""
+
+
+class _Papers(dict):
+    """load_papers 的返回类型：携带载入时的快照指纹，save_papers 写回前比对
+    （普通 dict 一样用；指纹是类属性，不进 JSON）。"""
+
+
 def load_papers() -> dict:
     """papers.json 是全站元数据的唯一真源：损坏时备份现场并抛错，绝不静默归零
     ——静默返回空库后，下一次任意写操作就把空库写回，文献连同中文译文/标签
     整批丢失。主站 loadConfig 的同款教训。"""
+    fp = _papers_fp(PAPERS_JSON)
     if PAPERS_JSON.exists():
         try:
             data = json.loads(PAPERS_JSON.read_text(encoding="utf-8"))
             if isinstance(data, dict) and isinstance(data.get("items"), list):
-                return data
+                out = _Papers(data)
+                out._src_fp = fp
+                return out
             raise ValueError("形状不符（缺 items 数组）")
         except (json.JSONDecodeError, ValueError) as e:
             stamp = time.strftime("%Y%m%d-%H%M%S")
@@ -132,7 +149,7 @@ def load_papers() -> dict:
                 f"papers.json 损坏（{e}），已备份为 {backup.name}"
                 "——修复或恢复该文件后重试，拒绝以空库覆盖"
             ) from e
-    return {"generated": today(), "count": 0, "items": []}
+    return _Papers({"generated": today(), "count": 0, "items": []})
 
 
 def save_papers(papers: dict) -> None:
@@ -144,8 +161,19 @@ def save_papers(papers: dict) -> None:
     # 文件锁：发布流水线以子进程跑 prepare_thumbs，两边对 papers.json 的
     # 读-改-写必须跨进程互斥（DATA_LOCK 只管本进程线程），否则慢的一方
     # 整快照回写会吞掉先落的变更。
-    tmp = PAPERS_JSON.parent / (PAPERS_JSON.name + ".tmp")
+    # 乐观并发校验：DATA_LOCK 只管本进程，跨进程窗口（load_papers → save_papers
+    # 之间的分钟级网络循环）内他人落盘的变更会被本进程的旧快照整包覆盖。
+    # 指纹不符 = 另一进程写过 → 响亮失败拒绝写回（宁可失败也不丢更新，
+    # 与 fslock 同原则）；Windows 下 SO_REUSEADDR 允许误双开 admin，此防线不依赖
+    # 「单实例」假设。进程内全部 save 都在 DATA_LOCK 内串行，不会误伤。
     with papers_file_lock():
+        src_fp = getattr(papers, "_src_fp", "")
+        if src_fp and _papers_fp(PAPERS_JSON) != src_fp:
+            raise RuntimeError(
+                "papers.json 在本任务期间已被其他进程修改（如手动跑过 "
+                "prepare_thumbs 或误开了第二个管理台）——本任务放弃写回，"
+                "你的改动未落盘；请重跑本任务（会基于最新数据重新执行）")
+        tmp = PAPERS_JSON.parent / (PAPERS_JSON.name + ".tmp")
         tmp.write_text(json.dumps(papers, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         papers_replace(tmp, PAPERS_JSON)
 
@@ -556,14 +584,28 @@ def do_publish(items: list, message: str, push: bool, sync: bool) -> dict:
     added, skipped, failed = 0, 0, 0
     with DATA_LOCK:
         papers = load_papers()
-        by_doi = {str(i.get("doi") or "").lower(): i for i in papers["items"]}
+        # DOI 去重表：无 DOI 的存量条目不进表（key="" 会把它们互相吞并成一条），
+        # 写回时原样带过；同 DOI 冲突保留后值（原语义），差值入日志不再静默
+        with_doi: dict[str, dict] = {}
+        no_doi: list[dict] = []
+        for i in papers["items"]:
+            k = str(i.get("doi") or "").lower()
+            if k:
+                with_doi[k] = i
+            else:
+                no_doi.append(i)
+        dup_n = len(papers["items"]) - len(with_doi) - len(no_doi)
+        if dup_n:
+            log.append({"step": "写入文献索引", "ok": True,
+                        "out": f"存量 {dup_n} 条 DOI 重复条目按 DOI 去重（保留后值）——"
+                               f"如非预期请检查 meta/papers.json"})
 
         for it in items:
             doi = normalize_doi(str(it.get("doi") or ""))
             if not doi:
                 failed += 1
                 continue
-            if doi.lower() in by_doi:
+            if doi.lower() in with_doi:
                 skipped += 1
                 continue
             rec = dict(it.get("record") or {})
@@ -585,10 +627,10 @@ def do_publish(items: list, message: str, push: bool, sync: bool) -> dict:
                 rec["cover"] = cov
             elif not str(rec.get("cover") or "").startswith(("http://", "https://")):
                 rec.pop("cover", None)
-            by_doi[doi.lower()] = rec
+            with_doi[doi.lower()] = rec
             added += 1
 
-        papers["items"] = list(by_doi.values())
+        papers["items"] = list(with_doi.values()) + no_doi
         save_papers(papers)
     summary = f"papers.json 新增 {added} 条"
     if skipped:
@@ -749,6 +791,10 @@ def do_translate(ids: list, only_missing: bool = False) -> dict:
             except llm.LLMError as e:
                 err_n += 1
                 log.append({"step": f"翻译 {it.get('id')}", "ok": False, "out": str(e)})
+            except Exception as e:      # 非预期异常也逐条记账：循环穿出会让整批
+                err_n += 1              # 已付费译文在 save_papers 前全部陪葬
+                log.append({"step": f"翻译 {it.get('id')}", "ok": False,
+                            "out": f"未预期异常 {type(e).__name__}：{e}"[:160]})
             time.sleep(0.5)     # 每篇间隔，配合 llm 层的请求节流
         save_papers(papers)
     if not log:
@@ -1010,14 +1056,21 @@ def do_delete_and_finish(ids, message: str, push: bool, sync: bool) -> dict:
 #               ③ 图表图下载为封面；图表为无 / 下载失败 → 站点 logo 兜底
 # 生成的文献条目进 papers.json，与手动添加的一起在「文献管理」里统一管理。
 
+_WINDOWS_RESERVED = {"con", "prn", "aux", "nul"} | {
+    f"{p}{n}" for p in ("com", "lpt") for n in range(1, 10)}
+
+
 def weekly_safe_name(name: str) -> str:
-    """上传文件名清洗：去路径成分与非法字符，缺 .md 补上。"""
+    """上传文件名清洗：去路径成分与非法字符，缺 .md 补上。Windows 保留设备名
+    （con.md/prn.md 等）直接判非法——dest.write_text 会抛 OSError 且报错不可读。"""
     name = (name or "").strip().replace("\\", "/").split("/")[-1]
     name = re.sub(r'[<>:"|?*\x00-\x1f]', "", name).strip()
     if not name:
         return ""
     if not name.lower().endswith(".md"):
         name += ".md"
+    if Path(name).stem.lower() in _WINDOWS_RESERVED:
+        return ""
     return name
 
 
@@ -1112,6 +1165,8 @@ def weekly_preview(name: str, content: str) -> dict:
         return {"ok": False, "error": "文件名不合法"}
     if not (content or "").strip():
         return {"ok": False, "error": "文件内容为空"}
+    if len(content.encode("utf-8")) > WEEKLY_FILE_MAX:
+        return {"ok": False, "error": "内容超过 2MB（在线编辑读不回这么大的文件），请拆分后再上传"}
     meta, _ = parse_front_matter(content)
     parsed = parse_weekly_papers(content)
     known = {str(i.get("doi") or "").lower() for i in load_papers().get("items", [])}
@@ -1155,6 +1210,11 @@ def do_weekly_import(name: str, content: str, log: list) -> dict:
     if not fname or not (content or "").strip():
         log.append({"step": "校验文件", "ok": False, "out": "文件名或内容不合法"})
         return {"ok": False}
+    if len(content.encode("utf-8")) > WEEKLY_FILE_MAX:
+        # 不拦的话正常落盘入库，但此后「编辑」永远被 2MB 上限拒读 —— 功能自锁
+        log.append({"step": "校验文件", "ok": False,
+                    "out": "内容超过 2MB（在线编辑读不回这么大的文件），请拆分后再上传"})
+        return {"ok": False}
     meta, _ = parse_front_matter(content)
     parsed = parse_weekly_papers(content)
     title = str(meta.get("title") or "").strip() or fname
@@ -1167,10 +1227,13 @@ def do_weekly_import(name: str, content: str, log: list) -> dict:
     new_slug = weekly_slug_of(content, Path(fname).stem)
     for other in WEEKLY_SRC.glob("*.md"):
         # NTFS 不区分大小写：仅大小写不同的「重传」实为同一文件，放行走覆盖更新
-        if other.name.lower() == fname.lower():
+        if other.name.lower() == fname.lower() or not other.is_file():
             continue
-        if weekly_slug_of(other.read_text(encoding="utf-8", errors="replace"),
-                          other.stem) == new_slug:
+        try:
+            other_text = other.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue        # 目录形态 .md / 被外部进程独占：跳过，别拖垮整个导入
+        if weekly_slug_of(other_text, other.stem) == new_slug:
             log.append({"step": "校验期号", "ok": False,
                         "out": f"与已收录的《{other.name}》同为期号 {new_slug}（标题「精选N」重复）。"
                                f"同一期更新请使用原文件名上传（覆盖式），或修正标题期号后重试；本次未落盘"})
@@ -1188,7 +1251,21 @@ def do_weekly_import(name: str, content: str, log: list) -> dict:
     dirty = False
     with DATA_LOCK:
         papers = load_papers()
-        by_doi = {str(i.get("doi") or "").lower(): i for i in papers["items"]}
+        # 与 do_publish 同口径：无 DOI 存量条目不进去重表（key="" 会互相吞并），
+        # 写回原样带过；同 DOI 冲突保留后值，差值入日志不再静默
+        with_doi: dict[str, dict] = {}
+        no_doi: list[dict] = []
+        for i in papers["items"]:
+            k = str(i.get("doi") or "").lower()
+            if k:
+                with_doi[k] = i
+            else:
+                no_doi.append(i)
+        dup_n = len(papers["items"]) - len(with_doi) - len(no_doi)
+        if dup_n:
+            log.append({"step": "解析周报", "ok": True,
+                        "out": f"存量 {dup_n} 条 DOI 重复条目按 DOI 去重（保留后值）——"
+                               f"如非预期请检查 meta/papers.json"})
         md_seen: set = set()
         for idx, p in enumerate(parsed):
             label = f"文献{p['no']}"
@@ -1206,10 +1283,10 @@ def do_weekly_import(name: str, content: str, log: list) -> dict:
                 skipped += 1
                 continue
             md_seen.add(doi.lower())
-            if doi.lower() in by_doi:
+            if doi.lower() in with_doi:
                 # 已在库也要看一眼封面：上次导入图表为无会落 logo 兜底，这次重传
                 # 同一期且解析到图表 → 封面升级为外链直显（日志标「补封面」）
-                ex = by_doi[doi.lower()]
+                ex = with_doi[doi.lower()]
                 cur = str(ex.get("cover") or "")
                 if p["images"] and (not cur or _is_logo_cover(str(ex.get("id") or ""))):
                     ex["cover"] = p["images"][0]
@@ -1260,12 +1337,12 @@ def do_weekly_import(name: str, content: str, log: list) -> dict:
                 cov = detect_cover(record["id"])
                 if cov:
                     record["cover"] = cov
-            by_doi[doi.lower()] = record
+            with_doi[doi.lower()] = record
             added += 1
             log.append({"step": label, "ok": True,
                         "out": f"已入库：{str(record['title_zh'] or record['title'])[:48]}（{record['id']}）"})
         if added or dirty:
-            papers["items"] = list(by_doi.values())
+            papers["items"] = list(with_doi.values()) + no_doi
             save_papers(papers)
     summary = f"收录完成：新增 {added} 篇"
     if skipped:
@@ -1352,6 +1429,22 @@ def do_weekly_backfill_chinese() -> dict:
     return {"ok": True, "log": log, "filled": filled_n}
 
 
+def _unique_dest(directory: Path, name: str, tag: str) -> Path:
+    """目录内不重名的落点：重名时插 .{tag}-<毫秒时间戳>，递增防同毫秒碰撞。
+    Windows 的 Path.rename 目标已存在抛 FileExistsError、POSIX 静默覆盖——前者让
+    「md 已移走却报失败」（任务 ok=False → 重建被跳过 → 线上僵尸页，且留下孤儿
+    .bak 连锁破坏下一次删除/恢复），后者丢上一份备份。删除/恢复的 md 与 .bak
+    落点一律走这里。"""
+    p = directory / name
+    if not p.exists():
+        return p
+    stem, suffix = Path(name).stem, Path(name).suffix
+    ts = int(time.time() * 1000)
+    while (directory / f"{stem}.{tag}-{ts}{suffix}").exists():
+        ts += 1
+    return directory / f"{stem}.{tag}-{ts}{suffix}"
+
+
 def do_weekly_delete(names) -> dict:
     """批量删除周报期次：names（列表；兼容单个文件名字符串）逐个移入本机回收站
     content/.trash/weekly/（mystation 同款软删除，git 不跟踪；可从「每周速递」页恢复）。
@@ -1373,20 +1466,23 @@ def do_weekly_delete(names) -> dict:
         if fp.exists():
             try:
                 WEEKLY_TRASH.mkdir(parents=True, exist_ok=True)
-                target = WEEKLY_TRASH / fname
-                if target.exists():
-                    target = WEEKLY_TRASH / f"{Path(fname).stem}.deleted-{int(time.time())}.md"
-                fp.rename(target)
-                bak = fp.with_name(fp.name + ".bak")     # .bak 随正文一起进回收站
-                if bak.exists():
-                    bak.rename(WEEKLY_TRASH / bak.name)
+                fp.rename(_unique_dest(WEEKLY_TRASH, fname, "deleted"))
             except OSError as e:
                 log.append({"step": f"删除周报 {fname}", "ok": False, "out": f"移动失败：{e}"})
                 continue
             removed.append(fname)
+            # .bak 随正文一起进回收站；备份移动失败不让主文件的成功被推翻
+            # ——md 已移走却报失败会跳过重建（线上僵尸页），宁可留个孤儿 .bak
+            bak_note = ""
+            bak = fp.with_name(fp.name + ".bak")
+            if bak.exists():
+                try:
+                    bak.rename(_unique_dest(WEEKLY_TRASH, bak.name, "deleted"))
+                except OSError:
+                    bak_note = "；.bak 备份移动失败（留在原地，不影响本次删除）"
             log.append({"step": f"删除周报 {fname}", "ok": True,
                         "out": "md 移入 content/.trash/weekly/（可恢复）；周报页随构建消失，"
-                               "已生成的文献卡片保留，在文献管理里单独删除"})
+                               "已生成的文献卡片保留，在文献管理里单独删除" + bak_note})
         else:
             log.append({"step": f"删除周报 {fname}", "ok": False, "out": "文件不存在（可能已删除）"})
     if not removed:
@@ -1626,22 +1722,25 @@ def do_weekly_restore(names) -> dict:
         if not src.resolve().is_relative_to(WEEKLY_TRASH.resolve()) or not src.is_file():
             log.append({"step": f"恢复周报 {fname}", "ok": False, "out": "回收站中不存在"})
             continue
-        dest = WEEKLY_SRC / fname
-        if dest.exists():
-            dest = WEEKLY_SRC / f"{Path(fname).stem}.restored-{int(time.time())}.md"
         try:
             WEEKLY_SRC.mkdir(parents=True, exist_ok=True)
+            dest = _unique_dest(WEEKLY_SRC, fname, "restored")
             src.rename(dest)
-            bak = src.with_name(src.name + ".bak")   # .bak 跟着恢复，名字对齐恢复后的文件名
-            if bak.exists():
-                bak.rename(dest.with_name(dest.name + ".bak"))
         except OSError as e:
             log.append({"step": f"恢复周报 {fname}", "ok": False, "out": f"移动失败：{e}"})
             continue
         restored.append(dest.name)
+        # .bak 跟着恢复、名字对齐恢复后的文件名；备份失败只加注，md 已恢复成功
+        bak_note = ""
+        bak = src.with_name(src.name + ".bak")
+        if bak.exists():
+            try:
+                bak.rename(_unique_dest(WEEKLY_SRC, dest.name + ".bak", "restored"))
+            except OSError:
+                bak_note = "；.bak 备份恢复失败（留在回收站）"
         log.append({"step": f"恢复周报 {dest.name}", "ok": True,
                     "out": "md 已回到 content/weekly/，随本次构建重新上线"
-                           + ("（原名被占，已改名）" if dest.name != fname else "")})
+                           + ("（原名被占，已改名）" if dest.name != fname else "") + bak_note})
     if not restored:
         return {"ok": False, "log": log}
     return {"ok": True, "restored": restored, "log": log}
@@ -1840,8 +1939,12 @@ class Handler(BaseHTTPRequestHandler):
             # 恢复 = 移回文件 + 重新构建上线，长操作走后台任务
             self._json({"job": start_job("weekly-restore", body)})
         elif path == "/api/weekly-backfill-zh":
-            res = do_weekly_backfill_chinese()
-            self._json(res)
+            # 与周报编辑同门禁：导入/构建进行中扫描 content/weekly 会读到半写
+            # md，把残缺中文永久写进空缺字段（backfill 幂等只补空，错值不自愈）
+            if jobs_running():
+                self._json({"ok": False, "error": "已有发布/收录/删除任务在运行，结束后再补全"})
+            else:
+                self._json(do_weekly_backfill_chinese())
         elif path == "/api/cover":
             fid = (body.get("id") or "").strip()
             if body.get("remove"):

@@ -83,19 +83,24 @@ class LLMError(Exception):
 # ────────────────────────── 断路器与节流（多线程安全） ──────────────────────────
 
 _BR_LOCK = threading.Lock()
-_LAST_REQUEST_AT = 0.0        # 上次真正发出请求的时刻
+_LAST_REQUEST_AT = 0.0        # 已预约的下一个可发时刻（预约制，见 _throttle）
 _FAIL_TIMES: list[float] = [] # 最近耗尽重试的失败时刻
 _COOL_UNTIL = 0.0             # 断路冷却截止时刻
 
 
 def _throttle() -> None:
-    """全局最小请求间隔：无论哪个线程发请求，两次发送之间至少隔 MIN_INTERVAL。"""
+    """全局最小请求间隔：无论哪个线程发请求，两次发送之间至少隔 MIN_INTERVAL。
+    预约制：锁内只计算并占坑下一个可发时刻，锁外再睡 —— 睡眠持锁会拖住
+    cooling_down() 等断路器状态查询最长 MIN_INTERVAL 秒。"""
     global _LAST_REQUEST_AT
     with _BR_LOCK:
-        wait = _LAST_REQUEST_AT + MIN_INTERVAL - time.time()
-        if wait > 0:
-            time.sleep(wait)
-        _LAST_REQUEST_AT = time.time()
+        now = time.time()
+        send_at = max(_LAST_REQUEST_AT + MIN_INTERVAL, now)
+        _LAST_REQUEST_AT = send_at     # 占坑：后续线程会排在我后面
+    if send_at > now:
+        # max(0.0,·)：锁释放后线程被去调度超过 MIN_INTERVAL 时差值为负，
+        # time.sleep 负参数抛 ValueError 且本函数在调用方 try 之外，会击穿逐条捕获
+        time.sleep(max(0.0, send_at - time.time()))
 
 
 def _note_hard_fail() -> None:

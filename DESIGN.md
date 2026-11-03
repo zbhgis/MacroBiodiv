@@ -164,7 +164,9 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   加载前按缩略图真实比例撑出占位区零抖动，图片画出来后自然盖住；加载失败先回退原图
   外链再降级；无封面或全部失败时换成期刊缩写占位块
   `.c-ph`（连 c-covbox 一起替换，撤掉加载层）——jsdelivr 多源降级耗尽后由
-  `__coverPlaceholder` 兜底，不留破图，版式不塌）；
+  `__coverPlaceholder` 兜底，不留破图，版式不塌；**`cover_src("")` 返回空串**
+  （2026-11-03 补：此前空 cover 拼出 `assets/?v=…` 死链，JS 渲染的卡片每个
+  无封面条目必 404 一次才落到占位块——静态首屏本有 `elif cov:` 守卫不受影响）；
   说明区 `.c-cap` = 徽章行（文章类型 + 期刊）+ 主标题（**中文优先**，悬停显示另一语言
   原题，3 行截断）
 - 瀑布流 **CSS multi-columns**：4 列、列距 18px，≤1100px 3 列、≤760px 2 列（列距 12px）；
@@ -613,7 +615,13 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
   `content/.trash/weekly/`（gitignore，已发布周报在 git 历史仍有底；`.bak` 随行），
   `/api/weekly` 响应带 `trash` 数组；页签下方「回收站」面板列出可**恢复**——
   `POST /api/weekly-restore` 后台任务移回文件（改名冲突用 `.restored-<时间戳>` 兜底）并走完整
-  流水线重建上线；期次列表另加搜索框（`wkFilter`，文件名 / 标题 / slug），「全选」仍作用于全部期次
+  流水线重建上线；**md 与 .bak 的落点统一走 `_unique_dest` 不重名兜底（2026-11-03）**——
+  此前 Windows 下回收站已有同名 `.bak` 时 rename 抛错被当作整条失败：md 已移走却
+  记 removed=0 → 任务 ok=False → **重建被跳过（线上僵尸周报页）**，孤儿 `.bak` 还会
+  连锁让恢复半完成；现在备份移动失败只加注不推翻主文件的成功；「从周报补全中文」
+  （`/api/weekly-backfill-zh`）同样受 `jobs_running()` 门禁（此前可与导入并发，
+  半写 md 的残缺中文会永久入库）；上传校验补 2MB 上限与 Windows 保留设备名拒收；
+  期次列表另加搜索框（`wkFilter`，文件名 / 标题 / slug），「全选」仍作用于全部期次
 - **通用组件**：页内确认弹窗（替代原生 confirm，支持取消回调）、toast、任务日志步骤条
   （…/✓/✗，日志区两个：全局区 + 每周速递独立区）、同批重复 DOI 客户端即时标出；
   **任务进度区全局置顶**（2026-10-10）：日志区从「添加文献」底部移至标签页上方
@@ -688,6 +696,12 @@ fetch_doi.py ──► llm.py ──► admin.py ──► build_site.py ──�
 
 字段优先级规则：**手动 > LLM > 自动回落**。GeoSciPlot 的 titles.csv 副本被有意去掉，
 papers.json 单一数据源避免双写不同步。
+**写入路径**（admin.save_papers）：tmp+replace 原子落盘 + `meta/.papers.lock` 跨进程互斥 +
+**乐观指纹校验**（2026-11-03 补）：load_papers 记录载入时文件 sha1，save_papers 在锁内
+比对——本任务的分钟级读-改-写窗口（翻译/刷新/周报导入）内若有其他进程写过（手动跑
+prepare_thumbs、Windows SO_REUSEADDR 误双开管理台），拒绝写回并响亮报错，把
+「慢快照整包静默覆盖他人改动」变成可重试的失败；进程内写入全部经 DATA_LOCK 串行，
+不会误伤。
 
 #### 封面图管线（GeoSciPlot 图片上传的同源移植）
 
@@ -716,7 +730,14 @@ build_site.py：整体拷到 site/assets/covers/（镜像式，删除不残留�
   （`cdn.jsdelivr.net/gh/zbhgis/MacroBiodiv@main/images/...`）。
   **写回与 admin.save_papers 共用 `meta/.papers.lock` 跨进程互斥**（scripts/fslock.py，
   msvcrt/fcntl 零依赖）：下载在锁外，写回前锁内重读最新数据只按 id 合并本次字段、
-  tmp+replace 原子落盘 —— 整快照回写会吞掉下载窗口期间管理台的并发写入。
+  tmp+replace 原子落盘 —— 整快照回写会吞掉下载窗口期间管理台的并发写入；
+  **合并前逐条比对 cover**：下载窗口内用户经 /api/cover 换了封面/清了封面
+  （fresh 的 cover ≠ 下载时的 orig）即放弃该条目改写，宁下次发布重试也不
+  静默回滚用户改动（2026-11-03 补）。原图**分块下载、64MB 上限**（防误链超大
+  文件在 6 线程并发下拖爆内存）；**魔数嗅探不认识的格式走 PIL 探测**，浏览器
+  不可直出的格式（TIFF/AVIF 等）报错保留外链——绝不误存 .png（字节与扩展名
+  不符会渲染失败且已本地化判定永不自愈，2026-11-03 补）；展示档判定
+  `needs_disp` 传本地 full 路径读真实尺寸，小体积大尺寸线稿 PNG 不再漏判。
   **admin 侧五条 cover 变更路径**（编辑保存/重抓/设外链/清外链/补封面）经
   `prune_stale_thumb` 做同源校验，cover 与 thumb/disp 基名不一致即清除六字段，
   卡片自动回退封面原图。**Pillow 仅此工具需要**
@@ -730,7 +751,9 @@ build_site.py：整体拷到 site/assets/covers/（镜像式，删除不残留�
 ## 5. DOI 抓取管线（fetch_doi.py）
 
 1. **规范化**：从任意文本提取 DOI（`10.x/...`，剥 doi.org 前缀），按「DOI 只含 ASCII」
-   截断防全角标点混入，URL 侧再做一次 quote 兜底
+   截断防全角标点混入，URL 侧再做一次 quote 兜底；`_get_json` 统一防御非 JSON 响应
+   （200+HTML 的代理/CDN 劫持页转 FetchError 逐条记错，2026-11-03 补——裸抛
+   JSONDecodeError 曾让 CLI 批量整批中断）
 2. **分层**：Crossref（`works/{doi}`，mailto 礼貌池）主力 → OpenAlex（`works/doi:{doi}`）补
    摘要（还原倒排索引）/ 关键词 / 被引 / 体裁提示；**不抓出版社页面**（Cloudflare 反爬，稳定优先）；
    **唯一例外**：`10.1038`（Nature 系）在双源皆无摘要时抓 `nature.com/articles/{后缀}` 页面的
@@ -793,7 +816,9 @@ build_site.py：整体拷到 site/assets/covers/（镜像式，删除不残留�
   内裸换行/制表符——长中文摘要被模型排成多行的高频坏法）→ 去尾逗号再各试一次，
   实测「审校失败回退初译」大幅减少（结构性坏 JSON 仍回退初译兜底）；
   `max_tokens: 16384`（推理模型思考链计入输出配额，实测可吃 1000+ tokens）
-- **限流与回退分层**（详见 usage.md「大模型」节）：请求节流 → 429 指数退避 + Retry-After →
+- **限流与回退分层**（详见 usage.md「大模型」节）：请求节流（**预约制**：锁内只占坑
+  下一个可发时刻、锁外睡眠——持锁睡眠会拖住 cooling_down() 状态查询最长 2s，
+  2026-11-03 改）→ 429 指数退避 + Retry-After →
   断路器（120s 内 2 次全败冷却 60s）→ 审校失败降级「仅初译」→ 初译失败留空正常入库 →
   「翻译缺中文的」批量幂等补译（只补空缺不覆盖手改）。429 与非 429 错误各持独立
   重试配额互不挤占（2026-10-31）；耗时预算放弃同样记入断路器

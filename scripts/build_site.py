@@ -494,8 +494,12 @@ def citation(p: dict) -> str:
 def cover_src(cover: str, up: str = "") -> str:
     """cover 字段兼容两种取值：本地相对路径（assets/ 下）或完整外链 URL。
     外链原样返回（前端 __imgFallback 已提供 jsdelivr 多源降级），
-    本地路径拼资产前缀并带 ?v= 防缓存。"""
+    本地路径拼资产前缀并带 ?v= 防缓存。空 cover 返回空串：调用方（静态
+    card_html / papers.js 的 cv 分支）各自落到无封面占位符——若拼成
+    "assets/?v=…" 会成为每个无封面卡片一张必 404 的死图。"""
     c = (cover or "").strip()
+    if not c:
+        return ""
     if c.startswith(("http://", "https://")):
         return c
     return f"{up}assets/{c}?v={asset_ver(c)}"
@@ -1978,7 +1982,7 @@ def main() -> int:
         top_tags = " · ".join(f"[{md_safe(t)}]({base}/?tag={quote(t, safe='')}): {n} 篇"
                               for t, n in tag_ct.most_common(12)) or "（暂未打标签）"
         paper_lines = "\n".join(
-            f"- [{display_title(p)}]({base}/{p['id']}/): {(p.get('journal') or '—').strip()}"
+            f"- [{md_safe(display_title(p))}]({base}/{p['id']}/): {(p.get('journal') or '—').strip()}"
             f" {p.get('year') or ''}".rstrip()
             + (f" · DOI: {p['doi']}" if p.get("doi") else "")
             for p in items)
@@ -2151,8 +2155,9 @@ def main() -> int:
                      f'<link rel="alternate" type="text/html" href="{base}/{p["id"]}/"/>',
                      # guid 带 mbd 命名空间：Zotero 对 feed 条目按 guid 全局去重（跨订阅源），
                      # 与动态 feed 的 urn:doi 同 id 会互相吞条目（2026-10-14 实证，
-                     # 三订阅重叠时后处理者静默丢条目），静态/动态各用独立命名空间
-                     f'<id>urn:mbd:atom:{xml_text(p.get("doi", p["id"]))}</id>',
+                     # 三订阅重叠时后处理者静默丢条目），静态/动态各用独立命名空间；
+                     # doi 键存在但为空串时兜底 id——空 <id/> 是非法 Atom（2026-11-03 补）
+                     f'<id>urn:mbd:atom:{xml_text(p.get("doi") or p["id"])}</id>',
                      f'<published>{d_pub}</published>',
                      f'<updated>{d_pub}</updated>',
                      f'<summary>{xml_text(summ)}</summary>']
