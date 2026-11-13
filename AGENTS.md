@@ -15,6 +15,9 @@
 
 ## 设计基线
 
+- **Let the layout speak for itself.** 不要在 UI 里到处加小字解释/帮助段；
+  界面需要小字才能看懂时，改布局，把说明放进控件自身的 `title=` 提示；
+  可见文字只保留空状态与错误提示（2026-11-13 unslop 审计新增）
 - 样式/交互移植自 GeoSciPlot（github.com/zbhgis/GeoSciPlot）：token、右侧悬浮队列、
   分页条、搜索页版式为共享语言，修改前先与原站比对，保持同源
 - 固定 prompt 集中在 `scripts/llm.py`（`_TRANSLATOR_SYSTEM` / `_REVIEWER_SYSTEM`），
